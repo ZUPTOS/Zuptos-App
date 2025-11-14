@@ -30,7 +30,7 @@ export default function Sidebar() {
       id: "dashboard",
       label: "Dashboard",
       iconSrc: "/images/ICON-1.svg",
-      href: "/",
+      href: "/dashboard",
     },
     {
       id: "vendas",
@@ -105,7 +105,7 @@ export default function Sidebar() {
           const isActive =
             item.href === "/"
               ? pathname === item.href
-              : pathname.startsWith(item.href);
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const iconWrapperClasses = `flex ${
             isExpanded ? "h-8 w-8" : "h-8 w-8"
           } shrink-0 items-center justify-center rounded-[7px] `;

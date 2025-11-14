@@ -1,5 +1,5 @@
-import DashboardView from "@/views/Dashboard";
+import LoginView from "@/views/Login";
 
 export default function Page() {
-  return <DashboardView />;
+  return <LoginView />;
 }
