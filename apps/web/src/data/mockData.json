@@ -1,0 +1,141 @@
+{
+  "user": {
+    "id": "user_123",
+    "name": "Zuptos",
+    "email": "contato@zuptos.com",
+    "location": "PJ",
+    "avatar": "https://via.placeholder.com/150",
+    "level": "expert",
+    "nextLevel": "prata",
+    "progress": 43
+  },
+  "account": {
+    "availableBalance": 0.00,
+    "pendingBalance": 0.00,
+    "healthScore": 8.7,
+    "healthDetails": [
+      {
+        "label": "Chargeback",
+        "percentage": 14.3
+      },
+      {
+        "label": "MED",
+        "percentage": 0.3
+      },
+      {
+        "label": "Estorno",
+        "percentage": 0.3
+      }
+    ]
+  },
+  "revenue": {
+    "grossRevenue": 876.98,
+    "growthPercentage": 20.3,
+    "lines": [
+      { "id": "faturamento", "label": "Faturamento", "key": "faturamento", "color": "#8b5cf6" },
+      { "id": "receita_liquida", "label": "Receita líquida", "key": "receitaLiquida", "color": "#d946ef" },
+      { "id": "vendas", "label": "Vendas", "key": "vendas", "color": "#10b981" },
+      { "id": "ticket_medio", "label": "Ticket médio", "key": "ticketMedio", "color": "#06b6d4" },
+      { "id": "chargeback", "label": "Chargeback", "key": "chargeback", "color": "#f59e0b" },
+      { "id": "reembolso", "label": "Reembolso", "key": "reembolso", "color": "#f97316" }
+    ],
+    "daily": [
+      { "time": "00:00", "faturamento": 40, "receitaLiquida": 34, "vendas": 28, "ticketMedio": 20, "chargeback": 12, "reembolso": 9 },
+      { "time": "02:00", "faturamento": 38, "receitaLiquida": 36, "vendas": 30, "ticketMedio": 22, "chargeback": 14, "reembolso": 11 },
+      { "time": "04:00", "faturamento": 35, "receitaLiquida": 32, "vendas": 29, "ticketMedio": 24, "chargeback": 13, "reembolso": 12 },
+      { "time": "06:00", "faturamento": 37, "receitaLiquida": 34, "vendas": 26, "ticketMedio": 28, "chargeback": 11, "reembolso": 10 },
+      { "time": "08:00", "faturamento": 39, "receitaLiquida": 36, "vendas": 24, "ticketMedio": 30, "chargeback": 10, "reembolso": 9 },
+      { "time": "10:00", "faturamento": 35, "receitaLiquida": 31, "vendas": 21, "ticketMedio": 26, "chargeback": 9, "reembolso": 8 },
+      { "time": "12:00", "faturamento": 28, "receitaLiquida": 26, "vendas": 18, "ticketMedio": 24, "chargeback": 8, "reembolso": 7 },
+      { "time": "14:00", "faturamento": 24, "receitaLiquida": 22, "vendas": 16, "ticketMedio": 20, "chargeback": 7, "reembolso": 8 },
+      { "time": "16:00", "faturamento": 32, "receitaLiquida": 28, "vendas": 20, "ticketMedio": 22, "chargeback": 9, "reembolso": 10 },
+      { "time": "18:00", "faturamento": 36, "receitaLiquida": 30, "vendas": 24, "ticketMedio": 25, "chargeback": 11, "reembolso": 12 }
+    ],
+    "monthly": [
+      { "month": "Jan", "faturamento": 2100, "receitaLiquida": 1850, "vendas": 1200, "ticketMedio": 920, "chargeback": 260, "reembolso": 180 },
+      { "month": "Feb", "faturamento": 2200, "receitaLiquida": 1900, "vendas": 1250, "ticketMedio": 950, "chargeback": 240, "reembolso": 190 },
+      { "month": "Mar", "faturamento": 2300, "receitaLiquida": 1950, "vendas": 1300, "ticketMedio": 980, "chargeback": 230, "reembolso": 200 },
+      { "month": "Apr", "faturamento": 2000, "receitaLiquida": 1750, "vendas": 1180, "ticketMedio": 900, "chargeback": 210, "reembolso": 170 },
+      { "month": "May", "faturamento": 2180, "receitaLiquida": 1890, "vendas": 1260, "ticketMedio": 940, "chargeback": 220, "reembolso": 185 },
+      { "month": "Jun", "faturamento": 2480, "receitaLiquida": 2100, "vendas": 1400, "ticketMedio": 1020, "chargeback": 250, "reembolso": 210 },
+      { "month": "Jul", "faturamento": 2140, "receitaLiquida": 1840, "vendas": 1240, "ticketMedio": 930, "chargeback": 225, "reembolso": 180 },
+      { "month": "Aug", "faturamento": 2250, "receitaLiquida": 1950, "vendas": 1300, "ticketMedio": 970, "chargeback": 235, "reembolso": 190 },
+      { "month": "Sep", "faturamento": 2340, "receitaLiquida": 2020, "vendas": 1330, "ticketMedio": 990, "chargeback": 240, "reembolso": 200 },
+      { "month": "Oct", "faturamento": 2050, "receitaLiquida": 1800, "vendas": 1205, "ticketMedio": 910, "chargeback": 215, "reembolso": 175 },
+      { "month": "Nov", "faturamento": 2190, "receitaLiquida": 1905, "vendas": 1275, "ticketMedio": 950, "chargeback": 225, "reembolso": 188 },
+      { "month": "Dec", "faturamento": 2520, "receitaLiquida": 2150, "vendas": 1420, "ticketMedio": 1050, "chargeback": 255, "reembolso": 215 }
+    ],
+    "yearly": [
+      { "year": "2020", "faturamento": 24000, "receitaLiquida": 21000, "vendas": 14000, "ticketMedio": 10400, "chargeback": 2600, "reembolso": 1900 },
+      { "year": "2021", "faturamento": 22100, "receitaLiquida": 19500, "vendas": 13200, "ticketMedio": 9800, "chargeback": 2400, "reembolso": 1850 },
+      { "year": "2022", "faturamento": 22900, "receitaLiquida": 20300, "vendas": 13600, "ticketMedio": 10050, "chargeback": 2450, "reembolso": 1900 },
+      { "year": "2023", "faturamento": 20000, "receitaLiquida": 17800, "vendas": 12000, "ticketMedio": 9200, "chargeback": 2200, "reembolso": 1700 },
+      { "year": "2024", "faturamento": 25000, "receitaLiquida": 22400, "vendas": 14500, "ticketMedio": 10800, "chargeback": 2550, "reembolso": 2050 },
+      { "year": "2025", "faturamento": 28000, "receitaLiquida": 25200, "vendas": 16000, "ticketMedio": 11800, "chargeback": 2700, "reembolso": 2200 }
+    ]
+  },
+  "paymentMethods": [
+    {
+      "id": "credit_card",
+      "name": "Cartão de crédito",
+      "icon": "CreditCard",
+      "percentage": 0,
+      "data": [
+        { "time": "00:00", "value": 10 },
+        { "time": "04:00", "value": 15 },
+        { "time": "08:00", "value": 20 },
+        { "time": "12:00", "value": 25 },
+        { "time": "16:00", "value": 18 },
+        { "time": "20:00", "value": 12 }
+      ]
+    },
+    {
+      "id": "pix",
+      "name": "PIX",
+      "icon": "Grid3x3",
+      "percentage": 0,
+      "data": [
+        { "time": "00:00", "value": 8 },
+        { "time": "04:00", "value": 12 },
+        { "time": "08:00", "value": 18 },
+        { "time": "12:00", "value": 22 },
+        { "time": "16:00", "value": 16 },
+        { "time": "20:00", "value": 10 }
+      ]
+    },
+    {
+      "id": "boleto",
+      "name": "Boleto",
+      "icon": "ListTodo",
+      "percentage": 0,
+      "data": [
+        { "time": "00:00", "value": 5 },
+        { "time": "04:00", "value": 8 },
+        { "time": "08:00", "value": 12 },
+        { "time": "12:00", "value": 15 },
+        { "time": "16:00", "value": 10 },
+        { "time": "20:00", "value": 6 }
+      ]
+    }
+  ],
+  "levels": [
+    {
+      "id": "avancado",
+      "name": "Avançado",
+      "threshold": 10000,
+      "color": "#9333ea"
+    },
+    {
+      "id": "expert",
+      "name": "Expert",
+      "threshold": 100000,
+      "color": "#ec4899"
+    },
+    {
+      "id": "prata",
+      "name": "Prata",
+      "threshold": 500000,
+      "color": "#6b7280"
+    }
+  ]
+}
