@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import salesData from "@/data/salesData.json";
-import SalesFilterPanel from "@/views/components/SalesFilterPanel";
+import SalesFilterPanel, { SalesFilters, OfferFilter } from "@/views/components/SalesFilterPanel";
 
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 type SaleStatus = "aprovada" | "recusada" | "expirada";
@@ -38,6 +38,8 @@ interface Sale {
   plan: string;
   total: number;
   status: SaleStatus;
+  coupon?: string;
+  utm?: string;
 }
 
 interface MetricCard {
@@ -86,12 +88,40 @@ const statusConfig: Record<
   }
 };
 
+const offerSubscriptionKeywords = ["mensal", "trimestral", "assinatura", "anual"];
+
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
     minimumFractionDigits: 2
   });
+
+const getOfferType = (sale: Sale): OfferFilter => {
+  const normalizedPlan = sale.plan.toLowerCase();
+  const isSubscription = offerSubscriptionKeywords.some(keyword =>
+    normalizedPlan.includes(keyword)
+  );
+  return isSubscription ? "assinatura" : "preco_unico";
+};
+
+const matchesSearchTerm = (sale: Sale, search: string) => {
+  const payment = paymentMethods[sale.paymentMethod].label.toLowerCase();
+  const status = statusConfig[sale.status].label.toLowerCase();
+  return [
+    sale.id,
+    sale.productName,
+    sale.productType,
+    sale.buyerName,
+    sale.buyerEmail,
+    sale.saleType,
+    payment,
+    status
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(search);
+};
 
 const buildPaginationItems = (totalPages: number): (number | string)[] => {
   if (totalPages <= 6) {
@@ -225,37 +255,106 @@ const SalesTableRow = ({ sale }: { sale: Sale }) => {
   );
 };
 
+const initialFilters: SalesFilters = {
+  dateFrom: "",
+  dateTo: "",
+  product: "",
+  paymentMethod: "",
+  offers: [],
+  statuses: [],
+  buyerEmail: "",
+  coupon: "",
+  tipos: [],
+  vendedor: [],
+  utm: ""
+};
+
 export default function Sales() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<SalesFilters>(initialFilters);
+  const handleFiltersChange = (patch: Partial<SalesFilters>) => {
+    setFilters(prev => ({ ...prev, ...patch }));
+  };
+  const handleApplyFilters = () => {
+    setFilterOpen(false);
+  };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const filteredSales = useMemo(() => {
-    if (!normalizedSearch) return salesHistory;
+    const productSearch = filters.product.trim().toLowerCase();
+    const paymentSearch = filters.paymentMethod.trim().toLowerCase();
+    const buyerEmailSearch = filters.buyerEmail.trim().toLowerCase();
+    const couponSearch = filters.coupon.trim().toLowerCase();
+    const utmSearch = filters.utm.trim().toLowerCase();
+
     return salesHistory.filter(sale => {
-      const payment = paymentMethods[sale.paymentMethod].label.toLowerCase();
-      const status = statusConfig[sale.status].label.toLowerCase();
-      return [
-        sale.id,
-        sale.productName,
-        sale.productType,
-        sale.buyerName,
-        sale.buyerEmail,
-        sale.saleType,
-        payment,
-        status
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedSearch);
+      if (normalizedSearch && !matchesSearchTerm(sale, normalizedSearch)) {
+        return false;
+      }
+
+      const saleDate = new Date(sale.saleDate);
+      if (filters.dateFrom && saleDate < new Date(filters.dateFrom)) {
+        return false;
+      }
+      if (filters.dateTo && saleDate > new Date(filters.dateTo)) {
+        return false;
+      }
+      if (productSearch && !sale.productName.toLowerCase().includes(productSearch)) {
+        return false;
+      }
+      if (
+        paymentSearch &&
+        !paymentMethods[sale.paymentMethod].label.toLowerCase().includes(paymentSearch)
+      ) {
+        return false;
+      }
+      if (filters.statuses.length && !filters.statuses.includes(sale.status)) {
+        return false;
+      }
+
+      if (filters.offers.length) {
+        const offerType = getOfferType(sale);
+        if (!filters.offers.includes(offerType)) {
+          return false;
+        }
+      }
+
+      if (buyerEmailSearch && !sale.buyerEmail.toLowerCase().includes(buyerEmailSearch)) {
+        return false;
+      }
+
+      if (couponSearch) {
+        const coupon = sale.coupon?.toLowerCase() ?? "";
+        if (!coupon.includes(couponSearch)) {
+          return false;
+        }
+      }
+
+      if (filters.tipos.length && !filters.tipos.includes(sale.productType)) {
+        return false;
+      }
+
+      if (filters.vendedor.length && !filters.vendedor.includes(sale.saleType)) {
+        return false;
+      }
+
+      if (utmSearch) {
+        const utmValue = sale.utm?.toLowerCase() ?? "";
+        if (!utmValue.includes(utmSearch)) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [normalizedSearch]);
+  }, [normalizedSearch, filters]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [normalizedSearch]);
+  }, [normalizedSearch, filters]);
 
   const totalPages = Math.max(
     1,
@@ -373,7 +472,9 @@ export default function Sales() {
                 <SalesFilterPanel
                   isOpen={isFilterOpen}
                   onClose={() => setFilterOpen(false)}
-                  onApply={() => setFilterOpen(false)}
+                  filters={filters}
+                  onFiltersChange={handleFiltersChange}
+                  onApply={handleApplyFilters}
                 />
               </div>
             </div>
