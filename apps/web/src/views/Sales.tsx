@@ -1,7 +1,7 @@
 'use client';
 
 import DashboardLayout from "@/components/DashboardLayout";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   Area,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import salesData from "@/data/salesData.json";
+import SalesFilterPanel from "@/views/components/SalesFilterPanel";
 
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 type SaleStatus = "aprovada" | "recusada" | "expirada";
@@ -227,6 +228,7 @@ const SalesTableRow = ({ sale }: { sale: Sale }) => {
 export default function Sales() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setFilterOpen] = useState(false);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -277,6 +279,19 @@ export default function Sales() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+
+  const filterAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (filterAreaRef.current && !filterAreaRef.current.contains(target)) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <DashboardLayout
@@ -344,10 +359,22 @@ export default function Sales() {
                   className="w-full bg-transparent text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
-              <div className="flex items-center gap-2">
-                <ActionButton icon={Filter} label="Filtrar vendas" />
+              <div className="relative flex items-center gap-2" ref={filterAreaRef}>
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(prev => !prev)}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-muted bg-background/40 text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  aria-label="Filtrar vendas"
+                >
+                  <Filter className="h-5 w-5" aria-hidden />
+                </button>
                 <ActionButton icon={Eye} label="Visualizar configurações" />
                 <ActionButton icon={Upload} label="Exportar vendas" />
+                <SalesFilterPanel
+                  isOpen={isFilterOpen}
+                  onClose={() => setFilterOpen(false)}
+                  onApply={() => setFilterOpen(false)}
+                />
               </div>
             </div>
 
