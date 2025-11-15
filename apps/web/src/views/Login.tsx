@@ -267,12 +267,13 @@ export default function LoginView() {
               Já possui conta?
             </Link>
           ) : (
-            <Link
-              href="#"
-              className="self-center text-sm font-semibold text-white/70 transition hover:text-white"
+            <Button
+              variant="link"
+              asChild
+              className="self-center h-auto p-0 text-sm font-semibold text-white/70 transition hover:text-white"
             >
-              Recuperar senha
-            </Link>
+              <Link href="/recuperar-senha">Recuperar senha</Link>
+            </Button>
           )}
         </form>
 
