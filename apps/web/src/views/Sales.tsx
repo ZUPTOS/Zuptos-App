@@ -22,11 +22,12 @@ import {
 import type { LucideIcon } from "lucide-react";
 import salesData from "@/data/salesData.json";
 import SalesFilterPanel, { SalesFilters, OfferFilter } from "@/views/components/SalesFilterPanel";
+import SalesDetailPanel from "@/views/components/SalesDetailPanel";
 
-type PaymentMethod = "credit_card" | "pix" | "boleto";
-type SaleStatus = "aprovada" | "recusada" | "expirada";
+export type PaymentMethod = "credit_card" | "pix" | "boleto";
+export type SaleStatus = "aprovada" | "recusada" | "expirada";
 
-interface Sale {
+export interface Sale {
   id: string;
   productName: string;
   productType: string;
@@ -197,7 +198,13 @@ const MetricCardChart = ({
   </ResponsiveContainer>
 );
 
-const SalesTableRow = ({ sale }: { sale: Sale }) => {
+const SalesTableRow = ({
+  sale,
+  onSelect
+}: {
+  sale: Sale;
+  onSelect?: (sale: Sale) => void;
+}) => {
   const payment = paymentMethods[sale.paymentMethod];
   const status = statusConfig[sale.status];
   const saleDate = new Date(sale.saleDate);
@@ -208,7 +215,10 @@ const SalesTableRow = ({ sale }: { sale: Sale }) => {
   });
 
   return (
-    <tr className="border-t text-center border-muted/20 transition-colors hover:bg-card/20">
+    <tr
+      className="border-t text-center border-muted/20 transition-colors hover:bg-card/20 cursor-pointer"
+      onClick={() => onSelect?.(sale)}
+    >
       <td className="px-6 py-4 text-sm font-semibold text-foreground/90">
         {sale.id}
       </td>
@@ -274,6 +284,7 @@ export default function Sales() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<SalesFilters>(initialFilters);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const handleFiltersChange = (patch: Partial<SalesFilters>) => {
     setFilters(prev => ({ ...prev, ...patch }));
   };
@@ -511,7 +522,7 @@ export default function Sales() {
                     </tr>
                   ) : (
                     paginatedSales.map(sale => (
-                      <SalesTableRow key={sale.id} sale={sale} />
+                      <SalesTableRow key={sale.id} sale={sale} onSelect={setSelectedSale} />
                     ))
                   )}
                 </tbody>
@@ -580,6 +591,9 @@ export default function Sales() {
         </section>
       </div>
     </div>
+    {selectedSale && (
+      <SalesDetailPanel sale={selectedSale} onClose={() => setSelectedSale(null)} />
+    )}
   </DashboardLayout>
 );
 }
