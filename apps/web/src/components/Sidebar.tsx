@@ -19,7 +19,12 @@ export default function Sidebar() {
   const { theme } = useTheme();
   const isLightMode = theme === "light";
   const getIconStyle = (isActive: boolean) => {
-    if (isActive) return undefined;
+    if (isActive) {
+      return {
+        filter:
+          "brightness(0) saturate(100%) invert(25%) sepia(85%) saturate(2474%) hue-rotate(263deg) brightness(94%) contrast(94%)",
+      };
+    }
     return isLightMode
       ? { filter: "brightness(1) invert(1)" }
       : { filter: "brightness(1) invert(0)" };
@@ -67,7 +72,7 @@ export default function Sidebar() {
   return (
     <aside
       className={`fixed left-0 top-0 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[6px] transition-all duration-300 z-40 ${
-        isExpanded ? "w-64" : "w-22"
+        isExpanded ? "w-64" : "w-[88px]"
       }`}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
@@ -106,10 +111,6 @@ export default function Sidebar() {
             item.href === "/"
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const iconWrapperClasses = `flex ${
-            isExpanded ? "h-8 w-8" : "h-8 w-8"
-          } shrink-0 items-center justify-center rounded-[7px] `;
-
           return (
             <Link
               key={item.id}
@@ -122,25 +123,25 @@ export default function Sidebar() {
               {isActive && (
                 <span className="absolute -left-2 h-10 w-[3px] bg-primary" />
               )}
-              <span className={iconWrapperClasses}>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px]">
                 <Image
                   src={item.iconSrc}
                   alt={`${item.label} icon`}
-                  width={32}
-                  height={32}
-                  className={`${
-                    isExpanded ? "w-26 h-26" : "w-26 h-26"
-                  } object-contain`}
+                  width={28}
+                  height={28}
+                  className={`h-7 w-7 object-contain ${
+                    isActive ? "text-primary" : ""
+                  }`}
                   style={getIconStyle(isActive)}
                   priority={item.id === "dashboard"}
                 />
               </span>
               {isExpanded && (
                 <span
-                  className={`text-[1rem] w-[443px] h-[44.36px] font-semibold tracking-tight transition-colors duration-200 ${
+                  className={`text-[1rem] font-semibold tracking-tight transition-colors duration-200 ${
                     isActive
-                      ? "flex items-center text-primary w-[443px] h-[44.36px]"
-                      : "flex items-center text-foreground group-hover:text-white"
+                      ? "text-primary"
+                      : "text-foreground group-hover:text-white"
                   }`}
                 >
                   {item.label}
