@@ -13,11 +13,14 @@ jest.mock("next/image", () => ({
 }));
 
 describe("MyAccountView", () => {
-  it("renderiza inputs de nome e email com valores padrão", () => {
+  it("exibe as informações principais do usuário e o status da documentação", () => {
     render(<MyAccountView />);
 
-    expect(screen.getByDisplayValue("Zuptos")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("contato@zuptos.com")).toBeInTheDocument();
-    expect(screen.getByText(/quer redefinir sua senha/i)).toBeInTheDocument();
+    expect(screen.getByText("Meu perfil")).toBeInTheDocument();
+    expect(screen.getByText("Zuptos")).toBeInTheDocument();
+    expect(screen.getByText("contato@zuptos.com")).toBeInTheDocument();
+    expect(screen.getByText(/status da documentação/i)).toBeInTheDocument();
+    expect(screen.getByText(/^aprovado$/i)).toBeInTheDocument();
+    expect(screen.getByText(/seus documentos foram aprovados/i)).toBeInTheDocument();
   });
 });
