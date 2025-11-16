@@ -65,6 +65,7 @@ export default function FilterModal({
           <h2 className="text-lg font-semibold text-white">Filtrar por...</h2>
           <button
             onClick={onClose}
+            aria-label="Fechar filtro"
             className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-400" />
@@ -164,9 +165,9 @@ export default function FilterModal({
                 {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-2 mb-6">
                   {/* Day Headers */}
-                  {["D", "S", "T", "Q", "Q", "S", "S"].map((day) => (
+                  {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
                     <div
-                      key={day}
+                      key={`${day}-${index}`}
                       className="text-center text-xs font-medium text-gray-500 py-2"
                     >
                       {day}

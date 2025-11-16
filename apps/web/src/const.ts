@@ -7,8 +7,14 @@ export const APP_LOGO =
   "https://placehold.co/128x128/E1E7EF/1F2937?text=App";
 
 // Generate login URL at runtime so redirect URI reflects the current origin.
-export const getLoginUrl = () => {
-  if (typeof window === "undefined") {
+const resolveWindow = () =>
+  typeof window === "undefined" ? undefined : window;
+
+export const getLoginUrl = (targetWindow?: Window | null) => {
+  const currentWindow =
+    typeof targetWindow === "undefined" ? resolveWindow() : targetWindow;
+
+  if (!currentWindow) {
     throw new Error("getLoginUrl must be called in a browser environment");
   }
 
@@ -21,7 +27,7 @@ export const getLoginUrl = () => {
     );
   }
 
-  const redirectUri = `${window.location.origin}/api/oauth/callback`;
+  const redirectUri = `${currentWindow.location.origin}/api/oauth/callback`;
   const state = btoa(redirectUri);
 
   const url = new URL(`${oauthPortalUrl}/app-auth`);

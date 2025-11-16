@@ -87,6 +87,7 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
           </div>
           <button
             type="button"
+            aria-label="Fechar detalhes"
             className="rounded-full p-1 text-muted-foreground transition hover:text-primary"
             onClick={onClose}
           >

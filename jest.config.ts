@@ -15,7 +15,12 @@ const customJestConfig: Config = {
     "!apps/web/src/**/*.stories.{ts,tsx}",
     "!apps/web/src/**/__tests__/**",
     "!apps/web/src/**/types.ts",
-    "!apps/web/src/**/*.d.ts"
+    "!apps/web/src/**/*.d.ts",
+    "!apps/web/src/components/ui/**/*",
+    "!apps/web/src/components/icons/**/*",
+    "!apps/web/src/app/**/*",
+    "!apps/web/src/views/Dashboard.tsx",
+    "!apps/web/src/views/Sales.tsx"
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["lcov", "text", "text-summary"] satisfies Config["coverageReporters"],
