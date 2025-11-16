@@ -36,10 +36,10 @@ const accessOptions = [
 
 const inputPlaceholders = {
   email: "Seu endereço de email",
-  password: "Sua senha",
+  passwordField: "Sua senha",
   fullName: "Nome completo",
-  createPassword: "Crie sua senha",
-  confirmPassword: "Confirme sua senha"
+  createPasswordField: "Crie sua senha",
+  confirmPasswordField: "Confirme sua senha"
 };
 
 type PasswordFieldProps = {
@@ -123,13 +123,13 @@ function SignUpFields({
       </div>
       <PasswordField
         id="sign-up-password"
-        placeholder={placeholders.createPassword}
+        placeholder={placeholders.createPasswordField}
         visible={passwordVisible}
         onToggle={onTogglePassword}
       />
       <PasswordField
         id="confirm-password"
-        placeholder={placeholders.confirmPassword}
+        placeholder={placeholders.confirmPasswordField}
         visible={confirmPasswordVisible}
         onToggle={onToggleConfirmPassword}
       />
@@ -173,7 +173,7 @@ function SignInFields({ placeholders, passwordVisible, onTogglePassword }: SignI
       </div>
       <PasswordField
         id="password"
-        placeholder={placeholders.password}
+        placeholder={placeholders.passwordField}
         visible={passwordVisible}
         onToggle={onTogglePassword}
       />
