@@ -19,6 +19,16 @@ const customJestConfig: Config = {
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["lcov", "text", "text-summary"] satisfies Config["coverageReporters"],
+  reporters: [
+    "default",
+    [
+      "jest-junit",
+      {
+        outputDirectory: "coverage",
+        outputName: "test-report.xml"
+      }
+    ]
+  ] satisfies Config["reporters"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/apps/web/src/$1",
     "^@shared/(.*)$": "<rootDir>/packages/shared/src/$1"
