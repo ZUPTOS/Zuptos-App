@@ -1,69 +1,85 @@
-import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import mockData from "@/data/mockData.json";
 
-const inputClasses =
-  "h-12 w-full rounded-[8px] border border-border/70 bg-background/10 px-4 text-sm text-foreground placeholder:text-muted-foreground transition focus:border-primary focus:bg-background/20 focus:outline-none focus:ring-2 focus:ring-primary/40";
-
-const primaryButtonClasses =
-  "inline-flex w-[147px] h-[49px] sm:w-auto items-center justify-center rounded-[8px] bg-primary px-3 py-3 text-sora font-semibold text-[14px] transition hover:bg-muted/30";
-
-const secondaryButtonClasses =
-  "inline-flex w-[147px] h-[49px] sm:w-auto items-center justify-center rounded-[8px] border border-border/80 bg-foreground/10 px-7 py-3 text-sora font-semibold text-[14px] transition hover:bg-muted/30";
-
 export default function MyAccountView() {
+  const profileData = {
+    accountType: "Pessoa jurídica",
+    phone: "xxxxxxxxxxxxxxx",
+    document: "xxxxxxxxxxxxxxx",
+    address: "Pessoa jurídica",
+    birthDate: "dd/mm/aaaa",
+  };
+
+  const documentationStatus = {
+    label: "Aprovado",
+    message: "Seus documentos foram aprovados. Você já pode vender!",
+  };
+
+  const infoFields = [
+    { label: "Tipo de Conta", value: profileData.accountType },
+    { label: "Telefone", value: profileData.phone },
+    { label: "Documento", value: profileData.document },
+    { label: "Endereço", value: profileData.address },
+    { label: "Data de nascimento", value: profileData.birthDate },
+  ];
+
+  const userInitial = mockData.user.name?.charAt(0)?.toUpperCase() ?? "Z";
+
   return (
     <DashboardLayout
       userName={mockData.user.name}
       userLocation={mockData.user.location}
       pageTitle=""
     >
-      <section className="flex px-90">
-        <div className="w-[749px] h-[524px] space-y-8">
-          <div className="text-center lg:text-left">
-            <h1 className="mt-2 text-[28px] font-semibold text-foreground">Minha conta</h1>
-          </div>
+      <section className="px-90 py-10">
+        <div className="mx-auto flex w-full max-w-5xl flex-col space-y-6">
+          <h1 className="text-[28px] font-semibold text-foreground">Meu perfil</h1>
 
-          <div className="rounded-[8px] border border-border/70 bg-card p-6">
-            <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
-              <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
-                <div className="flex h-[220px] w-[220px] items-center justify-center rounded-[26px]">
-                  <Image
-                    src="/images/logoSide.svg"
-                    alt="Zuptos"
-                    width={140}
-                    height={140}
-                    className="h-[130px] w-[130px] object-contain"
-                  />
-                </div>
+          <div className="space-y-6 rounded-2xl border border-border/70 bg-gradient-to-b from-background/70 to-background/40 p-6 shadow-2xl shadow-black/30">
+            <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/50 p-5 sm:flex-row sm:items-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/10 text-xl font-semibold text-foreground">
+                {userInitial}
               </div>
-
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Seu nome</label>
-                  <input className={inputClasses} type="text" placeholder="Insira o nome" defaultValue={mockData.user.name} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Seu e-mail</label>
-                  <input className={inputClasses} type="email" placeholder="Insira o seu e-mail" defaultValue={mockData.user.email} />
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button type="button" className={primaryButtonClasses}>
-                    Atualizar seus dados
-                  </button>
-                </div>
+              <div>
+                <p className="text-lg font-semibold text-foreground">{mockData.user.name}</p>
+                <p className="text-sm text-muted-foreground">{mockData.user.email}</p>
               </div>
             </div>
 
-            <div className="mt-10 space-y-4 border-t border-border/60 pt-8">
-              <p className="text-sm font-semibold text-foreground">Quer redefinir sua senha?</p>
-              <input className={inputClasses} type="password" placeholder="Insira a sua senha antiga" />
-              <input className={inputClasses} type="password" placeholder="Insira a sua senha nova" />
-              <div className="flex justify-end pt-2">
-                <button type="button" className={secondaryButtonClasses}>
-                  Redefinir senha
-                </button>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {infoFields.map((field) => (
+                <div key={field.label} className="rounded-2xl border border-border/60 bg-background/50 p-4">
+                  <p className="text-[12px] uppercase tracking-wide text-muted-foreground">{field.label}</p>
+                  <p className="mt-1 text-base font-semibold text-foreground">{field.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="rounded-xl border border-border/80 px-5 py-2 text-sm font-semibold text-foreground transition hover:bg-foreground/10"
+              >
+                Editar informações
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-6 rounded-2xl border border-border/70 bg-gradient-to-b from-background/70 to-background/40 p-6 shadow-2xl shadow-black/30">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Status da Documentação</h2>
+              <p className="text-sm text-muted-foreground">Verifique o status dos seus documentos</p>
+            </div>
+
+            <div className="flex flex-col gap-6 rounded-2xl border border-border/60 bg-background/50 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <span className="mt-3 inline-flex items-center rounded-full bg-green-500/10 px-4 py-1 text-sm font-semibold text-green-400">
+                  {documentationStatus.label}
+                </span>
               </div>
+
+              <p className="text-sm text-foreground sm:max-w-md">{documentationStatus.message}</p>
             </div>
           </div>
         </div>
