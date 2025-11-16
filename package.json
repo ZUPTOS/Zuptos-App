@@ -10,7 +10,7 @@
     "lint": "next lint apps/web",
     "check": "tsc --noEmit -p apps/web/tsconfig.json",
     "format": "prettier --write .",
-    "test": "jest --coverage --passWithNoTests"
+    "test": "jest --runInBand --coverage --passWithNoTests"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
