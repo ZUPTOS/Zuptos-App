@@ -33,7 +33,7 @@ jobs:
         run: pnpm run lint
 
       - name: Run tests with coverage
-        run: pnpm test -- --runInBand
+        run: pnpm test
 
       - name: SonarCloud Scan
         if: ${{ env.SONAR_TOKEN != '' }}
