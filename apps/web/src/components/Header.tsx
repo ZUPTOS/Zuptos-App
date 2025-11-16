@@ -144,10 +144,14 @@ export default function Header({
                     {isLightMode ? "Modo escuro" : "Modo claro"}
                   </span>
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-muted transition-colors">
-                  <LogOut className="w-4 h-4" />
-                  <span className="text-sm">Sair</span>
-                </button>
+                <Link href="/">
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-muted transition-colors">
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm">
+                      Sair
+                    </span>
+                  </button>
+                </Link>
               </div>
             )}
           </div>

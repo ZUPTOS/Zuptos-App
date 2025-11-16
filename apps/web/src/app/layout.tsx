@@ -11,7 +11,12 @@ const sora = Sora({
 
 export const metadata: Metadata = {
   title: "Zuptos Dashboard",
-  description: "Dashboard administrativo da Zuptos"
+  description: "Dashboard administrativo da Zuptos",
+  icons: {
+    icon: "/images/logoSide.svg",
+    shortcut: "/images/logoSide.svg",
+    apple: "/images/logoSide.svg"
+  }
 };
 
 export default function RootLayout({
