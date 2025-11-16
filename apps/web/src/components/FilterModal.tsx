@@ -28,7 +28,10 @@ export default function FilterModal({
   });
 
   const firstDayOfWeek = getDay(monthStart);
-  const emptyDays = Array(firstDayOfWeek).fill(null);
+  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"] as const;
+  const emptyDays = Array.from({ length: firstDayOfWeek }, (_, index) =>
+    `placeholder-${currentDate.getFullYear()}-${currentDate.getMonth()}-${index}`
+  );
 
   const handlePrevMonth = () => {
     setCurrentDate(
@@ -165,9 +168,9 @@ export default function FilterModal({
                 {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-2 mb-6">
                   {/* Day Headers */}
-                  {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
+                  {weekdays.map(day => (
                     <div
-                      key={`${day}-${index}`}
+                      key={`weekday-${day}`}
                       className="text-center text-xs font-medium text-gray-500 py-2"
                     >
                       {day}
@@ -175,8 +178,8 @@ export default function FilterModal({
                   ))}
 
                   {/* Empty Days */}
-                  {emptyDays.map((_, index) => (
-                    <div key={`empty-${index}`} />
+                  {emptyDays.map(placeholderKey => (
+                    <div key={placeholderKey} />
                   ))}
 
                   {/* Days */}

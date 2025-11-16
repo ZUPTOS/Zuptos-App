@@ -53,10 +53,8 @@ export default function Header({
       : "border-primary/50 bg-transparent text-primary group-hover:bg-primary/10"
   ].join(" ");
   const avatarWrapperClasses = [
-    "relative h-12 w-12 overflow-hidden transition-all duration-200",
-    isLightMode
-      ? ""
-      : ""
+    "relative h-12 w-12 overflow-hidden transition-all duration-200 rounded-full",
+    isLightMode ? "bg-muted" : "bg-[#050505] border border-white/10"
   ].join(" ");
 
   useEffect(() => {

@@ -7,8 +7,13 @@ export const APP_LOGO =
   "https://placehold.co/128x128/E1E7EF/1F2937?text=App";
 
 // Generate login URL at runtime so redirect URI reflects the current origin.
-const resolveWindow = () =>
-  typeof window === "undefined" ? undefined : window;
+const resolveWindow = () => {
+  if (typeof globalThis === "undefined") {
+    return undefined;
+  }
+  const maybeWindow = globalThis as typeof globalThis & { window?: Window };
+  return maybeWindow.window;
+};
 
 export const getLoginUrl = (targetWindow?: Window | null) => {
   const currentWindow =
