@@ -448,14 +448,16 @@ export default function Products() {
                 ))}
               </div>
             </div>
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen(false)}
+                className="h-[49px] w-[197px] rounded-[10px] bg-primary px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)]"
+              >
+                Adicionar filtro
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsFilterOpen(false)}
-            className="mt-auto w-full rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-          >
-            Adicionar filtro
-          </button>
         </aside>
       </>
     )}
