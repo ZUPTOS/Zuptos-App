@@ -105,7 +105,7 @@ export default function Finances() {
                       <button
                         type="button"
                         onClick={() => setIsWithdrawOpen(true)}
-                        className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-white"
                       >
                         Solicitar saque
                       </button>
@@ -119,7 +119,7 @@ export default function Finances() {
                     <button
                       type="button"
                       onClick={() => setShowAccountForm(true)}
-                      className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                      className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 text-sm font-semibold text-white"
                     >
                       Adicionar conta bancária
                     </button>
@@ -157,7 +157,7 @@ export default function Finances() {
       {isWithdrawOpen && hasBankAccount && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setIsWithdrawOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 h-[538px] w-[501px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+          <div className="fixed left-1/2 top-1/2 z-50 h-[538px] w-[501px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card">
             <div className="flex items-start justify-between border-b border-muted px-5 py-4">
               <p className="text-[23px] font-semibold text-foreground">Solicitar saque</p>
               <button
@@ -178,7 +178,12 @@ export default function Finances() {
                   placeholder="R$ 0,00"
                 />
               </div>
-              <div className="flex h-[42px] w-[447px] items-center justify-between rounded-[10px] bg-gradient-to-r from-[#2b2b32] via-[#30303a] to-[#2b2b32] px-4 text-[19px] font-semibold text-foreground">
+              <div
+                className="flex h-[42px] w-[447px] items-center justify-between rounded-[10px] px-4 text-[19px] font-semibold text-foreground"
+                style={{
+                  background: "linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--muted)) 50%, hsl(var(--card)) 100%)"
+                }}
+              >
                 <span className="text-muted-foreground">Saldo disponível:</span>
                 <span>{formatCurrency(balanceCards[0].value)}</span>
               </div>
@@ -202,7 +207,7 @@ export default function Finances() {
               </div>
               <button
                 type="button"
-                className="mt-2 inline-flex h-[49px] w-[447px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="mt-2 inline-flex h-[49px] w-[447px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white"
               >
                 Solicitar
               </button>
@@ -214,7 +219,7 @@ export default function Finances() {
       {showAccountForm && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setShowAccountForm(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 h-[534px] w-[443px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+          <div className="fixed left-1/2 top-1/2 z-50 h-[534px] w-[443px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-6">
             <div className="flex items-center justify-between border-b border-muted pb-4">
               <p className="text-[24px] font-semibold text-foreground">Configurar conta bancária</p>
               <button
@@ -274,7 +279,7 @@ export default function Finances() {
                     setHasBankAccount(true);
                     setShowAccountForm(false);
                   }}
-                  className="h-[35px] w-[140px] rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-[12px] font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="h-[35px] w-[140px] rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-[12px] font-semibold text-white"
                 >
                   Adicionar conta
                 </button>
