@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import productsData from "@/data/productsData.json";
@@ -72,6 +72,11 @@ const filterStatusOptions = [
   { label: "Inativo", value: "inativo" }
 ];
 
+const productCategoryOptions = ["Tecnologia", "Marketing", "Finanças"];
+
+const formInputClasses =
+  "w-full rounded-[10px] border border-muted bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
+
 const buildPaginationItems = (totalPages: number): (number | string)[] => {
   if (totalPages <= 6) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -99,6 +104,17 @@ export default function Products() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [newProductTypes, setNewProductTypes] = useState<string[]>([]);
+  const [newProductName, setNewProductName] = useState("");
+  const [newProductDescription, setNewProductDescription] = useState("");
+  const [newProductCategory, setNewProductCategory] = useState("");
+  const [internalComplement, setInternalComplement] = useState("");
+  const [salesPageUrl, setSalesPageUrl] = useState("");
+  const [hasLoginAccess, setHasLoginAccess] = useState(false);
+  const [productLogin, setProductLogin] = useState("");
+  const [productPassword, setProductPassword] = useState("");
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -151,6 +167,43 @@ export default function Products() {
     );
   };
 
+  const adjustTextareaHeight = (element: HTMLTextAreaElement | null) => {
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${element.scrollHeight}px`;
+  };
+
+  const toggleNewProductType = (value: string) => {
+    setNewProductTypes(prev =>
+      prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
+    );
+  };
+
+  const resetNewProductForm = () => {
+    setNewProductTypes([]);
+    setNewProductName("");
+    setNewProductDescription("");
+    setNewProductCategory("");
+    setInternalComplement("");
+    setSalesPageUrl("");
+    setHasLoginAccess(false);
+    setProductLogin("");
+    setProductPassword("");
+  };
+
+  const closeNewProductModal = () => {
+    setIsAddProductOpen(false);
+    resetNewProductForm();
+  };
+
+  const handleProductSubmit = () => {
+    closeNewProductModal();
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight(descriptionRef.current);
+  }, [newProductDescription]);
+
   return (
     <>
       <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Produtos">
@@ -177,6 +230,7 @@ export default function Products() {
             </button>
             <button
               type="button"
+              onClick={() => setIsAddProductOpen(true)}
               className="flex h-12 items-center justify-center gap-2 rounded-[8px] bg-primary px-6 text-sm font-semibold text-white transition-transform"
             >
               <Plus className="h-4 w-4" aria-hidden />
@@ -323,7 +377,7 @@ export default function Products() {
           className="fixed inset-0 z-40 bg-black/60"
           onClick={() => setIsFilterOpen(false)}
         />
-        <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[360px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+        <aside className="fixed right-0 top-0 z-50 flex h-[1315px] w-[501px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
           <div className="flex items-center justify-between border-b border-muted pb-4">
             <div>
               <p className="text-[33px] font-semibold text-foreground" style={{ fontFamily: "Sora, sans-serif" }}>
@@ -402,6 +456,228 @@ export default function Products() {
           >
             Adicionar filtro
           </button>
+        </aside>
+      </>
+    )}
+    {isAddProductOpen && (
+      <>
+        <div
+          className="fixed inset-0 z-[55] bg-black/60"
+          onClick={closeNewProductModal}
+        />
+        <aside className="fixed right-0 top-0 z-[60] flex h-full w-full max-w-[500px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+          <div className="flex items-start justify-between border-b border-muted pb-4">
+          <div>
+            <p
+              className="text-[32px] font-semibold text-foreground"
+              style={{ fontFamily: "Sora, sans-serif" }}
+            >
+              Novo produto
+            </p>
+            <p className="text-[14px] text-muted-foreground">
+              Configure e dê um nome para o novo produto
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={closeNewProductModal}
+            className="text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-label="Fechar modal de novo produto"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+        <div className="flex-1 space-y-6 overflow-y-auto py-6 custom-scrollbar">
+          <div className="space-y-3">
+            <p className="text-[16px] font-semibold text-foreground">Tipo</p>
+            <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap custom-scrollbar">
+              {filterTypeOptions.map(option => (
+                <label
+                  key={option.value}
+                  className="flex items-center gap-3 text-sm text-foreground/80 whitespace-nowrap"
+                  style={{ fontFamily: "Sora, sans-serif" }}
+                >
+                  <span className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={newProductTypes.includes(option.value)}
+                      onChange={() => toggleNewProductType(option.value)}
+                      className="peer sr-only"
+                    />
+                    <span className="flex h-[26px] w-[26px] items-center justify-center rounded border border-card bg-background transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                      <Check
+                        className="h-4 w-4 text-white opacity-0 transition-opacity"
+                        aria-hidden
+                      />
+                    </span>
+                  </span>
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t border-muted pt-4">
+            <div className="space-y-1">
+              <p className="text-[16px] font-semibold text-foreground">
+                Informações externas
+              </p>
+              <p className="text-[14px] text-muted-foreground">
+                Serão disponibilizadas para os compradores
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-[16px] font-semibold text-foreground">
+                  Nome do produto
+                </p>
+                <input
+                  type="text"
+                  value={newProductName}
+                  onChange={event => setNewProductName(event.target.value)}
+                  maxLength={60}
+                  placeholder="Insira o nome"
+                  className={formInputClasses}
+                />
+                <span className="text-xs text-muted-foreground">{`${newProductName.length}/60 caracteres`}</span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[16px] font-semibold text-foreground">
+                  Descrição breve
+                </p>
+                <textarea
+                  ref={descriptionRef}
+                  rows={1}
+                  value={newProductDescription}
+                  onChange={event => setNewProductDescription(event.target.value)}
+                  maxLength={200}
+                  placeholder="Insira o nome"
+                  className={`${formInputClasses} resize-none`}
+                />
+                <span className="text-xs text-muted-foreground">{`${newProductDescription.length}/200 caracteres`}</span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[16px] font-semibold text-foreground">Categoria</p>
+                <select
+                  value={newProductCategory}
+                  onChange={event => setNewProductCategory(event.target.value)}
+                  className={`${formInputClasses} appearance-none`}
+                >
+                  <option value="" disabled hidden>
+                    Selecione a categoria
+                  </option>
+                  {productCategoryOptions.map(option => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-[16px] border border-muted bg-card/60 p-5">
+            <div className="space-y-1">
+              <p className="text-[16px] font-semibold text-foreground">
+                Informações internas
+              </p>
+              <p className="text-[14px] text-muted-foreground">
+                Serão usadas pela nossa equipe para avaliar o seu produto
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-[16px] font-semibold text-foreground">
+                  Informações complementares
+                </p>
+                <textarea
+                  value={internalComplement}
+                  onChange={event => setInternalComplement(event.target.value)}
+                  className={`${formInputClasses} min-h-[120px] resize-none`}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-[16px] font-semibold text-foreground">
+                  Página de vendas (onde está sua oferta)
+                </p>
+                <input
+                  type="text"
+                  value={salesPageUrl}
+                  onChange={event => setSalesPageUrl(event.target.value)}
+                  className={formInputClasses}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-[16px] font-semibold text-foreground">
+                  O seu produto entregue possui login e senha?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setHasLoginAccess(prev => !prev)}
+                  aria-pressed={hasLoginAccess}
+                  className="group relative inline-flex items-center"
+                >
+                  <span
+                    className={`flex h-[31px] w-[75px] items-center justify-between gap-1 rounded-full border border-card px-2 text-[11px] font-semibold transition-colors ${
+                      hasLoginAccess
+                        ? "bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-white border-primary/60"
+                        : "bg-card text-muted-foreground"
+                    }`}
+                  >
+                    <span
+                      className={`flex-1 select-none tracking-tight ${
+                        hasLoginAccess ? "order-1 text-left" : "order-2 text-right"
+                      }`}
+                    >
+                      {hasLoginAccess ? "SIM" : "NÃO"}
+                    </span>
+                    <span
+                      className={`h-[25px] w-[25px] rounded-full bg-white shadow-sm transition-all ${
+                        hasLoginAccess ? "order-2 translate-x-[2px]" : "order-1 -translate-x-[2px]"
+                      }`}
+                    />
+                  </span>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <p className="text-[16px] font-semibold text-foreground">Login</p>
+                  <input
+                    type="text"
+                    value={productLogin}
+                    onChange={event => setProductLogin(event.target.value)}
+                    className={formInputClasses}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[16px] font-semibold text-foreground">Senha</p>
+                  <input
+                    type="text"
+                    value={productPassword}
+                    onChange={event => setProductPassword(event.target.value)}
+                    className={formInputClasses}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+          <div className="flex gap-3 border-t border-muted pt-4">
+            <button
+              type="button"
+              onClick={closeNewProductModal}
+              className="flex-1 rounded-[10px] border border-muted bg-card px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleProductSubmit}
+              className="flex-1 rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01]"
+            >
+              Cadastrar produto
+            </button>
+          </div>
         </aside>
       </>
     )}
