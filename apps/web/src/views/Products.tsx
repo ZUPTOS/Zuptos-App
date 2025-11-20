@@ -5,11 +5,13 @@ import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import productsData from "@/data/productsData.json";
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   Filter,
   Plus,
-  Search
+  Search,
+  X
 } from "lucide-react";
 
 type ProductStatus = "ativo" | "pausado" | "em_breve";
@@ -35,6 +37,8 @@ const tabs: { id: TabId; label: string }[] = [
   { id: "coproducao", label: "Coprodução" }
 ];
 
+const DEFAULT_THUMBNAIL = "/images/logoSide.svg";
+
 const statusConfig: Record<
   ProductStatus,
   { label: string; badgeClass: string }
@@ -54,6 +58,19 @@ const statusConfig: Record<
 };
 
 const { products } = productsData as { products: Product[] };
+
+const filterTypeOptions = [
+  { label: "Curso", value: "curso" },
+  { label: "E-BOOK ou arquivo", value: "ebook" },
+  { label: "Serviço", value: "servico" }
+];
+
+const filterStatusOptions = [
+  { label: "Ativo", value: "ativo" },
+  { label: "Incompleto", value: "incompleto" },
+  { label: "Recusado", value: "recusado" },
+  { label: "Inativo", value: "inativo" }
+];
 
 const buildPaginationItems = (totalPages: number): (number | string)[] => {
   if (totalPages <= 6) {
@@ -79,6 +96,9 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("todos");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -119,12 +139,25 @@ export default function Products() {
     [totalPages]
   );
 
+  const toggleType = (value: string) => {
+    setSelectedTypes(prev =>
+      prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
+    );
+  };
+
+  const toggleStatus = (value: string) => {
+    setSelectedStatuses(prev =>
+      prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
+    );
+  };
+
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Produtos">
-      <div className="min-h-full py-6">
-        <div className="mx-auto flex w-full max-w-[1420px] flex-col gap-6 px-4 md:px-6">
-          <section className="flex flex-col gap-3 md:flex-row md:items-center">
-            <label className="flex h-12 flex-1 items-center gap-3 rounded-[10px] border border-muted bg-background px-4 text-sm text-muted-foreground focus-within:border-primary/60 focus-within:text-primary">
+    <>
+      <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Produtos">
+        <div className="min-h-full py-6">
+          <div className="mx-auto flex w-full max-w-[1420px] flex-col gap-6 px-4 md:px-6">
+          <section className="flex flex-wrap items-center gap-3">
+            <label className="flex h-[49px] w-[454px] items-center gap-3 rounded-[10px] border border-muted bg-background px-4 text-sm text-muted-foreground focus-within:border-primary/60 focus-within:text-primary">
               <Search className="h-4 w-4" aria-hidden />
               <input
                 type="text"
@@ -134,22 +167,21 @@ export default function Products() {
                 className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
             </label>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-muted bg-card/40 text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                aria-label="Abrir filtros de produtos"
-              >
-                <Filter className="h-5 w-5" aria-hidden />
-              </button>
-              <button
-                type="button"
-                className="flex h-12 items-center justify-center gap-2 rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-6 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <Plus className="h-4 w-4" aria-hidden />
-                Adicionar produto
-              </button>
-            </div>
+            <button
+              type="button"
+              className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-muted bg-card/40 text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              aria-label="Abrir filtros de produtos"
+              onClick={() => setIsFilterOpen(true)}
+            >
+              <Filter className="h-5 w-5" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="flex h-12 items-center justify-center gap-2 rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-6 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Adicionar produto
+            </button>
           </section>
 
           <section className="space-y-4">
@@ -184,48 +216,34 @@ export default function Products() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {paginatedProducts.map(product => {
-                  const status = statusConfig[product.status];
+                  const status = statusConfig["ativo"];
+                  const thumbnailSrc = DEFAULT_THUMBNAIL;
                   return (
                     <article
                       key={product.id}
-                      className="flex h-[148px] flex-col justify-between rounded-[16px] border border-muted bg-card/60 p-4"
+                      className="flex h-[148px] w-[448px] items-center gap-4 rounded-[16px] border border-muted bg-card/60 p-4"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-[12px] bg-background/60">
+                      <div className="flex h-[107px] w-[107px] flex-shrink-0 items-center justify-center rounded-[16px] bg-background/60">
                           <Image
-                            src={product.thumbnail}
-                            alt={product.name}
-                            width={48}
-                            height={48}
-                            className="h-12 w-12 rounded-lg object-contain"
-                          />
-                        </div>
-                        <div className="flex flex-1 flex-col gap-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="text-lg font-semibold text-foreground">
-                                {product.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {product.category}
-                              </p>
-                            </div>
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
-                            >
-                              {status.label}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {product.description}
-                          </p>
-                        </div>
+                            src={thumbnailSrc}
+                          alt={product.name}
+                          width={107}
+                          height={107}
+                          className="h-full w-full rounded-[12px] object-cover"
+                        />
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-semibold text-card-foreground">
-                          {product.mode === "producao" ? "Produção" : "Coprodução"}
+                      <div className="flex flex-1 flex-col justify-center gap-2">
+                        <p className="text-lg font-semibold text-foreground">
+                          {product.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {product.category}
+                        </p>
+                        <span
+                          className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
+                        >
+                          {status.label}
                         </span>
-                        <span>#{product.id}</span>
                       </div>
                     </article>
                   );
@@ -234,7 +252,7 @@ export default function Products() {
             )}
           </section>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[12px] border border-muted/60 bg-card/30 px-4 py-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between">
             <button
               type="button"
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -299,5 +317,94 @@ export default function Products() {
         </div>
       </div>
     </DashboardLayout>
-  );
+    {isFilterOpen && (
+      <>
+        <div
+          className="fixed inset-0 z-40 bg-black/60"
+          onClick={() => setIsFilterOpen(false)}
+        />
+        <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[360px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+          <div className="flex items-center justify-between border-b border-muted pb-4">
+            <div>
+              <p className="text-[33px] font-semibold text-foreground" style={{ fontFamily: "Sora, sans-serif" }}>
+                Filtrar
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen(false)}
+              className="text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              aria-label="Fechar filtros"
+            >
+              <X className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
+          <div className="flex-1 space-y-6 overflow-y-auto mt-10 py-6">
+            <div className="space-y-4 border-b border-muted pb-4">
+              <p className="text-[17px] font-semibold text-muted-foreground" style={{ fontFamily: "Sora, sans-serif" }}>
+                Tipo
+              </p>
+              <div className="space-y-4">
+                {filterTypeOptions.map(option => (
+                  <label
+                    key={option.value}
+                    className="flex items-center gap-3 text-[15px] text-foreground/30"
+                    style={{ fontFamily: "Sora, sans-serif" }}
+                  >
+                    <span className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedTypes.includes(option.value)}
+                        onChange={() => toggleType(option.value)}
+                        className="peer sr-only"
+                      />
+                      <span className="flex h-[30px] w-[30px] items-center justify-center rounded border border-card bg-background transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                        <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
+                      </span>
+                    </span>
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4 border-b border-muted pb-4">
+              <p className="text-[17px] font-semibold text-muted-foreground" style={{ fontFamily: "Sora, sans-serif" }}>
+                Status
+              </p>
+              <div className="space-y-4">
+                {filterStatusOptions.map(option => (
+                  <label
+                    key={option.value}
+                    className="flex items-center gap-3 text-[15px] text-foreground/30"
+                    style={{ fontFamily: "Sora, sans-serif" }}
+                  >
+                    <span className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedStatuses.includes(option.value)}
+                        onChange={() => toggleStatus(option.value)}
+                        className="peer sr-only"
+                      />
+                      <span className="flex h-[30px] w-[30px] items-center justify-center rounded border border-card bg-background transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                        <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
+                      </span>
+                    </span>
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsFilterOpen(false)}
+            className="mt-auto w-full rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          >
+            Adicionar filtro
+          </button>
+        </aside>
+      </>
+    )}
+  </>
+);
 }
