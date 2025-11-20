@@ -177,7 +177,7 @@ export default function Products() {
             </button>
             <button
               type="button"
-              className="flex h-12 items-center justify-center gap-2 rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-6 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="flex h-12 items-center justify-center gap-2 rounded-[8px] bg-primary px-6 text-sm font-semibold text-white transition-transform"
             >
               <Plus className="h-4 w-4" aria-hidden />
               Adicionar produto
@@ -288,8 +288,8 @@ export default function Products() {
                     onClick={() => setCurrentPage(item)}
                     className={`h-9 w-9 rounded-[10px] text-sm font-semibold transition-colors ${
                       isActive
-                        ? "border border-primary bg-primary/10 text-primary"
-                        : "border border-transparent text-card-foreground hover:border-primary/40 hover:text-primary"
+                        ? "bg-card text-foreground"
+                        : "text-foreground hover:border-card hover:text-foreground"
                     }`}
                   >
                     {item}
