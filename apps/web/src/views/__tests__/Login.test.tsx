@@ -1,20 +1,46 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { HTMLAttributes, ReactNode } from "react";
 import LoginView from "@/views/Login";
 
 jest.mock("@/components/ui/select", () => {
-  const Select = ({ children }: { children: ReactNode }) => <div>{children}</div>;
-  const SelectTrigger = ({ children, ...props }: HTMLAttributes<HTMLDivElement>) => (
-    <div role="button" {...props}>
+  const React = require("react");
+  const SelectContext = React.createContext<{ value?: string; onValueChange?: (value: string) => void }>({});
+
+  const Select = ({
+    children,
+    value,
+    onValueChange
+  }: { children: ReactNode; value: string; onValueChange: (next: string) => void }) => (
+    <SelectContext.Provider value={{ value, onValueChange }}>
+      <div data-testid="select" data-value={value}>
+        {children}
+      </div>
+    </SelectContext.Provider>
+  );
+
+  const SelectTrigger = ({ children, ...props }: HTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" role="button" {...props}>
       {children}
-    </div>
+    </button>
   );
+
   const SelectContent = ({ children }: { children: ReactNode }) => <div>{children}</div>;
-  const SelectItem = ({ children }: { children: ReactNode }) => <div>{children}</div>;
-  const SelectValue = ({ placeholder }: { placeholder: string }) => (
-    <span>{placeholder}</span>
-  );
+
+  const SelectItem = ({ children, value }: { children: ReactNode; value: string }) => {
+    const ctx = React.useContext(SelectContext);
+    return (
+      <div role="option" onClick={() => ctx.onValueChange?.(value)}>
+        {children}
+      </div>
+    );
+  };
+
+  const SelectValue = ({ placeholder }: { placeholder: string }) => {
+    const ctx = React.useContext(SelectContext);
+    return <span>{ctx.value ?? placeholder}</span>;
+  };
+
   return { Select, SelectTrigger, SelectContent, SelectItem, SelectValue };
 });
 
@@ -41,5 +67,33 @@ describe("LoginView", () => {
 
     expect(screen.getByPlaceholderText(/sua senha/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/seu endereço de email/i)).toBeInTheDocument();
+  });
+
+  it("altera tipo de acesso, aceita termos e retorna para a tela de login", async () => {
+    const user = userEvent.setup();
+    render(<LoginView />);
+
+    await user.click(screen.getByRole("option", { name: /Gerenciar meus produtos/i }));
+    expect(
+      screen.getByText(/Para produtores e co-produtores/i)
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /cadastrar/i }));
+    const termsCheckbox = screen.getByLabelText(/Li e aceito os/i);
+    await user.click(termsCheckbox);
+    expect(termsCheckbox).toBeChecked();
+
+    const passwordToggles = screen.getAllByRole("button", { name: /mostrar senha/i });
+    await user.click(passwordToggles[0]);
+    await user.click(passwordToggles[1]);
+    expect(screen.getAllByRole("button", { name: /ocultar senha/i })).toHaveLength(2);
+
+    const formElement = document.querySelector("form");
+    if (formElement) {
+      fireEvent.submit(formElement);
+    }
+
+    await user.click(screen.getByText(/Já possui conta/i));
+    expect(screen.getByRole("heading", { name: /Acesse a sua conta/i })).toBeInTheDocument();
   });
 });

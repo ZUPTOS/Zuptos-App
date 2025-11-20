@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import Finances from "@/views/Finances";
@@ -30,6 +30,12 @@ describe("Finances view", () => {
     await user.click(screen.getByRole("button", { name: /Adicionar conta bancária/i }));
 
     expect(screen.getByText(/Configurar conta bancária/i)).toBeInTheDocument();
+    const firstOverlay = document.querySelector<HTMLElement>('[class*="bg-black/60"]');
+    if (firstOverlay) {
+      fireEvent.click(firstOverlay);
+    }
+
+    await user.click(screen.getByRole("button", { name: /Adicionar conta bancária/i }));
     await user.click(screen.getByRole("button", { name: /Adicionar conta$/i }));
 
     expect(
@@ -39,5 +45,27 @@ describe("Finances view", () => {
     await user.click(screen.getByRole("button", { name: /Solicitar saque/i }));
     expect(screen.getByText(/Quanto você quer sacar/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText("R$ 0,00")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText(/Fechar modal de saque/i));
+    expect(screen.queryByText(/Quanto você quer sacar/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Solicitar saque/i }));
+    const withdrawOverlays = document.querySelectorAll<HTMLElement>('[class*="bg-black/60"]');
+    const lastOverlay = withdrawOverlays[withdrawOverlays.length - 1];
+    if (lastOverlay) {
+      fireEvent.click(lastOverlay);
+    }
+    expect(screen.queryByText(/Quanto você quer sacar/i)).not.toBeInTheDocument();
+  });
+
+  it("mostra placeholder nas abas futuras", async () => {
+    const user = userEvent.setup();
+    render(<Finances />);
+
+    await user.click(screen.getByRole("button", { name: "Transações" }));
+    expect(screen.getByText(/Conteúdo da aba Transações/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Taxas" }));
+    expect(screen.getByText(/Conteúdo da aba Taxas/i)).toBeInTheDocument();
   });
 });
