@@ -295,6 +295,16 @@ export default function Sales() {
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const filteredSales = useMemo(() => {
+    const lowerIncludes = (value: string | undefined, search: string) =>
+      !search || (value ?? "").toLowerCase().includes(search);
+    const matchesArrayFilter = <T extends string>(value: T, selected: T[]) =>
+      selected.length === 0 || selected.includes(value);
+    const isWithinDateRange = (date: Date) => {
+      if (filters.dateFrom && date < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo && date > new Date(filters.dateTo)) return false;
+      return true;
+    };
+
     const productSearch = filters.product.trim().toLowerCase();
     const paymentSearch = filters.paymentMethod.trim().toLowerCase();
     const buyerEmailSearch = filters.buyerEmail.trim().toLowerCase();
@@ -302,64 +312,25 @@ export default function Sales() {
     const utmSearch = filters.utm.trim().toLowerCase();
 
     return salesHistory.filter(sale => {
-      if (normalizedSearch && !matchesSearchTerm(sale, normalizedSearch)) {
-        return false;
-      }
-
       const saleDate = new Date(sale.saleDate);
-      if (filters.dateFrom && saleDate < new Date(filters.dateFrom)) {
-        return false;
-      }
-      if (filters.dateTo && saleDate > new Date(filters.dateTo)) {
-        return false;
-      }
-      if (productSearch && !sale.productName.toLowerCase().includes(productSearch)) {
-        return false;
-      }
-      if (
-        paymentSearch &&
-        !paymentMethods[sale.paymentMethod].label.toLowerCase().includes(paymentSearch)
-      ) {
-        return false;
-      }
-      if (filters.statuses.length && !filters.statuses.includes(sale.status)) {
-        return false;
-      }
+      const paymentLabel = paymentMethods[sale.paymentMethod].label.toLowerCase();
+      const couponValue = sale.coupon?.toLowerCase();
+      const utmValue = sale.utm?.toLowerCase();
+      const offerType = getOfferType(sale);
 
-      if (filters.offers.length) {
-        const offerType = getOfferType(sale);
-        if (!filters.offers.includes(offerType)) {
-          return false;
-        }
-      }
-
-      if (buyerEmailSearch && !sale.buyerEmail.toLowerCase().includes(buyerEmailSearch)) {
-        return false;
-      }
-
-      if (couponSearch) {
-        const coupon = sale.coupon?.toLowerCase() ?? "";
-        if (!coupon.includes(couponSearch)) {
-          return false;
-        }
-      }
-
-      if (filters.tipos.length && !filters.tipos.includes(sale.productType)) {
-        return false;
-      }
-
-      if (filters.vendedor.length && !filters.vendedor.includes(sale.saleType)) {
-        return false;
-      }
-
-      if (utmSearch) {
-        const utmValue = sale.utm?.toLowerCase() ?? "";
-        if (!utmValue.includes(utmSearch)) {
-          return false;
-        }
-      }
-
-      return true;
+      return (
+        (!normalizedSearch || matchesSearchTerm(sale, normalizedSearch)) &&
+        isWithinDateRange(saleDate) &&
+        lowerIncludes(sale.productName, productSearch) &&
+        lowerIncludes(paymentLabel, paymentSearch) &&
+        matchesArrayFilter(sale.status, filters.statuses) &&
+        matchesArrayFilter(offerType, filters.offers) &&
+        lowerIncludes(sale.buyerEmail, buyerEmailSearch) &&
+        lowerIncludes(couponValue, couponSearch) &&
+        matchesArrayFilter(sale.productType, filters.tipos) &&
+        matchesArrayFilter(sale.saleType, filters.vendedor) &&
+        lowerIncludes(utmValue, utmSearch)
+      );
     });
   }, [normalizedSearch, filters]);
 
