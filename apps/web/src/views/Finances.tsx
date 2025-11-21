@@ -47,6 +47,13 @@ export default function Finances() {
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [hasBankAccount, setHasBankAccount] = useState(false);
 
+  const handleOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, action: () => void) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      action();
+    }
+  };
+
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Finanças">
       <div className="min-h-full py-6">
@@ -156,7 +163,14 @@ export default function Finances() {
       </div>
       {isWithdrawOpen && hasBankAccount && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setIsWithdrawOpen(false)} />
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            role="button"
+            tabIndex={0}
+            aria-label="Fechar overlay do saque"
+            onClick={() => setIsWithdrawOpen(false)}
+            onKeyDown={event => handleOverlayKeyDown(event, () => setIsWithdrawOpen(false))}
+          />
           <div className="fixed left-1/2 top-1/2 z-50 h-[538px] w-[501px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card">
             <div className="flex items-start justify-between border-b border-muted px-5 py-4">
               <p className="text-[23px] font-semibold text-foreground">Solicitar saque</p>
@@ -218,7 +232,14 @@ export default function Finances() {
 
       {showAccountForm && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setShowAccountForm(false)} />
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            role="button"
+            tabIndex={0}
+            aria-label="Fechar modal de conta bancária (overlay)"
+            onClick={() => setShowAccountForm(false)}
+            onKeyDown={event => handleOverlayKeyDown(event, () => setShowAccountForm(false))}
+          />
           <div className="fixed left-1/2 top-1/2 z-50 h-[534px] w-[443px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-6">
             <div className="flex items-center justify-between border-b border-muted pb-4">
               <p className="text-[24px] font-semibold text-foreground">Configurar conta bancária</p>

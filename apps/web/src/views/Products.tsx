@@ -116,6 +116,16 @@ export default function Products() {
   const [productPassword, setProductPassword] = useState("");
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const handleOverlayKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    action: () => void
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      action();
+    }
+  };
+
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const filteredProducts = useMemo(() => {
@@ -375,7 +385,11 @@ export default function Products() {
       <>
         <div
           className="fixed inset-0 z-40 bg-black/60"
+          role="button"
+          tabIndex={0}
+          aria-label="Fechar filtros de produtos"
           onClick={() => setIsFilterOpen(false)}
+          onKeyDown={event => handleOverlayKeyDown(event, () => setIsFilterOpen(false))}
         />
         <aside className="fixed right-0 top-0 z-50 flex h-[1315px] w-[501px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
           <div className="flex items-center justify-between border-b border-muted pb-4">
@@ -465,7 +479,11 @@ export default function Products() {
       <>
         <div
           className="fixed inset-0 z-[55] bg-black/60"
+          role="button"
+          tabIndex={0}
+          aria-label="Fechar modal de novo produto"
           onClick={closeNewProductModal}
+          onKeyDown={event => handleOverlayKeyDown(event, closeNewProductModal)}
         />
         <aside className="fixed right-0 top-0 z-[60] flex h-full w-full max-w-[500px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
           <div className="flex items-start justify-between border-b border-muted pb-4">
