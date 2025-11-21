@@ -10,7 +10,7 @@ jest.mock("@/components/DashboardLayout", () => ({
 
 jest.mock("next/image", () => ({
   __esModule: true,
-  default: (props: React.ComponentProps<"img">): ReactElement => <img {...props} />
+  default: (): ReactElement => <span data-testid="mocked-image" />
 }));
 
 describe("Finances view", () => {

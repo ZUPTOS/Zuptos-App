@@ -1,10 +1,10 @@
+import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { HTMLAttributes, ReactNode } from "react";
 import LoginView from "@/views/Login";
 
 jest.mock("@/components/ui/select", () => {
-  const React = require("react");
   const SelectContext = React.createContext<{ value?: string; onValueChange?: (value: string) => void }>({});
 
   const Select = ({
@@ -30,7 +30,7 @@ jest.mock("@/components/ui/select", () => {
   const SelectItem = ({ children, value }: { children: ReactNode; value: string }) => {
     const ctx = React.useContext(SelectContext);
     return (
-      <div role="option" onClick={() => ctx.onValueChange?.(value)}>
+      <div role="option" aria-selected={ctx.value === value} onClick={() => ctx.onValueChange?.(value)}>
         {children}
       </div>
     );

@@ -9,7 +9,7 @@ jest.mock("@/components/DashboardLayout", () => ({
 
 jest.mock("next/image", () => ({
   __esModule: true,
-  default: (props: Record<string, unknown>) => <img alt="mock" {...props} />
+  default: () => <span data-testid="mocked-image" />
 }));
 
 describe("MyAccountView", () => {

@@ -34,9 +34,7 @@ function buildMockProducts() {
   });
 
   return [...baseProducts, ...extraProducts];
-};
-
-const mockedProducts = buildMockProducts();
+}
 
 jest.mock("@/components/DashboardLayout", () => ({
   __esModule: true,
@@ -45,7 +43,7 @@ jest.mock("@/components/DashboardLayout", () => ({
 
 jest.mock("next/image", () => ({
   __esModule: true,
-  default: (props: React.ComponentProps<"img">): ReactElement => <img {...props} />
+  default: (): ReactElement => <span data-testid="mocked-image" />
 }));
 
 jest.mock("@/data/productsData.json", () => ({

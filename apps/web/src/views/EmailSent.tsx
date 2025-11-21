@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Mail } from "lucide-react";
 import FooterGlow from "@/views/components/FooterGlow";
 
 export default function EmailSentView() {
