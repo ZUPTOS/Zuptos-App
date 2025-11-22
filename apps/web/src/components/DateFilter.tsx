@@ -66,6 +66,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 1));
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [rangeAnchor, setRangeAnchor] = useState<Date | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const today = new Date();
@@ -120,9 +121,19 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
       currentDate.getMonth(),
       day
     );
-    setSelectedRange({ start: selected, end: selected });
+    if (!rangeAnchor) {
+      setRangeAnchor(selected);
+      setSelectedRange({ start: selected, end: selected });
+      setSelectedPreset(null);
+      return;
+    }
+
+    const start = rangeAnchor < selected ? rangeAnchor : selected;
+    const end = rangeAnchor < selected ? selected : rangeAnchor;
+    setSelectedRange({ start, end });
     setSelectedPreset(null);
-    onDateChange?.(selected, selected);
+    setRangeAnchor(null);
+    onDateChange?.(start, end);
     setIsOpen(false);
     setShowCalendar(false);
   };
@@ -229,9 +240,32 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
                   {daysInMonth.map(date => {
                     const day = date.getDate();
                     const isSelected =
-                      activeDate.getDate() === day &&
-                      activeDate.getMonth() === date.getMonth() &&
-                      activeDate.getFullYear() === date.getFullYear();
+                      (selectedRange?.start &&
+                        selectedRange.start.getDate() === day &&
+                        selectedRange.start.getMonth() === date.getMonth() &&
+                        selectedRange.start.getFullYear() === date.getFullYear()) ||
+                      (selectedRange?.end &&
+                        selectedRange.end.getDate() === day &&
+                        selectedRange.end.getMonth() === date.getMonth() &&
+                        selectedRange.end.getFullYear() === date.getFullYear());
+
+                    const inRange =
+                      selectedRange &&
+                      date >= selectedRange.start &&
+                      date <= selectedRange.end &&
+                      !isSelected;
+
+                    const isStart =
+                      selectedRange &&
+                      selectedRange.start.getDate() === day &&
+                      selectedRange.start.getMonth() === date.getMonth() &&
+                      selectedRange.start.getFullYear() === date.getFullYear();
+
+                    const isEnd =
+                      selectedRange &&
+                      selectedRange.end.getDate() === day &&
+                      selectedRange.end.getMonth() === date.getMonth() &&
+                      selectedRange.end.getFullYear() === date.getFullYear();
 
                     return (
                       <button
@@ -241,8 +275,10 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
                         className={`w-full aspect-square rounded-[12px] text-xs font-medium transition-colors ${
                           isSelected
                             ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-muted/40"
-                        }`}
+                            : inRange
+                              ? "bg-primary/15 text-foreground"
+                              : "text-muted-foreground hover:bg-muted/40"
+                        } ${isStart || isEnd ? "ring-0" : ""}`}
                       >
                         {day}
                       </button>

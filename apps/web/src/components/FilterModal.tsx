@@ -19,6 +19,19 @@ export default function FilterModal({
   const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 1)); // October 2025
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [step, setStep] = useState<"filter" | "calendar">("filter");
+  const groups = {
+    Produtor: ["Produto 01", "Produto 02", "Produto 03"],
+    "Co-Produtor": ["Produto 01", "Produto 02", "Produto 03"]
+  } as const;
+  const [selection, setSelection] = useState<Record<string, Record<string, boolean>>>(
+    () =>
+      Object.fromEntries(
+        Object.entries(groups).map(([group, items]) => [
+          group,
+          Object.fromEntries(items.map(item => [item, false]))
+        ])
+      )
+  );
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -58,14 +71,37 @@ export default function FilterModal({
     setStep("filter");
   };
 
+  const isGroupFullySelected = (group: string) =>
+    Object.values(selection[group]).every(Boolean);
+
+  const handleToggleGroup = (group: string) => {
+    const shouldSelectAll = !isGroupFullySelected(group);
+    setSelection(prev => ({
+      ...prev,
+      [group]: Object.fromEntries(
+        Object.keys(prev[group]).map(item => [item, shouldSelectAll])
+      )
+    }));
+  };
+
+  const handleToggleItem = (group: string, item: string) => {
+    setSelection(prev => ({
+      ...prev,
+      [group]: {
+        ...prev[group],
+        [item]: !prev[group][item]
+      }
+    }));
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-lg border border-gray-800 w-full max-w-4xl mx-4">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50">
+      <div className="mt-10 bg-gray-900 rounded-lg border border-gray-800 w-[461px] h-[391px] mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
-          <h2 className="text-lg font-semibold text-white">Filtrar por...</h2>
+          <h2 className="text-[24px] font-semibold text-white">Filtrar por...</h2>
           <button
             onClick={onClose}
             aria-label="Fechar filtro"
@@ -78,69 +114,54 @@ export default function FilterModal({
         {/* Content */}
         <div className="p-6">
           {step === "filter" ? (
-            <div className="grid grid-cols-3 gap-4">
-              {/* Filter Options */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                  Filtro de Data 1
-                </h3>
-                <div className="space-y-2">
-                  {["Hoje", "Ontem", "Esta semana", "Última semana", "Este mês"].map(
-                    (option) => (
-                      <button
-                        key={option}
-                        className="w-full text-left px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors text-sm"
-                      >
-                        {option}
-                      </button>
-                    )
-                  )}
-                </div>
+              <div className="space-y-6">
+                <div className="space-y-[3px]">
+                {Object.entries(groups).map(([group, items]) => (
+                  <div key={group} className="space-y-[3px]">
+                    <label className="flex items-center gap-[12px] text-[14px] font-semibold text-white">
+                      <input
+                        type="checkbox"
+                        checked={isGroupFullySelected(group)}
+                        onChange={() => handleToggleGroup(group)}
+                        className="relative h-[26px] w-[26px] appearance-none rounded border border-gray-500 bg-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 checked:bg-purple-600 checked:border-purple-600 [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                      />
+                      <span>{group}</span>
+                    </label>
+                    <div className="space-y-[3px] pl-9">
+                      {items.map(item => (
+                        <label
+                          key={item}
+                          className="flex items-center gap-[12px] text-[12px] text-gray-500"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selection[group][item]}
+                            onChange={() => handleToggleItem(group, item)}
+                            className="relative h-[26px] w-[26px] appearance-none rounded border border-gray-600 bg-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 checked:bg-purple-600 checked:border-purple-600 [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                  Filtro de Data 2
-                </h3>
-                <div className="space-y-2">
-                  {["Hoje", "Ontem", "Esta semana", "Última semana", "Este mês"].map(
-                    (option) => (
-                      <button
-                        key={option}
-                        className="w-full text-left px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors text-sm"
-                      >
-                        {option}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                  Filtro de Data 3
-                </h3>
-                <div className="space-y-2">
-                  {["Hoje", "Ontem", "Esta semana", "Última semana", "Este mês"].map(
-                    (option) => (
-                      <button
-                        key={option}
-                        className={`w-full text-left px-4 py-2 rounded-lg transition-colors text-sm ${
-                          option === "Este mês"
-                            ? "bg-purple-600 text-white"
-                            : "text-gray-300 hover:bg-gray-800"
-                        }`}
-                        onClick={() => {
-                          if (option === "Este mês") {
-                            setStep("calendar");
-                          }
-                        }}
-                      >
-                        {option}
-                      </button>
-                    )
-                  )}
-                </div>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep("calendar")}
+                  className="rounded-lg border border-gray-800 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 transition-colors"
+                >
+                  Este mês
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep("calendar")}
+                  className="rounded-lg border border-gray-800 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 transition-colors"
+                >
+                  Escolher data
+                </button>
               </div>
             </div>
           ) : (

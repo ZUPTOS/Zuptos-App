@@ -57,16 +57,26 @@ const visualizationOptionsConfig =
       )
     : fallbackVisualizationOptions;
 
-const filterModalOptions = [
-  { id: "produtor", label: "Produtor" },
-  { id: "produto_01", label: "Produto 01" },
-  { id: "produto_02", label: "Produto 02" },
-  { id: "produto_03", label: "Produto 03" },
-  { id: "co_produtor", label: "Co-Produtor" },
-  { id: "co_produtor_01", label: "Produto 01" },
-  { id: "co_produtor_02", label: "Produto 02" },
-  { id: "co_produtor_03", label: "Produto 02" }
-];
+const filterModalGroups = [
+  {
+    id: "produtor",
+    label: "Produtor",
+    children: [
+      { id: "produto_01", label: "Produto 01" },
+      { id: "produto_02", label: "Produto 02" },
+      { id: "produto_03", label: "Produto 03" }
+    ]
+  },
+  {
+    id: "co_produtor",
+    label: "Co-Produtor",
+    children: [
+      { id: "co_produtor_01", label: "Produto 01" },
+      { id: "co_produtor_02", label: "Produto 02" },
+      { id: "co_produtor_03", label: "Produto 03" }
+    ]
+  }
+] as const;
 const highlightedFilterIds = new Set(["produtor", "co_produtor"]);
 
 const paymentIconMap: Record<string, string> = {
@@ -151,6 +161,33 @@ export default function Dashboard() {
   const visualizationRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const isLightMode = theme === "light";
+
+  const toggleParentFilter = (groupId: string) => {
+    const group = filterModalGroups.find(item => item.id === groupId);
+    if (!group) return;
+    setSelectedFilters(prev => {
+      const childrenIds = group.children.map(child => child.id);
+      const allChildrenSelected = childrenIds.every(id => prev[id]);
+      const shouldSelect = !allChildrenSelected;
+      const next = { ...prev, [groupId]: shouldSelect };
+      childrenIds.forEach(id => {
+        next[id] = shouldSelect;
+      });
+      return next;
+    });
+  };
+
+  const toggleChildFilter = (groupId: string, childId: string) => {
+    const group = filterModalGroups.find(item => item.id === groupId);
+    if (!group) return;
+    setSelectedFilters(prev => {
+      const next = { ...prev, [childId]: !prev[childId] };
+      const childrenIds = group.children.map(child => child.id);
+      const allSelected = childrenIds.every(id => next[id]);
+      next[groupId] = allSelected;
+      return next;
+    });
+  };
 
   const grossRevenueLabel = `R$ ${mockData.revenue.grossRevenue
     .toFixed(2)
@@ -314,45 +351,47 @@ export default function Dashboard() {
               </button>
 
               {isFilterDropdownOpen && (
-                <div className="absolute left-0 top-5 z-40 mt-3 w-[461px] h-[391px] rounded-[16px] bg-card border border-muted/70 shadow-none dark:shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]">
-                  <div className="px-5 py-4 border-b border-muted/60 flex items-center justify-between">
-                      <p className="text-sm text-sora">Filtrar por...</p>
-                      <button
-                        type="button"
-                        onClick={() => setFilterDropdownOpen(false)}
-                        className="text-muted-foreground transition hover:text-foreground"
-                        aria-label="Fechar filtros"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                <div className="absolute left-0 top-5 z-40 mt-3 h-[391px] w-[461px] rounded-[16px] bg-card border border-muted/70 shadow-none dark:shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]">
+                  <div className="flex items-center justify-between border-b border-muted/60 px-5 py-4">
+                    <p className="text-[16px] font-semibold text-foreground">Filtrar por...</p>
+                    <button
+                      type="button"
+                      onClick={() => setFilterDropdownOpen(false)}
+                      className="text-muted-foreground transition hover:text-foreground"
+                      aria-label="Fechar filtros"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-2 scrollbar-invisible pr-1">
-                    {filterModalOptions.map(option => (
-                      <label
-                        key={option.id}
-                        className="flex items-center gap-3 rounded-[14px] border border-border/60 px-3 py-2 text-sm text-foreground transition hover:border-border hover:bg-muted/40"
-                      >
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded-[6px] border border-border/80 bg-card/80 text-primary accent-primary transition focus:ring-2 focus:ring-primary/40 focus:ring-offset-0"
-                          checked={!!selectedFilters[option.id]}
-                          onChange={() =>
-                            setSelectedFilters(prev => ({
-                              ...prev,
-                              [option.id]: !prev[option.id]
-                            }))
-                          }
-                        />
-                        <span
-                          className={
-                            highlightedFilterIds.has(option.id)
-                              ? "font-sora text-foreground"
-                              : "text-muted-foreground"
-                          }
-                        >
-                          {option.label}
-                        </span>
-                      </label>
+                  <div className="max-h-[320px] overflow-y-auto px-4 py-4 space-y-4 pr-2 scrollbar-invisible">
+                    {filterModalGroups.map(group => (
+                      <div key={group.id} className="space-y-3 rounded-[12px] px-1">
+                        <label className="flex items-center gap-[14px] text-[16px] font-semibold text-foreground">
+                          <input
+                            type="checkbox"
+                            className="relative h-[26px] w-[26px] appearance-none rounded border border-border/70 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:bg-primary checked:border-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                            checked={!!selectedFilters[group.id] || group.children.every(child => selectedFilters[child.id])}
+                            onChange={() => toggleParentFilter(group.id)}
+                          />
+                          <span>{group.label}</span>
+                        </label>
+                        <div className="space-y-3 pl-10">
+                          {group.children.map(child => (
+                            <label
+                              key={child.id}
+                              className="flex items-center gap-[14px] text-[14px] text-muted-foreground"
+                            >
+                              <input
+                                type="checkbox"
+                                className="relative h-[26px] w-[26px] appearance-none rounded border border-border/70 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:bg-primary checked:border-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                                checked={!!selectedFilters[child.id]}
+                                onChange={() => toggleChildFilter(group.id, child.id)}
+                              />
+                              <span>{child.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

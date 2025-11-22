@@ -127,14 +127,16 @@ describe("DateFilter", () => {
     });
     expect(screen.getByText(octoberLabel)).toBeInTheDocument();
 
-    const dayButton = screen.getByRole("button", { name: "15" });
-    await user.click(dayButton);
+    const startButton = screen.getByRole("button", { name: "10" });
+    const endButton = screen.getByRole("button", { name: "15" });
+    await user.click(startButton);
+    await user.click(endButton);
 
     const [start, end] = handleChange.mock.calls.at(-1);
     expect(start.getFullYear()).toBe(2025);
     expect(start.getMonth()).toBe(9);
-    expect(start.getDate()).toBe(15);
-    expect(end.getTime()).toBe(start.getTime());
+    expect(start.getDate()).toBe(10);
+    expect(end.getDate()).toBe(15);
 
     await waitFor(() => {
       expect(screen.queryByText(octoberLabel)).not.toBeInTheDocument();
