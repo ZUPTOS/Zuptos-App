@@ -12,6 +12,7 @@ import {
   Eye,
   Filter,
   Search,
+  Tag,
   Upload,
   X
 } from "lucide-react";
@@ -109,6 +110,7 @@ export default function Finances() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const itemsPerPage = 7;
 
   const parseDate = (dateStr: string) => {
@@ -372,7 +374,8 @@ export default function Finances() {
                       paginatedTransactions.map(transaction => (
                         <tr
                           key={transaction.id + transaction.date + transaction.time}
-                          className="h-[85px] border-t border-muted/60 transition-colors hover:bg-muted/10"
+                          className="h-[85px] cursor-pointer border-t border-muted/60 transition-colors hover:bg-muted/10"
+                          onClick={() => setSelectedTransaction(transaction)}
                         >
                           <td className="px-5 py-4 text-[15px] font-semibold text-foreground text-center">{transaction.id}</td>
                           <td className="px-5 py-4 text-[15px] text-foreground">
@@ -446,7 +449,7 @@ export default function Finances() {
                         onClick={() => setCurrentPage(item)}
                         className={`h-8 min-w-[32px] rounded-[8px] px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                           currentPage === item
-                            ? "bg-primary text-white"
+                            ? "bg-card text-foreground"
                             : "bg-card/60 text-muted-foreground hover:text-foreground"
                         }`}
                       >
@@ -554,6 +557,123 @@ export default function Finances() {
                 >
                   Adicionar filtro
                 </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      {selectedTransaction && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            role="button"
+            tabIndex={0}
+            aria-label="Fechar modal de detalhes (overlay)"
+            onClick={() => setSelectedTransaction(null)}
+            onKeyDown={event => handleOverlayKeyDown(event, () => setSelectedTransaction(null))}
+          />
+          <div className="fixed right-0 top-0 z-50 h-screen w-[501px] border-l border-muted bg-card px-7 pb-10 pt-8 shadow-2xl">
+            <div className="mb-6 flex items-start justify-between">
+              <h2 className="text-[33px] font-semibold text-foreground">Detalhes</h2>
+              <button
+                type="button"
+                onClick={() => setSelectedTransaction(null)}
+                className="text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                aria-label="Fechar modal de detalhes"
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-[15px] text-foreground">
+              <div className="flex items-center gap-3 rounded-[12px] border border-muted/60 px-4 py-3">
+                <div className="h-[56px] w-[56px] rounded-[8px] bg-muted/30" aria-hidden />
+                <div className="space-y-1">
+                  <p className="text-[17px] font-semibold leading-tight">{selectedTransaction.title}</p>
+                  <p className="text-sm text-muted-foreground">{selectedTransaction.subtitle}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-foreground">
+                <Tag className="h-5 w-5 text-foreground" aria-hidden />
+                <span className="text-[16px] font-semibold">Order bump(s)</span>
+                <span className="flex h-6 min-w-6 items-center justify-center rounded-[6px] border border-muted/60 px-2 text-sm text-muted-foreground">
+                  1
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-[12px] border border-muted/60 px-4 py-3">
+                <div className="h-[56px] w-[56px] rounded-[8px] bg-muted/30" aria-hidden />
+                <div className="space-y-1">
+                  <p className="text-[17px] font-semibold leading-tight">{selectedTransaction.title}</p>
+                  <p className="text-sm text-muted-foreground">{selectedTransaction.subtitle}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 items-start gap-y-3 text-sm text-foreground">
+                  <span className="text-muted-foreground">Categoria</span>
+                  <span
+                    className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                      selectedTransaction.category === "Venda"
+                        ? "bg-emerald-500/15 text-emerald-200"
+                        : selectedTransaction.category === "Estorno"
+                          ? "bg-red-500/15 text-red-200"
+                          : selectedTransaction.category === "MED"
+                            ? "bg-red-500/15 text-red-200"
+                            : "bg-rose-500/15 text-rose-200"
+                    }`}
+                  >
+                    {selectedTransaction.category}
+                  </span>
+
+                  <span className="text-muted-foreground">Código da venda</span>
+                  <span className="font-semibold text-left">{selectedTransaction.id}</span>
+
+                  <span className="text-muted-foreground">Descrição</span>
+                  <span className="font-semibold text-left">Venda coprodução</span>
+
+                  <span className="text-muted-foreground">Data da venda</span>
+                  <span className="font-semibold text-left">
+                    {selectedTransaction.date} às {selectedTransaction.time.replace("às ", "")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-muted/60 pt-4">
+                <div className="grid grid-cols-2 items-start gap-y-3 text-sm text-foreground">
+                  <span className="text-muted-foreground">Tipo</span>
+                  <span className="inline-flex items-center gap-1 font-semibold text-left">
+                    {selectedTransaction.type === "entrada" ? "Entrada" : "Saída"}
+                    {selectedTransaction.type === "entrada" ? (
+                      <ArrowDown className="h-4 w-4 text-emerald-400" aria-hidden />
+                    ) : (
+                      <ArrowUp className="h-4 w-4 text-red-400" aria-hidden />
+                    )}
+                  </span>
+
+                  <span className="text-muted-foreground">Valor</span>
+                  <span className="font-semibold text-left">{formatCurrency(selectedTransaction.value)}</span>
+
+                  <span className="text-muted-foreground">Taxas (4.9% + R$ 0,75)</span>
+                  <span className="font-semibold text-left text-red-200">
+                    -{formatCurrency(selectedTransaction.value * 0.049 + 0.75)}
+                  </span>
+
+                  <span className="text-muted-foreground">Comissão do coprodutor</span>
+                  <span className="font-semibold text-left text-red-200">
+                    -{formatCurrency(selectedTransaction.value * 0.07)}
+                  </span>
+
+                  <span className="text-muted-foreground">Minha comissão</span>
+                  <span className="font-semibold text-left text-emerald-200">
+                    {formatCurrency(
+                      selectedTransaction.value -
+                        (selectedTransaction.value * 0.049 + 0.75) -
+                        selectedTransaction.value * 0.07
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
