@@ -125,6 +125,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
       setRangeAnchor(selected);
       setSelectedRange({ start: selected, end: selected });
       setSelectedPreset(null);
+      onDateChange?.(selected, selected);
       return;
     }
 
@@ -134,8 +135,6 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     setSelectedPreset(null);
     setRangeAnchor(null);
     onDateChange?.(start, end);
-    setIsOpen(false);
-    setShowCalendar(false);
   };
 
   const handlePresetSelect = (option: string) => {
@@ -223,7 +222,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-y-1 gap-x-0">
                   {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
                     <div
                       key={`${day}-${index}`}
@@ -267,18 +266,36 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
                       selectedRange.end.getMonth() === date.getMonth() &&
                       selectedRange.end.getFullYear() === date.getFullYear();
 
+                    const isSingle = isStart && isEnd;
+
+                    let bgClass: string;
+                    if (isSelected) {
+                      bgClass = "bg-primary text-primary-foreground";
+                    } else if (inRange) {
+                      bgClass = "bg-primary/15 text-foreground";
+                    } else {
+                      bgClass = "text-muted-foreground hover:bg-muted/40";
+                    }
+
+                    let radiusClass: string;
+                    if (isSingle) {
+                      radiusClass = "rounded-full";
+                    } else if (isStart) {
+                      radiusClass = "rounded-l-full";
+                    } else if (isEnd) {
+                      radiusClass = "rounded-r-full";
+                    } else if (inRange) {
+                      radiusClass = "rounded-none";
+                    } else {
+                      radiusClass = "rounded-[12px]";
+                    }
+
                     return (
                       <button
                         key={day}
                         onClick={() => handleDateSelect(day)}
                         type="button"
-                        className={`w-full aspect-square rounded-[12px] text-xs font-medium transition-colors ${
-                          isSelected
-                            ? "bg-primary text-primary-foreground"
-                            : inRange
-                              ? "bg-primary/15 text-foreground"
-                              : "text-muted-foreground hover:bg-muted/40"
-                        } ${isStart || isEnd ? "ring-0" : ""}`}
+                        className={`w-full aspect-square text-xs font-medium transition-colors ${bgClass} ${radiusClass}`}
                       >
                         {day}
                       </button>

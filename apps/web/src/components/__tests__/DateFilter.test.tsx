@@ -138,9 +138,8 @@ describe("DateFilter", () => {
     expect(start.getDate()).toBe(10);
     expect(end.getDate()).toBe(15);
 
-    await waitFor(() => {
-      expect(screen.queryByText(octoberLabel)).not.toBeInTheDocument();
-    });
+    // Calendário permanece aberto após selecionar o intervalo
+    expect(screen.getByText(octoberLabel)).toBeInTheDocument();
   });
 
   it("permite navegar entre meses no calendário", async () => {
