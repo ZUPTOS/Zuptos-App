@@ -1,9 +1,18 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Banknote, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Banknote,
+  Eye,
+  Filter,
+  Search,
+  Upload,
+  X
+} from "lucide-react";
 
 const tabs = [
   { id: "saldos", label: "Saldos" },
@@ -41,11 +50,108 @@ const balanceCards = [
   }
 ];
 
+type Transaction = {
+  id: string;
+  title: string;
+  subtitle: string;
+  value: number;
+  date: string;
+  time: string;
+  balanceAfter: number;
+  category: "Venda" | "Estorno" | "MED" | "Chargeback";
+  type: "entrada" | "saida";
+};
+
+const transactionTabs = [
+  { id: "todas", label: "Todas" },
+  { id: "entrada", label: "Entradas" },
+  { id: "saida", label: "Saídas" }
+];
+
+const baseTransactions: Omit<Transaction, "id" | "date" | "time">[] = [
+  { title: "Produto 1", subtitle: "Curso", value: 497, balanceAfter: 497, category: "Venda", type: "entrada" },
+  { title: "Produto 1", subtitle: "Curso", value: 497, balanceAfter: 0, category: "Estorno", type: "saida" },
+  { title: "Produto 2", subtitle: "Mentoria", value: 1297, balanceAfter: 2530, category: "Venda", type: "entrada" },
+  { title: "Produto 3", subtitle: "Assinatura", value: 197, balanceAfter: 2333, category: "MED", type: "saida" },
+  { title: "Produto 2", subtitle: "Mentoria", value: 1297, balanceAfter: 3630, category: "Venda", type: "entrada" },
+  { title: "Produto 1", subtitle: "Curso", value: 497, balanceAfter: 1203, category: "Chargeback", type: "saida" },
+  { title: "Produto 4", subtitle: "E-book", value: 97, balanceAfter: 1700, category: "Venda", type: "entrada" },
+  { title: "Produto 5", subtitle: "Workshop", value: 297, balanceAfter: 1403, category: "Chargeback", type: "saida" },
+  { title: "Produto 2", subtitle: "Mentoria", value: 1297, balanceAfter: 1700, category: "MED", type: "saida" },
+  { title: "Produto 6", subtitle: "Licença", value: 697, balanceAfter: 2397, category: "Venda", type: "entrada" }
+];
+
+const transactionsMock: Transaction[] = Array.from({ length: 96 }, (_, index) => {
+  const base = baseTransactions[index % baseTransactions.length];
+  const day = String(((index % 30) + 1)).padStart(2, "0");
+  const month = String(6 - Math.floor(index / 30)).padStart(2, "0"); // months decreasing to vary data
+  const hour = String(9 + (index % 10)).padStart(2, "0");
+  const minute = String(5 + (index % 50)).padStart(2, "0");
+
+  return {
+    ...base,
+    id: `#TX${String(index + 1).padStart(4, "0")}`,
+    date: `${day}/${month}/2025`,
+    time: `às ${hour}:${minute}`,
+    balanceAfter: base.balanceAfter + (index % 5) * 17 // small variation to avoid identical rows
+  };
+});
+
 export default function Finances() {
   const [activeTab, setActiveTab] = useState<string>("saldos");
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [hasBankAccount, setHasBankAccount] = useState(false);
+  const [transactionFilter, setTransactionFilter] = useState<string>("todas");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
+
+  const filteredTransactions = transactionsMock.filter(transaction => {
+    const matchesFilter =
+      transactionFilter === "todas" ? true : transaction.type === transactionFilter;
+    const matchesSearch = transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const headerHeight = 52;
+  const rowHeight = 85;
+  const tableHeight = Math.min(647, headerHeight + rowHeight * Math.max(1, paginatedTransactions.length));
+
+  const paginationItems = (() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const pages = new Set<number>([1, 2, 3, totalPages - 2, totalPages - 1, totalPages]);
+    if (currentPage > 3 && currentPage < totalPages - 2) {
+      pages.add(currentPage);
+    }
+
+    const sortedPages = Array.from(pages).sort((a, b) => a - b);
+    const output: Array<number | string> = [];
+
+    for (let i = 0; i < sortedPages.length; i += 1) {
+      const page = sortedPages[i];
+      const prevPage = sortedPages[i - 1];
+      if (prevPage && page - prevPage > 1) {
+        output.push("...");
+      }
+      output.push(page);
+    }
+
+    return output;
+  })();
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [transactionFilter, searchTerm]);
 
   const handleOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, action: () => void) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -153,7 +259,200 @@ export default function Finances() {
             </div>
           )}
 
-          {activeTab !== "saldos" && (
+          {activeTab === "transacoes" && (
+            <div className="mx-auto flex w-full max-w-[1280px] flex-col items-stretch gap-4">
+              <div className="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  {transactionTabs.map(tab => {
+                    const isTransactionTabActive = transactionFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setTransactionFilter(tab.id)}
+                        className={`inline-flex h-[54px] min-w-[96px] items-center justify-center rounded-[10px] px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                          isTransactionTabActive
+                            ? "bg-card text-foreground"
+                            : "bg-card/60 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex h-[54px] w-full items-center gap-2 rounded-[10px] border border-muted bg-card px-3 text-sm text-foreground md:w-[227px]">
+                    <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={event => setSearchTerm(event.target.value)}
+                      placeholder="Buscar por código"
+                      className="h-full w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Filtrar transações"
+                    className="flex h-[54px] w-[49px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <Filter className="h-4 w-4" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Visualizar"
+                    className="flex h-[54px] w-[49px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <Eye className="h-4 w-4" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Upload de transações"
+                    className="flex h-[54px] w-[49px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <Upload className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className="flex w-[1280px] justify-center overflow-hidden rounded-[16px] border border-muted bg-card/70"
+                style={{ height: `${tableHeight}px` }}
+              >
+                <table className="min-w-[1280px] w-[1280px] border-separate border-spacing-0 text-[15px]">
+                  <thead className="bg-card/60 text-[15px] uppercase text-muted-foreground">
+                    <tr className="h-[52px]">
+                      <th scope="col" className="px-5 py-3 text-center font-semibold">
+                        ID
+                      </th>
+                      <th scope="col" className="px-5 py-3 text-center font-semibold">
+                        Descrição
+                      </th>
+                      <th scope="col" className="px-5 py-3 text-center font-semibold">
+                        Valor
+                      </th>
+                      <th scope="col" className="px-5 py-3 text-center font-semibold">
+                        Data
+                      </th>
+                      <th scope="col" className="px-5 py-3 text-center font-semibold">
+                        Saldo após lançamento
+                      </th>
+                      <th scope="col" className="px-5 py-3 text-center font-semibold">
+                        Categoria
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted-foreground">
+                          Nenhuma transação encontrada.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedTransactions.map(transaction => (
+                        <tr
+                          key={transaction.id + transaction.date + transaction.time}
+                          className="h-[85px] border-t border-muted/60 transition-colors hover:bg-muted/10"
+                        >
+                          <td className="px-5 py-4 text-[15px] font-semibold text-foreground text-center">{transaction.id}</td>
+                          <td className="px-5 py-4 text-[15px] text-foreground">
+                            <div className="flex flex-col items-center space-y-1 text-center">
+                              <p className="font-semibold leading-tight">{transaction.title}</p>
+                              <p className="text-[15px] text-muted-foreground">{transaction.subtitle}</p>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-[15px] font-semibold text-foreground text-center">
+                            {formatCurrency(transaction.value)}
+                          </td>
+                          <td className="px-5 py-4 text-[15px] text-foreground">
+                            <div className="flex flex-col items-center leading-tight text-center">
+                              <span className="font-semibold">{transaction.date}</span>
+                              <span className="text-[15px] text-muted-foreground">{transaction.time}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-[15px] text-foreground">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="font-semibold">{formatCurrency(transaction.balanceAfter)}</span>
+                              {transaction.type === "entrada" ? (
+                                <ArrowDown className="h-4 w-4 text-emerald-400" aria-label="Entrada" />
+                              ) : (
+                                <ArrowUp className="h-4 w-4 text-red-400" aria-label="Saída" />
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-[15px] text-center">
+                            <span
+                              className={`inline-flex min-w-[96px] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                transaction.category === "Venda"
+                                  ? "bg-emerald-500/15 text-emerald-200"
+                                  : transaction.category === "Estorno"
+                                    ? "bg-red-500/15 text-red-200"
+                                    : transaction.category === "MED"
+                                      ? "bg-red-500/15 text-red-200"
+                                      : "bg-rose-500/15 text-rose-200"
+                              }`}
+                            >
+                              {transaction.category}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-muted px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="mr-2 text-lg leading-none">‹</span>
+                  Anterior
+                </button>
+
+                <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+                  {paginationItems.map((item, index) =>
+                    typeof item === "string" ? (
+                      <span key={`${item}-${index}`} className="px-2 text-muted-foreground">
+                        {item}
+                      </span>
+                    ) : (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setCurrentPage(item)}
+                        className={`h-8 min-w-[32px] rounded-[8px] px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                          currentPage === item
+                            ? "bg-primary text-white"
+                            : "bg-card/60 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-muted px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Próximo
+                  <span className="ml-2 text-lg leading-none">›</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab !== "saldos" && activeTab !== "transacoes" && (
             <div className="rounded-[16px] border border-dashed border-muted/60 bg-card/40 p-6 text-center text-muted-foreground">
               <p className="text-base font-semibold text-card-foreground">Em breve</p>
               <p className="text-sm">Conteúdo da aba {tabs.find(t => t.id === activeTab)?.label} em desenvolvimento.</p>

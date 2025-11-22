@@ -58,12 +58,24 @@ describe("Finances view", () => {
     expect(screen.queryByText(/Quanto você quer sacar/i)).not.toBeInTheDocument();
   });
 
-  it("mostra placeholder nas abas futuras", async () => {
+  it("exibe tabela de transações com filtros e ações", async () => {
     const user = userEvent.setup();
     render(<Finances />);
 
     await user.click(screen.getByRole("button", { name: "Transações" }));
-    expect(screen.getByText(/Conteúdo da aba Transações/i)).toBeInTheDocument();
+
+    expect(screen.getByPlaceholderText("Buscar por código")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Filtrar transações" })).toBeInTheDocument();
+    expect(screen.getByText("ID")).toBeInTheDocument();
+    expect(screen.getAllByText("#TX0001")[0]).toBeInTheDocument();
+  });
+
+  it("mostra placeholder nas abas futuras", async () => {
+    const user = userEvent.setup();
+    render(<Finances />);
+
+    await user.click(screen.getByRole("button", { name: "Histórico de saques" }));
+    expect(screen.getByText(/Conteúdo da aba Histórico de saques/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Taxas" }));
     expect(screen.getByText(/Conteúdo da aba Taxas/i)).toBeInTheDocument();
