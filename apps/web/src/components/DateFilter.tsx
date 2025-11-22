@@ -144,7 +144,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
         type="button"
         aria-label="Alternar filtro de datas"
         onClick={() => setIsOpen(prev => !prev)}
-        className="flex justify-center w-[290px] items-center gap-4 px-4 py-3 rounded-[7px] border border-border/70 bg-card"
+        className="flex w-[290px] items-center justify-start gap-4 px-4 py-3 rounded-[7px] border border-border/70 bg-card text-left"
       >
         <Calendar className="w-4 h-5 text-foreground" />
         <span className="text-[14px] text-foreground">{dateRange}</span>

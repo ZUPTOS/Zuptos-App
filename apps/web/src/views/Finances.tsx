@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
+import DateFilter from "@/components/DateFilter";
 import {
   ArrowDown,
   ArrowUp,
   Banknote,
+  Calendar,
   Eye,
   Filter,
   Search,
@@ -105,13 +107,27 @@ export default function Finances() {
   const [transactionFilter, setTransactionFilter] = useState<string>("todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const itemsPerPage = 7;
+
+  const parseDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split("/").map(Number);
+    return new Date(year, month - 1, day);
+  };
 
   const filteredTransactions = transactionsMock.filter(transaction => {
     const matchesFilter =
       transactionFilter === "todas" ? true : transaction.type === transactionFilter;
     const matchesSearch = transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+    const matchesDate = dateRange
+      ? (() => {
+          const txDate = parseDate(transaction.date);
+          return txDate >= dateRange.start && txDate <= dateRange.end;
+        })()
+      : true;
+
+    return matchesFilter && matchesSearch && matchesDate;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
@@ -296,6 +312,7 @@ export default function Finances() {
                   <button
                     type="button"
                     aria-label="Filtrar transações"
+                    onClick={() => setIsFilterOpen(true)}
                     className="flex h-[54px] w-[49px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Filter className="h-4 w-4" aria-hidden />
@@ -460,6 +477,88 @@ export default function Finances() {
           )}
         </div>
       </div>
+      {isFilterOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            role="button"
+            tabIndex={0}
+            aria-label="Fechar modal de filtro (overlay)"
+            onClick={() => setIsFilterOpen(false)}
+            onKeyDown={event => handleOverlayKeyDown(event, () => setIsFilterOpen(false))}
+          />
+          <div className="fixed right-0 top-0 z-50 h-screen w-[443px] border-l border-muted bg-card px-6 pb-10 pt-8 shadow-2xl">
+            <div className="mb-6 flex items-start justify-between">
+              <h2 className="text-[28px] font-semibold text-foreground">Filtrar</h2>
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen(false)}
+                className="text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                aria-label="Fechar modal de filtro"
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+
+            <div className="space-y-6 text-[15px] text-foreground">
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Data</p>
+                <DateFilter
+                  onDateChange={(start, end) => {
+                    setDateRange({ start, end });
+                  }}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Categoria</p>
+                <div className="grid grid-cols-2 gap-3 text-muted-foreground">
+                  {["Venda", "Comissão", "Saque", "Chargeback"].map(option => (
+                    <label
+                      key={option}
+                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-[15px]"
+                    >
+                      <input
+                        type="checkbox"
+                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-muted/60 pt-4">
+                <p className="text-sm font-semibold text-foreground">Tipo de transação</p>
+                <div className="grid grid-cols-2 gap-3 text-muted-foreground">
+                  {["Entrada", "Saída"].map(option => (
+                    <label
+                      key={option}
+                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-[15px]"
+                    >
+                      <input
+                        type="checkbox"
+                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-start">
+                <button
+                  type="button"
+                  className="inline-flex h-[43px] w-[175px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white transition-colors hover:brightness-110"
+                  onClick={() => setIsFilterOpen(false)}
+                >
+                  Adicionar filtro
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       {isWithdrawOpen && hasBankAccount && (
         <>
           <div
