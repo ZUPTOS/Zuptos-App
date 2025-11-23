@@ -323,7 +323,7 @@ export default function Dashboard() {
       pageTitle="Dashboard"
     >
       <div
-        className="px-10 py-12 space-y-4 w-full mx-auto"
+        className="px-10 py-5 space-y-3 w-full mx-auto"
         style={{ maxWidth: "1370px" }}
       >
         {/* Linha 1 - Data + filtro */}
@@ -339,7 +339,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setFilterDropdownOpen(prev => !prev)}
-                className="flex w-full items-center gap-3 px-5 py-3 rounded-[10px] border border-muted bg-background text-left text-sm text-muted-foreground shadow-none"
+                className="flex w-full items-center gap-3 px-5 py-3 rounded-[10px] border border-muted bg-card text-left text-sm text-muted-foreground shadow-none"
               >
                 <Search className="w-[16px] h-[16px] text-sora color-muted-foreground" />
                 <span className="flex-1 text-sora text-muted-foreground">
@@ -686,11 +686,11 @@ export default function Dashboard() {
         </section>
 
         {/* Linha 4 - métodos de pagamento */}
-        <section className="grid h-[279.78px] grid-cols-[419.63px_419.63px_419.63px] gap-3">
+        <section className="grid grid-cols-[419.63px_419.63px_419.63px] gap-3">
           {mockData.paymentMethods.map(method => (
             <div
               key={method.id}
-              className={`${cardSurface} px-4 py-6 w-full`}
+              className={`${cardSurface} px-4 py-4 w-full`}
             >
               <div className="mb-2 flex flex-col gap-2">
                 <div className="h-15 w-15">
