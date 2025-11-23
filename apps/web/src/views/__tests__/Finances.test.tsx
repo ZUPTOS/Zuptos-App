@@ -8,6 +8,15 @@ jest.mock("@/components/DashboardLayout", () => ({
   default: ({ children }: { children: ReactNode }) => <div data-testid="layout">{children}</div>
 }));
 
+jest.mock("@/components/DateFilter", () => ({
+  __esModule: true,
+  default: ({ onDateChange }: { onDateChange?: (start: Date, end: Date) => void }) => (
+    <button type="button" onClick={() => onDateChange?.(new Date(), new Date())}>
+      Selecionar data
+    </button>
+  )
+}));
+
 jest.mock("next/image", () => ({
   __esModule: true,
   default: (): ReactElement => <span data-testid="mocked-image" />
@@ -68,6 +77,46 @@ describe("Finances view", () => {
     expect(screen.getByRole("button", { name: "Filtrar transações" })).toBeInTheDocument();
     expect(screen.getByText("ID")).toBeInTheDocument();
     expect(screen.getAllByText("#TX0001")[0]).toBeInTheDocument();
+  });
+
+  it("filtra saídas, busca por transação e pagina", async () => {
+    const user = userEvent.setup();
+    render(<Finances />);
+
+    await user.click(screen.getByRole("button", { name: "Transações" }));
+    await user.click(screen.getByRole("button", { name: "Saídas" }));
+
+    expect(screen.queryByText("#TX0001")).not.toBeInTheDocument();
+    expect(screen.getByText("#TX0002")).toBeInTheDocument();
+
+    const searchInput = screen.getByPlaceholderText("Buscar por código");
+    await user.clear(searchInput);
+    await user.type(searchInput, "#TX0002");
+    expect(await screen.findByText("#TX0002")).toBeInTheDocument();
+
+    await user.clear(searchInput);
+    await user.type(searchInput, "NADA-AQUI");
+    expect(await screen.findByText(/Nenhuma transação encontrada/i)).toBeInTheDocument();
+
+    await user.clear(searchInput);
+    expect(await screen.findByText("#TX0002")).toBeInTheDocument();
+
+    const nextButton = screen.getByRole("button", { name: /Próximo/i });
+    await user.click(nextButton);
+    expect(screen.getByRole("button", { name: /Anterior/i })).not.toBeDisabled();
+  });
+
+  it("abre e fecha o painel de filtros de transações", async () => {
+    const user = userEvent.setup();
+    render(<Finances />);
+
+    await user.click(screen.getByRole("button", { name: "Transações" }));
+    await user.click(screen.getByRole("button", { name: "Filtrar transações" }));
+
+    expect(screen.getByText("Filtrar")).toBeInTheDocument();
+    const overlay = await screen.findByLabelText(/Fechar modal de filtro \(overlay\)/i);
+    await user.click(overlay);
+    expect(screen.queryByText("Filtrar")).not.toBeInTheDocument();
   });
 
   it("mostra placeholder nas abas futuras", async () => {
