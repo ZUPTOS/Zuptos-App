@@ -48,6 +48,17 @@ const referralLinks = [
   }
 ] as const;
 
+const referredPartners = [
+  {
+    id: "#KAJFB68",
+    name: "Nome",
+    commission: "R$ 568,99",
+    date: "12/12/2024",
+    source: "INSTAGRAM 02",
+    status: "Ativo"
+  }
+] as const;
+
 export default function Indique() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["id"]>("dashboard");
   const commissionPeriod = "07/08/2025 - 07/08/2025";
@@ -223,11 +234,48 @@ export default function Indique() {
           )}
 
           {activeTab === "indicados" && (
-            <section className="mt-6 rounded-[12px] border border-dashed border-muted/70 bg-card/60 p-8 text-center text-muted-foreground">
-              <p className="text-lg font-semibold text-foreground">Nenhum indicado ainda</p>
-              <p className="mt-2 text-sm">
-                Convide novos parceiros para ver o desempenho deles por aqui.
-              </p>
+            <section className="mt-6 flex justify-center">
+              <div className="flex w-full max-w-[1116px] flex-col gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-baseline gap-3">
+                    <p className="text-2xl font-semibold text-foreground">Meus afiliados</p>
+                    <span className="text-sm text-muted-foreground">
+                      {referredPartners.length} indicação
+                    </span>
+                  </div>
+                </div>
+
+                <div className="h-[175px] overflow-hidden rounded-[8px] border border-muted bg-card/80">
+                  <table className="h-full w-full text-left text-sm">
+                    <thead className="bg-card/60 text-muted-foreground">
+                      <tr className="align-middle">
+                        <th className="px-6 py-3 font-semibold">Id</th>
+                        <th className="px-6 py-3 font-semibold">Nome</th>
+                        <th className="px-6 py-3 font-semibold">Comissões</th>
+                        <th className="px-6 py-3 font-semibold">Data de indicação</th>
+                        <th className="px-6 py-3 font-semibold">Origem</th>
+                        <th className="px-6 py-3 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {referredPartners.map(partner => (
+                        <tr key={partner.id} className="border-t border-muted/50 bg-card/90 align-middle">
+                          <td className="px-6 py-4 text-base text-foreground">{partner.id}</td>
+                          <td className="px-6 py-4 text-base text-foreground">{partner.name}</td>
+                          <td className="px-6 py-4 text-base text-foreground">{partner.commission}</td>
+                          <td className="px-6 py-4 text-base text-foreground">{partner.date}</td>
+                          <td className="px-6 py-4 text-base text-foreground">{partner.source}</td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex w-[90px] items-center justify-center rounded-[8px] bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">
+                              {partner.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </section>
           )}
         </div>
