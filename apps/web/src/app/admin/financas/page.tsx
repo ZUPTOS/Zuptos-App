@@ -1,10 +1,5 @@
-import AdminPlaceholder from "@/views/AdminPlaceholder";
+import AdminFinancas from "@/views/AdminFinancas";
 
 export default function AdminFinancasPage() {
-  return (
-    <AdminPlaceholder
-      title="Finanças"
-      description="Área financeira do admin. Adicione métricas e visuais específicos aqui."
-    />
-  );
+  return <AdminFinancas />;
 }
