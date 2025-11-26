@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import Finances from "@/views/Finances";
@@ -128,5 +128,44 @@ describe("Finances view", () => {
 
     await user.click(screen.getByRole("button", { name: "Taxas" }));
     expect(screen.getByText(/Conteúdo da aba Taxas/i)).toBeInTheDocument();
+  });
+
+  it("filtra transações por intervalo de datas usando o DateFilter", async () => {
+    const user = userEvent.setup();
+    render(<Finances />);
+
+    await user.click(screen.getByRole("button", { name: "Transações" }));
+    await user.click(screen.getByRole("button", { name: /Filtrar transações/i }));
+    await user.click(screen.getByRole("button", { name: /Selecionar data/i }));
+
+    expect(await screen.findByText(/Nenhuma transação encontrada/i)).toBeInTheDocument();
+  });
+
+  it("abre detalhes da transação e fecha com o teclado", async () => {
+    const user = userEvent.setup();
+    render(<Finances />);
+
+    await user.click(screen.getByRole("button", { name: "Transações" }));
+    await user.click(screen.getAllByText("#TX0001")[0]);
+    expect(screen.getByText(/Detalhes/i)).toBeInTheDocument();
+
+    const detailOverlay = screen.getByLabelText(/Fechar modal de detalhes \(overlay\)/i);
+    detailOverlay.focus();
+    fireEvent.keyDown(detailOverlay, { key: "Enter", code: "Enter", charCode: 13 });
+    await waitFor(() => expect(screen.queryByText(/Detalhes/i)).not.toBeInTheDocument());
+  });
+
+  it("fecha modal de saque usando o teclado", async () => {
+    const user = userEvent.setup();
+    render(<Finances />);
+
+    await user.click(screen.getByRole("button", { name: /Adicionar conta bancária/i }));
+    await user.click(screen.getByRole("button", { name: /Adicionar conta$/i }));
+    await user.click(screen.getByRole("button", { name: /Solicitar saque/i }));
+
+    const overlay = screen.getByLabelText(/Fechar overlay do saque/i);
+    overlay.focus();
+    fireEvent.keyDown(overlay, { key: " ", code: "Space", charCode: 32 });
+    await waitFor(() => expect(screen.queryByText(/Quanto você quer sacar/i)).not.toBeInTheDocument());
   });
 });

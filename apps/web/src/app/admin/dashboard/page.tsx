@@ -1,5 +1,10 @@
+'use client';
+
+import { withAuth } from "@/lib/auth-guards";
 import AdminDashboard from "@/views/AdminDashboard";
 
-export default function AdminDashboardPage() {
+function AdminDashboardPage() {
   return <AdminDashboard />;
 }
+
+export default withAuth(AdminDashboardPage);

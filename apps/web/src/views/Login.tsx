@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type Dispatch, type SetStateAction } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,10 +16,11 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const authTabs = [
-  { id: "sign-in", label: "Entrar", ctaHref: "/dashboard", ctaLabel: "Entrar" },
-  { id: "sign-up", label: "Cadastrar", ctaHref: "/cadastro", ctaLabel: "Cadastrar" }
+  { id: "sign-in", label: "Entrar", ctaLabel: "Entrar" },
+  { id: "sign-up", label: "Cadastrar", ctaLabel: "Cadastrar" }
 ];
 
 const accessOptions = [
@@ -37,19 +39,22 @@ const accessOptions = [
 const inputPlaceholders = {
   email: "Seu endereço de email",
   passwordField: "Sua senha",
-  fullName: "Nome completo",
+  username: "Nome de usuário",
   createPasswordField: "Crie sua senha",
   confirmPasswordField: "Confirme sua senha"
 };
 
-type PasswordFieldProps = {
+type PasswordFieldProps = Readonly<{
   id: string;
   placeholder: string;
   visible: boolean;
   onToggle: () => void;
-};
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+}>;
 
-type SignUpFieldsProps = {
+type SignUpFieldsProps = Readonly<{
   placeholders: typeof inputPlaceholders;
   passwordVisible: boolean;
   onTogglePassword: () => void;
@@ -57,20 +62,36 @@ type SignUpFieldsProps = {
   onToggleConfirmPassword: () => void;
   termsAccepted: boolean;
   onAcceptTerms: (value: boolean) => void;
-};
+  username: string;
+  onUsernameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  email: string;
+  onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  password: string;
+  onPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  confirmPassword: string;
+  onConfirmPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+}>;
 
-type SignInFieldsProps = {
+type SignInFieldsProps = Readonly<{
   placeholders: typeof inputPlaceholders;
   passwordVisible: boolean;
   onTogglePassword: () => void;
-};
+  email: string;
+  onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  password: string;
+  onPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+}>;
 
-type AccessSelectorProps = {
+type AccessSelectorProps = Readonly<{
   value: string;
-  onChange: Dispatch<SetStateAction<string>>;
-};
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}>;
 
-function PasswordField({ id, placeholder, visible, onToggle }: PasswordFieldProps) {
+function PasswordField(props: PasswordFieldProps) {
+  const { id, placeholder, visible, onToggle, value, onChange, disabled } = props;
   return (
     <div className="space-y-2">
       <div className="relative">
@@ -78,12 +99,16 @@ function PasswordField({ id, placeholder, visible, onToggle }: PasswordFieldProp
           id={id}
           type={visible ? "text" : "password"}
           placeholder={placeholder}
-          className="h-12 w-[373px] rounded-[8px] bg-card pr-12 text-white placeholder:text-foreground/10"
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          className="h-12 w-[373px] rounded-[8px] bg-card pr-12 text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           type="button"
           onClick={onToggle}
-          className="absolute inset-y-0 right-3 flex items-center text-white/60 transition hover:text-white"
+          disabled={disabled}
+          className="absolute inset-y-0 right-3 flex items-center text-white/60 transition hover:text-white disabled:cursor-not-allowed"
           aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
         >
           {visible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -93,23 +118,36 @@ function PasswordField({ id, placeholder, visible, onToggle }: PasswordFieldProp
   );
 }
 
-function SignUpFields({
-  placeholders,
-  passwordVisible,
-  onTogglePassword,
-  confirmPasswordVisible,
-  onToggleConfirmPassword,
-  termsAccepted,
-  onAcceptTerms
-}: SignUpFieldsProps) {
+function SignUpFields(props: SignUpFieldsProps) {
+  const {
+    placeholders,
+    passwordVisible,
+    onTogglePassword,
+    confirmPasswordVisible,
+    onToggleConfirmPassword,
+    termsAccepted,
+    onAcceptTerms,
+    username,
+    onUsernameChange,
+    email,
+    onEmailChange,
+    password,
+    onPasswordChange,
+    confirmPassword,
+    onConfirmPasswordChange,
+    disabled
+  } = props;
   return (
     <>
       <div className="space-y-2">
         <Input
-          id="full-name"
+          id="username"
           type="text"
-          placeholder={placeholders.fullName}
-          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10"
+          placeholder={placeholders.username}
+          value={username}
+          onChange={onUsernameChange}
+          disabled={disabled}
+          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
       <div className="space-y-2">
@@ -118,7 +156,10 @@ function SignUpFields({
           type="email"
           inputMode="email"
           placeholder={placeholders.email}
-          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10"
+          value={email}
+          onChange={onEmailChange}
+          disabled={disabled}
+          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
       <PasswordField
@@ -126,18 +167,25 @@ function SignUpFields({
         placeholder={placeholders.createPasswordField}
         visible={passwordVisible}
         onToggle={onTogglePassword}
+        value={password}
+        onChange={onPasswordChange}
+        disabled={disabled}
       />
       <PasswordField
         id="confirm-password"
         placeholder={placeholders.confirmPasswordField}
         visible={confirmPasswordVisible}
         onToggle={onToggleConfirmPassword}
+        value={confirmPassword}
+        onChange={onConfirmPasswordChange}
+        disabled={disabled}
       />
       <div className="flex w-[373px] items-center gap-4">
         <Checkbox
           id="terms"
           checked={termsAccepted}
           onCheckedChange={value => onAcceptTerms(Boolean(value))}
+          disabled={disabled}
           className="mt-1 border-white/40"
         />
         <label htmlFor="terms" className="text-sm text-white/70 leading-relaxed">
@@ -159,7 +207,17 @@ function SignUpFields({
   );
 }
 
-function SignInFields({ placeholders, passwordVisible, onTogglePassword }: SignInFieldsProps) {
+function SignInFields(props: SignInFieldsProps) {
+  const { 
+    placeholders, 
+    passwordVisible, 
+    onTogglePassword, 
+    email,
+    onEmailChange,
+    password,
+    onPasswordChange,
+    disabled
+  } = props;
   return (
     <>
       <div className="space-y-2">
@@ -168,7 +226,10 @@ function SignInFields({ placeholders, passwordVisible, onTogglePassword }: SignI
           type="email"
           inputMode="email"
           placeholder={placeholders.email}
-          className="h-12 w-[373px] rounded-[8px]  bg-card text-white placeholder:text-foreground/10"
+          value={email}
+          onChange={onEmailChange}
+          disabled={disabled}
+          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
       <PasswordField
@@ -176,18 +237,22 @@ function SignInFields({ placeholders, passwordVisible, onTogglePassword }: SignI
         placeholder={placeholders.passwordField}
         visible={passwordVisible}
         onToggle={onTogglePassword}
+        value={password}
+        onChange={onPasswordChange}
+        disabled={disabled}
       />
     </>
   );
 }
 
-function AccessSelector({ value, onChange }: AccessSelectorProps) {
+function AccessSelector(props: AccessSelectorProps) {
+  const { value, onChange, disabled } = props;
   const selectedAccess =
     accessOptions.find(option => option.value === value) ?? accessOptions[0];
 
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="flex min-h-[102px] w-[405px] items-center justify-between rounded-[8px] bg-card px-[28px] py-[28px] text-left text-base font-sora text-[20px] font-semibold text-foreground/70">
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger className="flex min-h-[102px] w-[405px] items-center justify-between rounded-[8px] bg-card px-[28px] py-[28px] text-left text-base font-sora text-[20px] font-semibold text-foreground/70 disabled:opacity-50 disabled:cursor-not-allowed">
         <div className="flex flex-col gap-[1px] text-left">
           <SelectValue placeholder="Escolha uma opção" />
           <span className="text-[14px] font-sora text-foreground/30">{selectedAccess.description}</span>
@@ -208,10 +273,10 @@ function AccessSelector({ value, onChange }: AccessSelectorProps) {
   );
 }
 
-type TabsSwitcherProps = {
+type TabsSwitcherProps = Readonly<{
   activeTab: string;
-  onTabChange: Dispatch<SetStateAction<string>>;
-};
+  onTabChange: (tab: string) => void;
+}>;
 
 function AuthTabsSwitcher({ activeTab, onTabChange }: TabsSwitcherProps) {
   return (
@@ -238,31 +303,119 @@ function AuthTabsSwitcher({ activeTab, onTabChange }: TabsSwitcherProps) {
 }
 
 export default function LoginView() {
+  const router = useRouter();
+  const { signIn, signUp, isLoading, error, clearError } = useAuth();
+
+  // Sign In Fields
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+
+  // Sign Up Fields
+  const [signUpUsername, setSignUpUsername] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
+
+  // UI State
   const [activeTab, setActiveTab] = useState(authTabs[0].id);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [accessType, setAccessType] = useState(accessOptions[0].value);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const activeTabConfig =
-    authTabs.find(option => option.id === activeTab) ?? authTabs[0];
+  const activeTabConfig = authTabs.find(option => option.id === activeTab) ?? authTabs[0];
   const isSignUp = activeTab === "sign-up";
+
+  const validateSignUp = () => {
+    if (!signUpUsername.trim()) {
+      setLocalError("Nome de usuário é obrigatório");
+      return false;
+    }
+    if (!signUpEmail.trim()) {
+      setLocalError("Email é obrigatório");
+      return false;
+    }
+    if (!signUpPassword) {
+      setLocalError("Senha é obrigatória");
+      return false;
+    }
+    if (signUpPassword !== signUpConfirmPassword) {
+      setLocalError("As senhas não correspondem");
+      return false;
+    }
+    if (!termsAccepted) {
+      setLocalError("Você deve aceitar os termos");
+      return false;
+    }
+    return true;
+  };
+
+  const validateSignIn = () => {
+    if (!signInEmail.trim()) {
+      setLocalError("Email é obrigatório");
+      return false;
+    }
+    if (!signInPassword) {
+      setLocalError("Senha é obrigatória");
+      return false;
+    }
+    return true;
+  };
+
+  const validateForm = () => {
+    setLocalError(null);
+    return isSignUp ? validateSignUp() : validateSignIn();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    setLocalError(null);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      if (isSignUp) {
+        await signUp({
+          username: signUpUsername,
+          email: signUpEmail,
+          password: signUpPassword,
+          accessType: accessType as "purchases" | "products",
+        });
+        // Redirecionar para dashboard após signup bem-sucedido
+        router.push("/dashboard");
+      } else {
+        await signIn({
+          email: signInEmail,
+          password: signInPassword,
+        });
+        // Redirecionar para dashboard após signin bem-sucedido
+        router.push("/dashboard");
+      }
+    } catch {
+      // Erro já está no context
+    }
+  };
+
+  const displayError = localError || error;
 
   return (
     <div className="relative flex flex-col  text-white lg:flex-row">
       <div className="relative min-h-screen flex-1 overflow-hidden lg:flex">
         <div className="flex items-center h-[945px] justify-center ">
-        <Image
-          src="/images/wallpaper.svg"
-          alt="Plano de fundo Zuptos"
-          width={1620}
-          height={945}
-          priority
-          className="object-cover h-[945px] w-[1620px]"
-        />
- 
+          <Image
+            src="/images/wallpaper.svg"
+            alt="Plano de fundo Zuptos"
+            width={1620}
+            height={945}
+            priority
+            className="object-cover h-[945px] w-[1620px]"
+          />
         </div>
-     </div>
+      </div>
 
       <div className="relative flex items-center justify-center w-full flex-col gap-8 bg-background px-8 py-12 sm:px-12 lg:max-w-[496px]">
         <div className="flex flex-col gap-6 items-center">
@@ -274,7 +427,6 @@ export default function LoginView() {
             className="self-center"
             priority
           />
-          
         </div>
         <AuthTabsSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="self-center">
@@ -282,11 +434,18 @@ export default function LoginView() {
             {isSignUp ? "Crie sua conta" : "Acesse a sua conta"}
           </h1>
         </div>
-        {!isSignUp && <AccessSelector value={accessType} onChange={setAccessType} />}
+        {!isSignUp && <AccessSelector value={accessType} onChange={setAccessType} disabled={isLoading} />}
+
+        {displayError && (
+          <div className="w-[405px] rounded-[8px] bg-rose-500/10 border border-rose-500/30 px-4 py-3 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-rose-400 flex-shrink-0" />
+            <p className="text-sm text-rose-200">{displayError}</p>
+          </div>
+        )}
 
         <form
           className="flex flex-col w-[405px] rounded-[8px] gap-4 bg-card px-[16px] py-[32px]"
-          onSubmit={event => event.preventDefault()}
+          onSubmit={handleSubmit}
         >
           {isSignUp ? (
             <SignUpFields
@@ -297,39 +456,55 @@ export default function LoginView() {
               onToggleConfirmPassword={() => setConfirmPasswordVisible(prev => !prev)}
               termsAccepted={termsAccepted}
               onAcceptTerms={value => setTermsAccepted(value)}
+              username={signUpUsername}
+              onUsernameChange={e => setSignUpUsername(e.target.value)}
+              email={signUpEmail}
+              onEmailChange={e => setSignUpEmail(e.target.value)}
+              password={signUpPassword}
+              onPasswordChange={e => setSignUpPassword(e.target.value)}
+              confirmPassword={signUpConfirmPassword}
+              onConfirmPasswordChange={e => setSignUpConfirmPassword(e.target.value)}
+              disabled={isLoading}
             />
           ) : (
             <SignInFields
               placeholders={inputPlaceholders}
               passwordVisible={passwordVisible}
               onTogglePassword={() => setPasswordVisible(prev => !prev)}
+              email={signInEmail}
+              onEmailChange={e => setSignInEmail(e.target.value)}
+              password={signInPassword}
+              onPasswordChange={e => setSignInPassword(e.target.value)}
+              disabled={isLoading}
             />
           )}
           <Button
-            asChild
-            className="mt-2 h-12 rounded-[8px] bg-primary text-base font-semibold "
+            type="submit"
+            disabled={isLoading}
+            className="mt-2 h-12 rounded-[8px] bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-base font-semibold transition"
           >
-            <Link href={activeTabConfig.ctaHref}>{activeTabConfig.ctaLabel}</Link>
+            {isLoading ? "Processando..." : activeTabConfig.ctaLabel}
           </Button>
           {isSignUp ? (
-            <Link
-              href="#"
-              onClick={event => {
-                event.preventDefault();
+            <button
+              type="button"
+              onClick={e => {
+                e.preventDefault();
                 setActiveTab("sign-in");
+                setLocalError(null);
+                clearError();
               }}
               className="self-center text-sm font-semibold text-white/70 transition hover:text-white"
             >
               Já possui conta?
-            </Link>
+            </button>
           ) : (
-            <Button
-              variant="link"
-              asChild
-              className="self-center h-auto p-0 text-sm font-semibold text-white/70 transition hover:text-white"
+            <Link
+              href="/recuperar-senha"
+              className="self-center text-sm font-semibold text-white/70 transition hover:text-white"
             >
-              <Link href="/recuperar-senha">Recuperar senha</Link>
-            </Button>
+              Recuperar senha
+            </Link>
           )}
         </form>
 

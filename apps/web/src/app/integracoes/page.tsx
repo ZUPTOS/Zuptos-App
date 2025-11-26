@@ -1,5 +1,10 @@
+'use client';
+
+import { withAuth } from "@/lib/auth-guards";
 import IntegrationsView from "@/views/Integrations";
 
-export default function IntegrationsPage() {
+function IntegrationsPage() {
   return <IntegrationsView />;
 }
+
+export default withAuth(IntegrationsPage);

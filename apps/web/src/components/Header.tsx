@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   LogOut,
   HelpCircle,
@@ -12,6 +13,7 @@ import {
   User as UserIcon
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   userName: string;
@@ -25,11 +27,27 @@ export default function Header({
   userLocation,
   pageTitle = "Dashboard",
   pageSubtitle,
-}: HeaderProps) {
+}: Readonly<HeaderProps>) {
+  const router = useRouter();
+  const { signOut } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const isLightMode = theme === "light";
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      // signOut já redireciona para home
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      // Fazer logout local mesmo em caso de erro
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('authUser');
+      router.push('/');
+    }
+  };
+  
   const handleThemeToggle = () => {
     toggleTheme?.();
   };
@@ -144,14 +162,15 @@ export default function Header({
                     {isLightMode ? "Modo escuro" : "Modo claro"}
                   </span>
                 </button>
-                <Link href="/">
-                  <button className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-muted transition-colors">
-                    <LogOut className="w-4 h-4" />
-                    <span className="text-sm">
-                      Sair
-                    </span>
-                  </button>
-                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-muted transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-sm">
+                    Sair
+                  </span>
+                </button>
               </div>
             )}
           </div>

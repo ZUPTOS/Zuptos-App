@@ -1,5 +1,10 @@
+'use client';
+
+import { withAuth } from "@/lib/auth-guards";
 import ProductsView from "@/views/Products";
 
-export default function ProductsPage() {
+function ProductsPage() {
   return <ProductsView />;
 }
+
+export default withAuth(ProductsPage);

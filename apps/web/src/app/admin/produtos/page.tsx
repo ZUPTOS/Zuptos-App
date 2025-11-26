@@ -1,10 +1,10 @@
-import AdminPlaceholder from "@/views/AdminPlaceholder";
+'use client';
 
-export default function AdminProdutosPage() {
-  return (
-    <AdminPlaceholder
-      title="Produtos"
-      description="Área de gestão de produtos no admin. Customize esta página com as visões necessárias."
-    />
-  );
+import { withAuth } from "@/lib/auth-guards";
+import AdminProdutos from "@/views/AdminProdutos";
+
+function AdminProdutosPage() {
+  return <AdminProdutos />;
 }
+
+export default withAuth(AdminProdutosPage);

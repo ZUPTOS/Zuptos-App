@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { HTMLAttributes, ReactNode } from "react";
 import LoginView from "@/views/Login";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 jest.mock("@/components/ui/select", () => {
   const SelectContext = React.createContext<{ value?: string; onValueChange?: (value: string) => void }>({});
@@ -44,10 +45,12 @@ jest.mock("@/components/ui/select", () => {
   return { Select, SelectTrigger, SelectContent, SelectItem, SelectValue };
 });
 
+const renderWithProviders = (ui: React.ReactNode) => render(<AuthProvider>{ui}</AuthProvider>);
+
 describe("LoginView", () => {
   it("permite alternar entre tabs e visualizar os campos esperados", async () => {
     const user = userEvent.setup();
-    render(<LoginView />);
+    renderWithProviders(<LoginView />);
 
     expect(screen.getByRole("heading", { name: /acesse a sua conta/i })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /cadastrar/i }));
@@ -60,7 +63,7 @@ describe("LoginView", () => {
 
   it("mostra formulário de login padrão ao voltar para Entrar", async () => {
     const user = userEvent.setup();
-    render(<LoginView />);
+    renderWithProviders(<LoginView />);
 
     await user.click(screen.getByRole("button", { name: /cadastrar/i }));
     await user.click(screen.getByRole("button", { name: /entrar/i }));
@@ -71,7 +74,7 @@ describe("LoginView", () => {
 
   it("altera tipo de acesso, aceita termos e retorna para a tela de login", async () => {
     const user = userEvent.setup();
-    render(<LoginView />);
+    renderWithProviders(<LoginView />);
 
     await user.click(screen.getByRole("option", { name: /Gerenciar meus produtos/i }));
     expect(

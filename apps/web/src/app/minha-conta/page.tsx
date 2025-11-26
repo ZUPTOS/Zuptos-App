@@ -1,5 +1,10 @@
+'use client';
+
+import { withAuth } from "@/lib/auth-guards";
 import MyAccountView from "@/views/MyAccount";
 
-export default function MinhaContaPage() {
+function MinhaContaPage() {
   return <MyAccountView />;
 }
+
+export default withAuth(MinhaContaPage);

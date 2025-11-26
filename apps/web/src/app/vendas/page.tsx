@@ -1,5 +1,10 @@
+'use client';
+
+import { withAuth } from "@/lib/auth-guards";
 import SalesView from "@/views/Sales";
 
-export default function SalesPage() {
+function SalesPage() {
   return <SalesView />;
 }
+
+export default withAuth(SalesPage);

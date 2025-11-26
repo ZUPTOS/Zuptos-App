@@ -1,5 +1,10 @@
+'use client';
+
+import { withAuth } from "@/lib/auth-guards";
 import AdminFinancas from "@/views/AdminFinancas";
 
-export default function AdminFinancasPage() {
+function AdminFinancasPage() {
   return <AdminFinancas />;
 }
+
+export default withAuth(AdminFinancasPage);

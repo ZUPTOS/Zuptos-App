@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import Header from "@/components/Header";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const toggleThemeMock = jest.fn();
 
@@ -33,12 +34,14 @@ describe("Header", () => {
 
   const renderHeader = () =>
     render(
-      <Header
-        userName="Zuptos"
-        userLocation="RJ"
-        pageTitle="Minha conta"
-        pageSubtitle="Aluno"
-      />
+      <AuthProvider>
+        <Header
+          userName="Zuptos"
+          userLocation="RJ"
+          pageTitle="Minha conta"
+          pageSubtitle="Aluno"
+        />
+      </AuthProvider>
     );
 
   it("exibe título e subtítulo informados", () => {
