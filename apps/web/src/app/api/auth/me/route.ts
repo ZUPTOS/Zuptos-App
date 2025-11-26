@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response = await fetch("http://86.48.22.80:3000/v1/auth/me", {
+    const response = await fetch(`${API_BASE_URL}/v1/auth/me`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

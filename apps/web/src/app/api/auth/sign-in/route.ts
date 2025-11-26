@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
       email: body.email,
     });
 
-    const response = await fetch("http://86.48.22.80:3000/v1/auth/sign_in", {
+    const response = await fetch(`${API_BASE_URL}/v1/auth/sign_in`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
