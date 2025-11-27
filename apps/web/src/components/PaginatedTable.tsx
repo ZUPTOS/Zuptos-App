@@ -22,6 +22,8 @@ interface PaginatedTableProps<T> {
   tableContainerClassName?: string;
   paginationContainerClassName?: string;
   wrapperClassName?: string;
+  onRowClick?: (row: T, index: number) => void;
+  getRowClassName?: (row: T, index: number) => string;
 }
 
 const DEFAULT_EMPTY_MESSAGE = "Nenhum registro encontrado";
@@ -35,7 +37,9 @@ export default function PaginatedTable<T>({
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
   tableContainerClassName = "",
   paginationContainerClassName = "",
-  wrapperClassName = ""
+  wrapperClassName = "",
+  onRowClick,
+  getRowClassName
 }: PaginatedTableProps<T>) {
   const safeColumns = useMemo(() => columns ?? [], [columns]);
   const safeData = useMemo(() => data ?? [], [data]);
@@ -69,15 +73,23 @@ export default function PaginatedTable<T>({
             </thead>
             <tbody>
               {paginatedData.length ? (
-                paginatedData.map((row, index) => (
-                  <tr key={rowKey(row, index)} className="border-t border-foreground/5 text-[14px]">
-                    {safeColumns.map(column => (
-                      <td key={column.id} className={`px-6 py-4 align-center ${column.cellClassName ?? ""}`}>
-                        {column.render(row, index)}
-                      </td>
-                    ))}
-                  </tr>
-                ))
+                paginatedData.map((row, index) => {
+                  const rowClassName = getRowClassName?.(row, index) ?? "";
+                  const isClickable = typeof onRowClick === "function";
+                  return (
+                    <tr
+                      key={rowKey(row, index)}
+                      className={`border-t border-foreground/5 text-[14px] ${rowClassName} ${isClickable ? "cursor-pointer transition hover:bg-muted/20" : ""}`}
+                      onClick={() => onRowClick?.(row, index)}
+                    >
+                      {safeColumns.map(column => (
+                        <td key={column.id} className={`px-6 py-4 align-center ${column.cellClassName ?? ""}`}>
+                          {column.render(row, index)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={safeColumns.length} className="px-6 py-8 text-center text-muted-foreground">

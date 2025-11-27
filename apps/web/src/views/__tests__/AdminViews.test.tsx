@@ -8,6 +8,7 @@ import AdminProdutos from "@/views/AdminProdutos";
 import AdminPlaceholder from "@/views/AdminPlaceholder";
 import AdminTransacoes from "@/views/AdminTransacoes";
 import AdminSaques from "@/views/AdminSaques";
+import AdminSaquesDetalhes from "@/views/AdminSaquesDetalhes";
 import AdminUsuarios from "@/views/AdminUsuarios";
 
 jest.mock("recharts", () => {
@@ -130,6 +131,12 @@ describe("Admin views", () => {
     renderWithAuth(<AdminSaques />);
     expect(screen.getByText(/Saques aprovados/i)).toBeInTheDocument();
     expect(screen.getByText(/^ID$/i)).toBeInTheDocument();
+  });
+
+  it("renderiza AdminSaquesDetalhes com painel de análise", () => {
+    renderWithAuth(<AdminSaquesDetalhes withdrawalId="#SQ7002" />);
+    expect(screen.getByText(/Detalhes do saque/i)).toBeInTheDocument();
+    expect(screen.getByText(/Análise da solicitação/i)).toBeInTheDocument();
   });
 
   it("renderiza AdminUsuarios com indicador e tabela", () => {

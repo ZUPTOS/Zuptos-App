@@ -1,17 +1,17 @@
 'use client';
 
 import { Filter, Search, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import withdrawalsData from "@/data/admin-saques.json";
+import type { Withdrawal } from "@/types/withdrawal";
 
 const metricCards = [
   { id: "approved", title: "Saques aprovados", value: "00" },
   { id: "pending", title: "Saques pendentes", value: "00" },
   { id: "rejected", title: "Saques rejeitados", value: "00" }
 ] as const;
-
-type Withdrawal = (typeof withdrawalsData.withdrawals)[number];
 
 const statusStyles: Record<Withdrawal["status"], string> = {
   Pendente: "bg-yellow-500/15 text-yellow-400",
@@ -61,6 +61,11 @@ const columns: Column<Withdrawal>[] = [
 
 export default function AdminSaques() {
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
+  const router = useRouter();
+
+  const handleRowClick = (row: Withdrawal) => {
+    router.push(`/admin/saques/detalhes?id=${encodeURIComponent(row.id)}`);
+  };
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Saques (Admin)">
@@ -115,6 +120,7 @@ export default function AdminSaques() {
             emptyMessage="Nenhum saque encontrado"
             tableContainerClassName={`${cardSurface} rounded-[12px]`}
             paginationContainerClassName="px-2"
+            onRowClick={handleRowClick}
           />
         </div>
       </div>
