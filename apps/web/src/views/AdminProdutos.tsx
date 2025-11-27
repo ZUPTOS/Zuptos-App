@@ -36,7 +36,7 @@ const mockProducts: Product[] = [
     email: 'teste@gmail.com',
     telefone: '+55 99999 9999',
     suporte: 'Suporte: +55 99999 9999',
-    status: 'Inativado',
+    status: 'Inativo',
     statusColor: 'bg-blue-500/20 text-blue-400'
   },
   {

@@ -210,7 +210,7 @@ export default function Finances() {
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[245px]">
                 <p className="text-[24px] font-semibold text-primary">Saldo Disponível</p>
                 <p className="mt-2 text-[34px] font-semibold text-foreground">
-                  {formatCurrency(balanceCards[0].value)}
+                  {formatCurrency(balanceCards[0].value ?? 0)}
                 </p>
                 <p className="mt-3 text-[19px] text-muted-foreground">
                   {balanceCards[0].description}
@@ -260,7 +260,7 @@ export default function Finances() {
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[146px]">
                 <p className="text-[24px] font-semibold text-foreground">Saldo pendente</p>
                 <p className="mt-2 text-[34px] font-semibold text-foreground">
-                  {formatCurrency(balanceCards[1].value)}
+                  {formatCurrency(balanceCards[1].value ?? 0)}
                 </p>
               </div>
 
@@ -270,7 +270,7 @@ export default function Finances() {
                   <Banknote className="h-5 w-5 text-muted-foreground" aria-hidden />
                 </div>
                 <p className="mt-2 text-[34px] font-semibold text-foreground">
-                  {formatCurrency(balanceCards[3].value)}
+                  {formatCurrency(balanceCards[3].value ?? 0)}
                 </p>
               </div>
             </div>
@@ -716,7 +716,7 @@ export default function Finances() {
                 }}
               >
                 <span className="text-muted-foreground">Saldo disponível:</span>
-                <span>{formatCurrency(balanceCards[0].value)}</span>
+                <span>{formatCurrency(balanceCards[0].value ?? 0)}</span>
               </div>
               <div className="w-[447px] space-y-3 text-[19px] text-muted-foreground">
                 <div className="flex items-center justify-between">

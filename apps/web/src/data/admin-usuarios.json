@@ -1,1 +1,49 @@
-{}
+{
+  "users": [
+    {
+      "id": "user-001",
+      "name": "Usuário 01",
+      "email": "usuario01@example.com",
+      "document": "123.456.789-00",
+      "status": "Aprovado",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-002",
+      "name": "Usuário 02",
+      "email": "usuario02@example.com",
+      "document": "234.567.890-11",
+      "status": "Pendente",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-003",
+      "name": "Usuário 03",
+      "email": "usuario03@example.com",
+      "document": "345.678.901-22",
+      "status": "Reprovado",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-004",
+      "name": "Usuário 04",
+      "email": "usuario04@example.com",
+      "document": "456.789.012-33",
+      "status": "Suspenso",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-005",
+      "name": "Usuário 05",
+      "email": "usuario05@example.com",
+      "document": "567.890.123-44",
+      "status": "Não encontrado",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 import { Filter, Search, Upload } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
-import usersData from "@/data/admin-usuarios.json";
+import adminUsersData from "@/data/admin-usuarios.json";
 
 const metricCards = [
   { id: "ativos", title: "Número de usuários ativos", value: "00" },
@@ -11,7 +11,9 @@ const metricCards = [
   { id: "suspensos", title: "Número de usuários suspensos", value: "00" }
 ] as const;
 
-type UserRow = (typeof usersData.users)[number];
+type UsersData = typeof adminUsersData;
+type UserRow = UsersData["users"][number];
+const usersData: UsersData = adminUsersData;
 
 const statusBadge = {
   Aprovado: "bg-emerald-500/15 text-emerald-400",

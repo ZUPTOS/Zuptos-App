@@ -26,13 +26,20 @@ type ChartPoint = {
   lucroLiquido: number;
 };
 
-const lineConfig = [
+type LineConfig = {
+  key: keyof Omit<ChartPoint, "time">;
+  label: string;
+  color: string;
+  isCurrency?: boolean;
+};
+
+const lineConfig: LineConfig[] = [
   { key: "faturamento", label: "Faturamento", color: "#7900bd", isCurrency: true },
   { key: "vendas", label: "Vendas", color: "#c100c5" },
   { key: "ticketMedio", label: "Ticket médio", color: "#00b7d9", isCurrency: true },
   { key: "lucroBruto", label: "Lucro Bruto", color: "#00e687", isCurrency: true },
   { key: "lucroLiquido", label: "Lucro Líquido", color: "#d6e600", isCurrency: true }
-] as const;
+];
 
 const adminChartData: ChartPoint[] = [
   { time: "00:00", faturamento: 38, vendas: 25, ticketMedio: 8, lucroBruto: 30, lucroLiquido: 22 },

@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 
-type GenericFn = (...args: unknown[]) => unknown;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GenericFn = (...args: any[]) => unknown;
 
 export function usePersistFn<T extends GenericFn>(fn: T) {
   const fnRef = useRef<T>(fn);
