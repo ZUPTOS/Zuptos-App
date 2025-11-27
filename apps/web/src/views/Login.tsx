@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -305,7 +304,6 @@ function AuthTabsSwitcher({ activeTab, onTabChange }: TabsSwitcherProps) {
 }
 
 export default function LoginView() {
-  const router = useRouter();
   const { signIn, signUp, isLoading, error, clearError } = useAuth();
 
   // Sign In Fields
@@ -387,15 +385,15 @@ export default function LoginView() {
           password: signUpPassword,
           accessType: accessType as "purchases" | "products",
         });
-        // Redirecionar para dashboard após signup bem-sucedido
-        router.push("/dashboard");
       } else {
-        await signIn({
-          email: signInEmail,
-          password: signInPassword,
-        });
-        // Redirecionar para dashboard após signin bem-sucedido
-        router.push("/dashboard");
+        const redirectTo = accessType === "products" ? "/produtos" : "/dashboard";
+        await signIn(
+          {
+            email: signInEmail,
+            password: signInPassword
+          },
+          { redirectTo }
+        );
       }
     } catch {
       // Erro já está no context

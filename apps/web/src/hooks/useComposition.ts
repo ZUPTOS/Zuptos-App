@@ -35,7 +35,7 @@ export function useComposition<
   const timer = useRef<TimerResponse | null>(null);
   const timer2 = useRef<TimerResponse | null>(null);
 
-  const onCompositionStart = usePersistFn((e: React.CompositionEvent<T>) => {
+  const onCompositionStart = usePersistFn<React.CompositionEventHandler<T>>((e) => {
     if (timer.current) {
       clearTimeout(timer.current);
       timer.current = null;
@@ -48,7 +48,7 @@ export function useComposition<
     originalOnCompositionStart?.(e);
   });
 
-  const onCompositionEnd = usePersistFn((e: React.CompositionEvent<T>) => {
+  const onCompositionEnd = usePersistFn<React.CompositionEventHandler<T>>((e) => {
     timer.current = setTimeout(() => {
       timer2.current = setTimeout(() => {
         c.current = false;
@@ -57,7 +57,7 @@ export function useComposition<
     originalOnCompositionEnd?.(e);
   });
 
-  const onKeyDown = usePersistFn((e: React.KeyboardEvent<T>) => {
+  const onKeyDown = usePersistFn<React.KeyboardEventHandler<T>>((e) => {
     if (
       c.current &&
       (e.key === "Escape" || (e.key === "Enter" && !e.shiftKey))

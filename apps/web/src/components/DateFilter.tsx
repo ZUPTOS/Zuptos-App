@@ -71,7 +71,6 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
 
   const today = new Date();
   const activeRange = selectedRange ?? { start: today, end: today };
-  const activeDate = activeRange.end;
   const dateRange = `${format(activeRange.start, "dd/MM/yyyy", { locale: ptBR })} - ${format(activeRange.end, "dd/MM/yyyy", { locale: ptBR })}`;
 
   const monthStart = startOfMonth(currentDate);

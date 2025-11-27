@@ -1,0 +1,404 @@
+{
+  "transactions": [
+    {
+      "id": "#TX1001",
+      "type": "Assinatura",
+      "date": "01/05/2025",
+      "time": "às 15:15",
+      "value": "R$ 159,90",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1002",
+      "type": "Reembolso",
+      "date": "01/05/2025",
+      "time": "às 20:15",
+      "value": "R$ 269,00",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1003",
+      "type": "Estorno",
+      "date": "02/05/2025",
+      "time": "às 01:15",
+      "value": "R$ 497,00",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1004",
+      "type": "Upgrade",
+      "date": "02/05/2025",
+      "time": "às 06:15",
+      "value": "R$ 1.007,00",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1005",
+      "type": "Venda",
+      "date": "02/05/2025",
+      "time": "às 11:15",
+      "value": "R$ 79,90",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1006",
+      "type": "Assinatura",
+      "date": "02/05/2025",
+      "time": "às 16:15",
+      "value": "R$ 97,50",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1007",
+      "type": "Reembolso",
+      "date": "02/05/2025",
+      "time": "às 21:15",
+      "value": "R$ 159,90",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1008",
+      "type": "Estorno",
+      "date": "03/05/2025",
+      "time": "às 02:15",
+      "value": "R$ 269,00",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1009",
+      "type": "Upgrade",
+      "date": "03/05/2025",
+      "time": "às 07:15",
+      "value": "R$ 497,00",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1010",
+      "type": "Venda",
+      "date": "03/05/2025",
+      "time": "às 12:15",
+      "value": "R$ 1.007,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1011",
+      "type": "Assinatura",
+      "date": "03/05/2025",
+      "time": "às 17:15",
+      "value": "R$ 79,90",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1012",
+      "type": "Reembolso",
+      "date": "03/05/2025",
+      "time": "às 22:15",
+      "value": "R$ 97,50",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1013",
+      "type": "Estorno",
+      "date": "04/05/2025",
+      "time": "às 03:15",
+      "value": "R$ 159,90",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1014",
+      "type": "Upgrade",
+      "date": "04/05/2025",
+      "time": "às 08:15",
+      "value": "R$ 269,00",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1015",
+      "type": "Venda",
+      "date": "04/05/2025",
+      "time": "às 13:15",
+      "value": "R$ 497,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1016",
+      "type": "Assinatura",
+      "date": "04/05/2025",
+      "time": "às 18:15",
+      "value": "R$ 1.007,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1017",
+      "type": "Reembolso",
+      "date": "04/05/2025",
+      "time": "às 23:15",
+      "value": "R$ 79,90",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1018",
+      "type": "Estorno",
+      "date": "05/05/2025",
+      "time": "às 04:15",
+      "value": "R$ 97,50",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1019",
+      "type": "Upgrade",
+      "date": "05/05/2025",
+      "time": "às 09:15",
+      "value": "R$ 159,90",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1020",
+      "type": "Venda",
+      "date": "05/05/2025",
+      "time": "às 14:15",
+      "value": "R$ 269,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1021",
+      "type": "Assinatura",
+      "date": "05/05/2025",
+      "time": "às 19:15",
+      "value": "R$ 497,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1022",
+      "type": "Reembolso",
+      "date": "06/05/2025",
+      "time": "às 00:15",
+      "value": "R$ 1.007,00",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1023",
+      "type": "Estorno",
+      "date": "06/05/2025",
+      "time": "às 05:15",
+      "value": "R$ 79,90",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1024",
+      "type": "Upgrade",
+      "date": "06/05/2025",
+      "time": "às 10:15",
+      "value": "R$ 97,50",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1025",
+      "type": "Venda",
+      "date": "06/05/2025",
+      "time": "às 15:15",
+      "value": "R$ 159,90",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1026",
+      "type": "Assinatura",
+      "date": "06/05/2025",
+      "time": "às 20:15",
+      "value": "R$ 269,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1027",
+      "type": "Reembolso",
+      "date": "07/05/2025",
+      "time": "às 01:15",
+      "value": "R$ 497,00",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1028",
+      "type": "Estorno",
+      "date": "07/05/2025",
+      "time": "às 06:15",
+      "value": "R$ 1.007,00",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1029",
+      "type": "Upgrade",
+      "date": "07/05/2025",
+      "time": "às 11:15",
+      "value": "R$ 79,90",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1030",
+      "type": "Venda",
+      "date": "07/05/2025",
+      "time": "às 16:15",
+      "value": "R$ 97,50",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1031",
+      "type": "Assinatura",
+      "date": "07/05/2025",
+      "time": "às 21:15",
+      "value": "R$ 159,90",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1032",
+      "type": "Reembolso",
+      "date": "08/05/2025",
+      "time": "às 02:15",
+      "value": "R$ 269,00",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1033",
+      "type": "Estorno",
+      "date": "08/05/2025",
+      "time": "às 07:15",
+      "value": "R$ 497,00",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1034",
+      "type": "Upgrade",
+      "date": "08/05/2025",
+      "time": "às 12:15",
+      "value": "R$ 1.007,00",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1035",
+      "type": "Venda",
+      "date": "08/05/2025",
+      "time": "às 17:15",
+      "value": "R$ 79,90",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1036",
+      "type": "Assinatura",
+      "date": "08/05/2025",
+      "time": "às 22:15",
+      "value": "R$ 97,50",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1037",
+      "type": "Reembolso",
+      "date": "09/05/2025",
+      "time": "às 03:15",
+      "value": "R$ 159,90",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1038",
+      "type": "Estorno",
+      "date": "09/05/2025",
+      "time": "às 08:15",
+      "value": "R$ 269,00",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1039",
+      "type": "Upgrade",
+      "date": "09/05/2025",
+      "time": "às 13:15",
+      "value": "R$ 497,00",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1040",
+      "type": "Venda",
+      "date": "09/05/2025",
+      "time": "às 18:15",
+      "value": "R$ 1.007,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1041",
+      "type": "Assinatura",
+      "date": "09/05/2025",
+      "time": "às 23:15",
+      "value": "R$ 79,90",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1042",
+      "type": "Reembolso",
+      "date": "10/05/2025",
+      "time": "às 04:15",
+      "value": "R$ 97,50",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1043",
+      "type": "Estorno",
+      "date": "10/05/2025",
+      "time": "às 09:15",
+      "value": "R$ 159,90",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1044",
+      "type": "Upgrade",
+      "date": "10/05/2025",
+      "time": "às 14:15",
+      "value": "R$ 269,00",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1045",
+      "type": "Venda",
+      "date": "10/05/2025",
+      "time": "às 19:15",
+      "value": "R$ 497,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#TX1046",
+      "type": "Assinatura",
+      "date": "11/05/2025",
+      "time": "às 00:15",
+      "value": "R$ 1.007,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#TX1047",
+      "type": "Reembolso",
+      "date": "11/05/2025",
+      "time": "às 05:15",
+      "value": "R$ 79,90",
+      "status": "Reembolsado"
+    },
+    {
+      "id": "#TX1048",
+      "type": "Estorno",
+      "date": "11/05/2025",
+      "time": "às 10:15",
+      "value": "R$ 97,50",
+      "status": "Chargeback"
+    },
+    {
+      "id": "#TX1049",
+      "type": "Upgrade",
+      "date": "11/05/2025",
+      "time": "às 15:15",
+      "value": "R$ 159,90",
+      "status": "Em disputa"
+    },
+    {
+      "id": "#TX1050",
+      "type": "Venda",
+      "date": "11/05/2025",
+      "time": "às 20:15",
+      "value": "R$ 269,00",
+      "status": "Aprovado"
+    }
+  ]
+}

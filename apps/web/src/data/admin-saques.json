@@ -1,0 +1,404 @@
+{
+  "withdrawals": [
+    {
+      "id": "#SQ7001",
+      "email": "cliente01@empresa.com",
+      "date": "01/06/2025",
+      "time": "às 16:00",
+      "value": "R$ 512,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7002",
+      "email": "cliente02@empresa.com",
+      "date": "01/06/2025",
+      "time": "às 23:00",
+      "value": "R$ 850,50",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7003",
+      "email": "cliente03@empresa.com",
+      "date": "02/06/2025",
+      "time": "às 06:00",
+      "value": "R$ 1.245,75",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7004",
+      "email": "cliente04@empresa.com",
+      "date": "02/06/2025",
+      "time": "às 13:00",
+      "value": "R$ 250,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7005",
+      "email": "cliente05@empresa.com",
+      "date": "02/06/2025",
+      "time": "às 20:00",
+      "value": "R$ 512,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7006",
+      "email": "cliente06@empresa.com",
+      "date": "03/06/2025",
+      "time": "às 03:00",
+      "value": "R$ 850,50",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7007",
+      "email": "cliente07@empresa.com",
+      "date": "03/06/2025",
+      "time": "às 10:00",
+      "value": "R$ 1.245,75",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7008",
+      "email": "cliente08@empresa.com",
+      "date": "03/06/2025",
+      "time": "às 17:00",
+      "value": "R$ 250,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7009",
+      "email": "cliente09@empresa.com",
+      "date": "04/06/2025",
+      "time": "às 00:00",
+      "value": "R$ 512,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7010",
+      "email": "cliente10@empresa.com",
+      "date": "04/06/2025",
+      "time": "às 07:00",
+      "value": "R$ 850,50",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7011",
+      "email": "cliente11@empresa.com",
+      "date": "04/06/2025",
+      "time": "às 14:00",
+      "value": "R$ 1.245,75",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7012",
+      "email": "cliente12@empresa.com",
+      "date": "04/06/2025",
+      "time": "às 21:00",
+      "value": "R$ 250,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7013",
+      "email": "cliente13@empresa.com",
+      "date": "05/06/2025",
+      "time": "às 04:00",
+      "value": "R$ 512,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7014",
+      "email": "cliente14@empresa.com",
+      "date": "05/06/2025",
+      "time": "às 11:00",
+      "value": "R$ 850,50",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7015",
+      "email": "cliente15@empresa.com",
+      "date": "05/06/2025",
+      "time": "às 18:00",
+      "value": "R$ 1.245,75",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7016",
+      "email": "cliente16@empresa.com",
+      "date": "06/06/2025",
+      "time": "às 01:00",
+      "value": "R$ 250,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7017",
+      "email": "cliente17@empresa.com",
+      "date": "06/06/2025",
+      "time": "às 08:00",
+      "value": "R$ 512,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7018",
+      "email": "cliente18@empresa.com",
+      "date": "06/06/2025",
+      "time": "às 15:00",
+      "value": "R$ 850,50",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7019",
+      "email": "cliente19@empresa.com",
+      "date": "06/06/2025",
+      "time": "às 22:00",
+      "value": "R$ 1.245,75",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7020",
+      "email": "cliente20@empresa.com",
+      "date": "07/06/2025",
+      "time": "às 05:00",
+      "value": "R$ 250,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7021",
+      "email": "cliente21@empresa.com",
+      "date": "07/06/2025",
+      "time": "às 12:00",
+      "value": "R$ 512,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7022",
+      "email": "cliente22@empresa.com",
+      "date": "07/06/2025",
+      "time": "às 19:00",
+      "value": "R$ 850,50",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7023",
+      "email": "cliente23@empresa.com",
+      "date": "08/06/2025",
+      "time": "às 02:00",
+      "value": "R$ 1.245,75",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7024",
+      "email": "cliente24@empresa.com",
+      "date": "08/06/2025",
+      "time": "às 09:00",
+      "value": "R$ 250,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7025",
+      "email": "cliente25@empresa.com",
+      "date": "08/06/2025",
+      "time": "às 16:00",
+      "value": "R$ 512,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7026",
+      "email": "cliente26@empresa.com",
+      "date": "08/06/2025",
+      "time": "às 23:00",
+      "value": "R$ 850,50",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7027",
+      "email": "cliente27@empresa.com",
+      "date": "09/06/2025",
+      "time": "às 06:00",
+      "value": "R$ 1.245,75",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7028",
+      "email": "cliente28@empresa.com",
+      "date": "09/06/2025",
+      "time": "às 13:00",
+      "value": "R$ 250,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7029",
+      "email": "cliente29@empresa.com",
+      "date": "09/06/2025",
+      "time": "às 20:00",
+      "value": "R$ 512,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7030",
+      "email": "cliente30@empresa.com",
+      "date": "10/06/2025",
+      "time": "às 03:00",
+      "value": "R$ 850,50",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7031",
+      "email": "cliente31@empresa.com",
+      "date": "10/06/2025",
+      "time": "às 10:00",
+      "value": "R$ 1.245,75",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7032",
+      "email": "cliente32@empresa.com",
+      "date": "10/06/2025",
+      "time": "às 17:00",
+      "value": "R$ 250,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7033",
+      "email": "cliente33@empresa.com",
+      "date": "11/06/2025",
+      "time": "às 00:00",
+      "value": "R$ 512,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7034",
+      "email": "cliente34@empresa.com",
+      "date": "11/06/2025",
+      "time": "às 07:00",
+      "value": "R$ 850,50",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7035",
+      "email": "cliente35@empresa.com",
+      "date": "11/06/2025",
+      "time": "às 14:00",
+      "value": "R$ 1.245,75",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7036",
+      "email": "cliente36@empresa.com",
+      "date": "11/06/2025",
+      "time": "às 21:00",
+      "value": "R$ 250,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7037",
+      "email": "cliente37@empresa.com",
+      "date": "12/06/2025",
+      "time": "às 04:00",
+      "value": "R$ 512,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7038",
+      "email": "cliente38@empresa.com",
+      "date": "12/06/2025",
+      "time": "às 11:00",
+      "value": "R$ 850,50",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7039",
+      "email": "cliente39@empresa.com",
+      "date": "12/06/2025",
+      "time": "às 18:00",
+      "value": "R$ 1.245,75",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7040",
+      "email": "cliente40@empresa.com",
+      "date": "13/06/2025",
+      "time": "às 01:00",
+      "value": "R$ 250,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7041",
+      "email": "cliente41@empresa.com",
+      "date": "13/06/2025",
+      "time": "às 08:00",
+      "value": "R$ 512,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7042",
+      "email": "cliente42@empresa.com",
+      "date": "13/06/2025",
+      "time": "às 15:00",
+      "value": "R$ 850,50",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7043",
+      "email": "cliente43@empresa.com",
+      "date": "13/06/2025",
+      "time": "às 22:00",
+      "value": "R$ 1.245,75",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7044",
+      "email": "cliente44@empresa.com",
+      "date": "14/06/2025",
+      "time": "às 05:00",
+      "value": "R$ 250,00",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7045",
+      "email": "cliente45@empresa.com",
+      "date": "14/06/2025",
+      "time": "às 12:00",
+      "value": "R$ 512,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7046",
+      "email": "cliente46@empresa.com",
+      "date": "14/06/2025",
+      "time": "às 19:00",
+      "value": "R$ 850,50",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7047",
+      "email": "cliente47@empresa.com",
+      "date": "15/06/2025",
+      "time": "às 02:00",
+      "value": "R$ 1.245,75",
+      "status": "Rejeitado"
+    },
+    {
+      "id": "#SQ7048",
+      "email": "cliente48@empresa.com",
+      "date": "15/06/2025",
+      "time": "às 09:00",
+      "value": "R$ 250,00",
+      "status": "Pendente"
+    },
+    {
+      "id": "#SQ7049",
+      "email": "cliente49@empresa.com",
+      "date": "15/06/2025",
+      "time": "às 16:00",
+      "value": "R$ 512,00",
+      "status": "Aprovado"
+    },
+    {
+      "id": "#SQ7050",
+      "email": "cliente50@empresa.com",
+      "date": "15/06/2025",
+      "time": "às 23:00",
+      "value": "R$ 850,50",
+      "status": "Rejeitado"
+    }
+  ]
+}

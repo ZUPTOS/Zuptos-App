@@ -3,13 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
+import {
+  ArrowLeftRight,
+  FileText,
+  LayoutDashboard,
+  Landmark,
+  Package as PackageIcon,
+  Settings,
+  Users,
+  UserCog,
+  Wallet
+} from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 interface NavItem {
   id: string;
   label: string;
-  iconSrc: string;
+  iconSrc?: string;
+  IconComponent?: ComponentType<{ className?: string }>;
   href: string;
 }
 
@@ -30,7 +42,7 @@ export default function Sidebar() {
       : { filter: "brightness(1) invert(0)" };
   };
 
-  const navItems: NavItem[] = [
+  const defaultNavItems: NavItem[] = [
     {
       id: "dashboard",
       label: "Dashboard",
@@ -68,6 +80,66 @@ export default function Sidebar() {
       href: "/indique",
     },
   ];
+
+  const adminNavItems: NavItem[] = [
+    {
+      id: "admin-dashboard",
+      label: "Dashboard",
+      href: "/admin/dashboard",
+      IconComponent: LayoutDashboard
+    },
+    {
+      id: "admin-financas",
+      label: "Financeiro",
+      href: "/admin/financas",
+      IconComponent: Landmark
+    },
+    {
+      id: "admin-transacoes",
+      label: "Transações",
+      href: "/admin/transacoes",
+      IconComponent: ArrowLeftRight
+    },
+    {
+      id: "admin-saques",
+      label: "Saques",
+      href: "/admin/saques",
+      IconComponent: Wallet
+    },
+    {
+      id: "admin-usuarios",
+      label: "Usuários",
+      href: "/admin/usuarios",
+      IconComponent: Users
+    },
+    {
+      id: "admin-documentos",
+      label: "Documentos",
+      href: "/admin/documentos",
+      IconComponent: FileText
+    },
+    {
+      id: "admin-produtos",
+      label: "Produtos",
+      href: "/admin/produtos",
+      IconComponent: PackageIcon
+    },
+    {
+      id: "admin-colaboradores",
+      label: "Colaboradores",
+      href: "/admin/colaboradores",
+      IconComponent: UserCog
+    },
+    {
+      id: "admin-configuracoes",
+      label: "Configurações",
+      href: "/admin/configuracoes",
+      IconComponent: Settings
+    }
+  ];
+
+  const isAdminRoute = pathname?.startsWith("/admin");
+  const navItems = isAdminRoute ? adminNavItems : defaultNavItems;
 
   return (
     <aside
@@ -107,6 +179,7 @@ export default function Sidebar() {
       {/* Navigation Items */}
       <nav className="flex flex-col gap-2 p-4">
         {navItems.map((item) => {
+          const Icon = item.IconComponent;
           const isActive =
             item.href === "/"
               ? pathname === item.href
@@ -124,17 +197,25 @@ export default function Sidebar() {
                 <span className="absolute -left-2 h-10 w-[3px] bg-primary" />
               )}
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px]">
-                <Image
-                  src={item.iconSrc}
-                  alt={`${item.label} icon`}
-                  width={28}
-                  height={28}
-                  className={`h-7 w-7 object-contain ${
-                    isActive ? "text-primary" : ""
-                  }`}
-                  style={getIconStyle(isActive)}
-                  priority={item.id === "dashboard"}
-                />
+                {item.iconSrc ? (
+                  <Image
+                    src={item.iconSrc}
+                    alt={`${item.label} icon`}
+                    width={28}
+                    height={28}
+                    className={`h-7 w-7 object-contain ${
+                      isActive ? "text-primary" : ""
+                    }`}
+                    style={getIconStyle(isActive)}
+                    priority={item.id === "dashboard"}
+                  />
+                ) : Icon ? (
+                  <Icon
+                    className={`h-5 w-5 ${
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                ) : null}
               </span>
               {isExpanded && (
                 <span

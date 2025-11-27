@@ -77,7 +77,6 @@ const filterModalGroups = [
     ]
   }
 ] as const;
-const highlightedFilterIds = new Set(["produtor", "co_produtor"]);
 
 const paymentIconMap: Record<string, string> = {
   credit_card: "/images/card.svg",

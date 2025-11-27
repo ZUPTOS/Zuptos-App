@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { withAuth, checkAuthentication, useAccessControl } from "@/lib/auth-guards";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
 
 jest.mock("@/contexts/AuthContext", () => ({
   useAuth: jest.fn(),

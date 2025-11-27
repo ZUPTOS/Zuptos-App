@@ -10,13 +10,15 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi, type SignInRequest, type SignUpRequest } from '@/lib/api';
+import { authApi, type ApiError, type SignInRequest, type SignUpRequest } from '@/lib/api';
 
 export interface User {
   id: string;
   email: string;
   fullName: string;
   accessType: 'purchases' | 'products';
+  role?: 'admin' | 'default';
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -25,13 +27,29 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  signIn: (credentials: SignInRequest) => Promise<void>;
+  signIn: (credentials: SignInRequest, options?: { redirectTo?: string }) => Promise<void>;
   signUp: (data: SignUpRequest) => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const ADMIN_CREDENTIALS = {
+  email: 'admin@zuptosadmin.com',
+  password: '123456',
+} as const;
+
+const ADMIN_TOKEN = 'mock-admin-token';
+
+const ADMIN_USER: User = {
+  id: 'admin',
+  email: ADMIN_CREDENTIALS.email,
+  fullName: 'Administrador Zuptos',
+  accessType: 'products',
+  role: 'admin',
+  isAdmin: true,
+};
 
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
@@ -64,12 +82,26 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const signIn = useCallback(
-    async (credentials: SignInRequest) => {
+    async (credentials: SignInRequest, options?: { redirectTo?: string }) => {
       console.log("🔐 [AuthContext] signIn iniciado", { email: credentials.email });
       setIsLoading(true);
       setError(null);
 
       try {
+        const isAdminLogin =
+          credentials.email === ADMIN_CREDENTIALS.email &&
+          credentials.password === ADMIN_CREDENTIALS.password;
+
+        if (isAdminLogin) {
+          console.log("👑 [AuthContext] Login admin mockado");
+          localStorage.setItem('authToken', ADMIN_TOKEN);
+          localStorage.setItem('authUser', JSON.stringify(ADMIN_USER));
+          setToken(ADMIN_TOKEN);
+          setUser(ADMIN_USER);
+          router.push('/admin/dashboard');
+          return;
+        }
+
         const response = await authApi.signIn(credentials);
 
         // A API retorna { access_token: "..." }
@@ -87,6 +119,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           email: tokenPayload.username || '',
           fullName: tokenPayload.username || '',
           accessType: 'purchases' as const,
+          role: 'default' as const,
+          isAdmin: false,
         };
 
         console.log("✅ [AuthContext] Dados do usuário extraídos:", userData);
@@ -102,8 +136,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
         console.log("✅ [AuthContext] State atualizado, redirecionando para dashboard");
         // Redirecionar para o dashboard
-        router.push('/dashboard');
+        const redirectTo = options?.redirectTo ?? '/dashboard';
+        router.push(redirectTo);
       } catch (err) {
+        const apiError = err as ApiError;
+        if (apiError?.status === 403) {
+          console.warn("❌ [AuthContext] Credenciais inválidas fornecidas");
+          setError("Email ou senha inválidos. Tente novamente.");
+          return;
+        }
+
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during login';
         console.error("❌ [AuthContext] Erro no signIn:", errorMessage);
         setError(errorMessage);
@@ -139,6 +181,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           email: tokenPayload.username || '',
           fullName: tokenPayload.username || '',
           accessType: data.accessType,
+          role: 'default' as const,
+          isAdmin: false,
         };
 
         console.log("✅ [AuthContext] Dados do usuário extraídos:", userData);
@@ -173,7 +217,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setError(null);
 
     try {
-      if (token) {
+      const isAdminSession = token === ADMIN_TOKEN;
+      if (token && !isAdminSession) {
         console.log("📤 [AuthContext] Chamando API de logout");
         await authApi.signOut(token);
         console.log("✅ [AuthContext] Logout na API bem-sucedido");

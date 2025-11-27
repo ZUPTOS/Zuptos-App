@@ -6,6 +6,9 @@ import AdminDashboard from "@/views/AdminDashboard";
 import AdminFinancas from "@/views/AdminFinancas";
 import AdminProdutos from "@/views/AdminProdutos";
 import AdminPlaceholder from "@/views/AdminPlaceholder";
+import AdminTransacoes from "@/views/AdminTransacoes";
+import AdminSaques from "@/views/AdminSaques";
+import AdminUsuarios from "@/views/AdminUsuarios";
 
 jest.mock("recharts", () => {
   const MockContainer = ({ children }: { children?: ReactNode }) => (
@@ -33,6 +36,16 @@ jest.mock("@/components/DateFilter", () => ({
 jest.mock("@/components/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
+}));
+
+const pushMock = jest.fn();
+const backMock = jest.fn();
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: pushMock,
+    back: backMock,
+  }),
 }));
 
 const setAuthUser = () => {
@@ -104,5 +117,25 @@ describe("Admin views", () => {
     renderWithAuth(<AdminPlaceholder title="Em breve" description="Novo módulo" />);
     expect(screen.getByText("Em breve")).toBeInTheDocument();
     expect(screen.getByText("Novo módulo")).toBeInTheDocument();
+  });
+
+  it("renderiza AdminTransacoes com métricas e tabela", () => {
+    renderWithAuth(<AdminTransacoes />);
+    expect(screen.getByText(/Transações totais/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Buscar id/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/R\$ /i)[0]).toBeInTheDocument();
+  });
+
+  it("renderiza AdminSaques com cards e cabeçalhos da tabela", () => {
+    renderWithAuth(<AdminSaques />);
+    expect(screen.getByText(/Saques aprovados/i)).toBeInTheDocument();
+    expect(screen.getByText(/^ID$/i)).toBeInTheDocument();
+  });
+
+  it("renderiza AdminUsuarios com indicador e tabela", () => {
+    renderWithAuth(<AdminUsuarios />);
+    expect(screen.getByText(/Número de usuários ativos/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Buscar usuário/i)).toBeInTheDocument();
+    expect(screen.getByText(/Status do documento/i)).toBeInTheDocument();
   });
 });
