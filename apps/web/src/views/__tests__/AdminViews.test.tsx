@@ -7,6 +7,7 @@ import AdminFinancas from "@/views/AdminFinancas";
 import AdminProdutos from "@/views/AdminProdutos";
 import AdminPlaceholder from "@/views/AdminPlaceholder";
 import AdminTransacoes from "@/views/AdminTransacoes";
+import AdminTransacoesDetalhes from "@/views/AdminTransacoesDetalhes";
 import AdminSaques from "@/views/AdminSaques";
 import AdminSaquesDetalhes from "@/views/AdminSaquesDetalhes";
 import AdminUsuarios from "@/views/AdminUsuarios";
@@ -125,6 +126,12 @@ describe("Admin views", () => {
     expect(screen.getByText(/Transações totais/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Buscar id/i)).toBeInTheDocument();
     expect(screen.getAllByText(/R\$ /i)[0]).toBeInTheDocument();
+  });
+
+  it("renderiza AdminTransacoesDetalhes com painel completo", () => {
+    renderWithAuth(<AdminTransacoesDetalhes transactionId="#TX1002" />);
+    expect(screen.getByText(/Detalhes da transação/i)).toBeInTheDocument();
+    expect(screen.getByText(/Dados da transação/i)).toBeInTheDocument();
   });
 
   it("renderiza AdminSaques com cards e cabeçalhos da tabela", () => {

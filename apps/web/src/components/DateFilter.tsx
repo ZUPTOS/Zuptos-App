@@ -153,14 +153,18 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
         type="button"
         aria-label="Alternar filtro de datas"
         onClick={() => setIsOpen(prev => !prev)}
-        className="flex w-[290px] items-center justify-start gap-4 px-4 py-3 rounded-[7px] border border-border/70 bg-card text-left"
+        className="flex items-center justify-start gap-3 rounded-[7px] border border-border/70 bg-card px-4 py-3 text-left"
+        style={{ width: "clamp(240px, 20vw, 320px)" }}
       >
-        <Calendar className="w-4 h-5 text-foreground" />
-        <span className="text-[14px] text-foreground">{dateRange}</span>
+        <Calendar className="h-4 w-4 text-foreground" />
+        <span className="text-fs-body text-foreground leading-tight">{dateRange}</span>
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-15 z-40 w-[358px] rounded-[16px] border border-border/70 bg-card shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]">
+        <div
+          className="absolute left-0 z-40 rounded-[16px] border border-border/70 bg-card shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
+          style={{ top: "calc(100% + 12px)", width: "clamp(300px, 24vw, 360px)" }}
+        >
 
           <div className="p-5 space-y-4">
             <div className="space-y-2">
@@ -169,12 +173,12 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
                   key={option}
                   onClick={() => handlePresetSelect(option)}
                   type="button"
-                  className={`w-full text-left px-4 py-3 rounded-[8px] transition-colors text-sora text-[15px] border ${
-                    selectedPreset === option
-                      ? "border-primary/60 bg-muted/40 text-foreground"
-                      : "border-border/60 text-muted-foreground hover:bg-muted/30 hover:text-foreground"
-                  }`}
-                >
+                className={`w-full rounded-[8px] border px-4 py-3 text-left text-fs-body transition-colors ${
+                  selectedPreset === option
+                    ? "border-primary/60 bg-muted/40 text-foreground"
+                    : "border-border/60 text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                }`}
+              >
                   {option}
                 </button>
               ))}
@@ -184,14 +188,14 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
               onClick={handleDateButtonClick}
               type="button"
               aria-label="Alternar calendário detalhado"
-              className="w-full flex items-center justify-between border-t border-border/60 pt-3 text-left text-xs text-muted-foreground"
+              className="flex w-full items-center justify-between border-t border-border/60 pt-3 text-left text-fs-small text-muted-foreground"
             >
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>{dateRange}</span>
               </div>
               <ChevronDown
-                className={`w-4 h-4 transition ${showCalendar ? "rotate-180" : ""}`}
+                className={`h-4 w-4 transition ${showCalendar ? "rotate-180" : ""}`}
               />
             </button>
 

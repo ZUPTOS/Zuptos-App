@@ -143,9 +143,8 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[6px] transition-all duration-300 z-40 ${
-        isExpanded ? "w-64" : "w-[88px]"
-      }`}
+      className="fixed left-0 top-0 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[6px] transition-[width] duration-300 z-40"
+      style={{ width: isExpanded ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)" }}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >

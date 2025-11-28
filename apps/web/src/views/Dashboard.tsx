@@ -115,7 +115,7 @@ const ChartTooltip = ({ active, payload, options }: ChartTooltipProps) => {
 
   return (
     <div className="min-w-[210px] rounded-[16px] border border-card bg-card px-4 py-3 text-xs text-card-foreground shadow-xl">
-      <p className="mb-3 font-sora text-[10px] text-card-foreground/85">
+      <p className="mb-3 font-sora text-fs-mini text-card-foreground/85">
         {header}
       </p>
       <div className="flex flex-col gap-2">
@@ -131,7 +131,7 @@ const ChartTooltip = ({ active, payload, options }: ChartTooltipProps) => {
           return (
             <div key={`${labelText}-${index}`} className="flex items-center gap-2 leading-tight">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-[13px] font-sora">
+              <span className="text-fs-caption font-sora">
                 {labelText}: <span className="text-card-foreground/90">{formattedValue}</span>
               </span>
             </div>
@@ -323,15 +323,13 @@ export default function Dashboard() {
     >
       <div
         className="px-10 py-5 space-y-3 w-full mx-auto"
-        style={{ maxWidth: "1370px" }}
+        style={{ maxWidth: "var(--dash-layout-width)" }}
       >
         {/* Linha 1 - Data + filtro */}
-        <section className="grid gap-2 grid-cols-[80px_20px_1fr]">
+        <section className="grid grid-cols-[minmax(0,clamp(240px,22vw,320px))_1fr] items-start gap-2">
           <div className="w-full">
             <DateFilter />
           </div>
-
-          <div className="hidden lg:block" />
 
           <div className="flex justify-end gap-3">
             <div className="relative flex w-full max-w-[451px] items-center gap-3" ref={filterDropdownRef}>
@@ -350,9 +348,12 @@ export default function Dashboard() {
               </button>
 
               {isFilterDropdownOpen && (
-                <div className="absolute left-0 top-5 z-40 mt-3 h-[391px] w-[461px] rounded-[16px] bg-card border border-muted/70 shadow-none dark:shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]">
+                <div
+                  className="absolute left-0 top-[calc(100%+10px)] z-40 rounded-[16px] border border-muted/70 bg-card shadow-none dark:shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
+                  style={{ width: "clamp(340px, 28vw, 460px)", maxHeight: "420px" }}
+                >
                   <div className="flex items-center justify-between border-b border-muted/60 px-5 py-4">
-                    <p className="text-[16px] font-semibold text-foreground">Filtrar por...</p>
+                    <p className="text-fs-body font-semibold text-foreground">Filtrar por...</p>
                     <button
                       type="button"
                       onClick={() => setFilterDropdownOpen(false)}
@@ -362,10 +363,10 @@ export default function Dashboard() {
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="max-h-[320px] overflow-y-auto px-4 py-4 space-y-4 pr-2 scrollbar-invisible">
+                  <div className="max-h-[340px] overflow-y-auto px-4 py-4 pr-2 space-y-4 scrollbar-invisible">
                     {filterModalGroups.map(group => (
                       <div key={group.id} className="space-y-3 rounded-[12px] px-1">
-                        <label className="flex items-center gap-[14px] text-[16px] font-semibold text-foreground">
+                      <label className="flex items-center gap-[14px] text-fs-body font-semibold text-foreground">
                           <input
                             type="checkbox"
                             className="relative h-[26px] w-[26px] appearance-none rounded border border-border/70 bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:bg-primary checked:border-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
@@ -378,7 +379,7 @@ export default function Dashboard() {
                           {group.children.map(child => (
                             <label
                               key={child.id}
-                              className="flex items-center gap-[14px] text-[14px] text-muted-foreground"
+                            className="flex items-center gap-[14px] text-fs-small text-muted-foreground"
                             >
                               <input
                                 type="checkbox"
@@ -396,21 +397,26 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <button className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-[10px] border border-border/70 bg-card text-muted-foreground hover:text-foreground transition dark:bg-card/90">
+            <button className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[10px] border border-border/70 bg-card text-muted-foreground transition hover:text-foreground dark:bg-card/90">
               <Eye className="w-6 h-6" />
             </button>
           </div>
         </section>
         {/* Linha 2 - título, saldos e saúde */}
-        <section className="grid grid-cols-[344px_197px_197px_510px] gap-3">
+        <section
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: `minmax(0, var(--dash-col-main)) minmax(0, var(--dash-col-mid)) minmax(0, var(--dash-col-mid)) minmax(0, var(--dash-col-side))`
+          }}
+        >
           <div className={`${cardSurface} p-6 flex flex-col justify-between`}>
-            <p className="text-[14px] text-muted-foreground">
+            <p className="text-fs-small text-muted-foreground">
               Hoje é 8 de setembro, 2025
             </p>
-            <h1 className="text-[36px] text-foreground mb-1">
+            <h1 className="text-fs-hero text-foreground mb-1">
               Olá, {mockData.user.name}
             </h1>
-            <p className="text-[14px] text-muted-foreground">
+            <p className="text-fs-small text-muted-foreground">
               Lorem Ipsum is simply dummy text of the printing
             </p>
           </div>
@@ -430,8 +436,8 @@ export default function Dashboard() {
                   style={isLightMode ? { filter: "brightness(0)" } : undefined}
                 />
               </div>
-                <span className="text-[11px] text-muted-foreground mb-1">{card.label}</span>
-                <span className="text-[23px] font-semibold leading-none text-muted-foreground">
+                <span className="text-fs-micro text-muted-foreground mb-1">{card.label}</span>
+                <span className="text-fs-lead font-semibold leading-none text-muted-foreground">
                   R$ 0{card.value.toFixed(2).replace(".", ",")}
                 </span>
               </div>
@@ -454,16 +460,16 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-[25px] mt-4 flex-col sm:flex-row sm:items-center sm:gap-[12px]">
-              <p className="text-[31px] font-semibold text-foreground leading-none">
+              <p className="text-fs-display font-semibold text-foreground leading-none">
                 {mockData.account.healthScore}
               </p>
-              <span className="text-[19px] text-muted-foreground leading-tight">
+              <span className="text-fs-stat text-muted-foreground leading-tight">
                 A saúde da conta está{" "}
                 <span className="text-foreground font-semibold">boa</span>
               </span>
             </div>
 
-            <div className="flex gap-2 text-[10px] mt-[13px] text-muted-foreground flex-nowrap">
+            <div className="flex gap-2 text-fs-mini mt-[13px] text-muted-foreground flex-nowrap">
               {healthSegments.map(detail => (
                 <span
                   key={detail.label}
@@ -477,29 +483,35 @@ export default function Dashboard() {
         </section>
 
         {/* Linha 3 - gráfico + jornada */}
-        <section className="grid h-[401px] lg:grid-cols-[763px_510px] gap-3">
+        <section
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: `minmax(0, var(--dash-chart-left)) minmax(0, var(--dash-chart-right))`,
+            height: "var(--dash-card-height)"
+          }}
+        >
           <div
             className={`${cardSurface} px-5 py-6 flex flex-col gap-6`}
           >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <p className="text-[26px] font-sora font-bold text-foreground leading-none">
+                  <p className="text-fs-title font-sora font-bold text-foreground leading-none">
                     {grossRevenueLabel}
                   </p>
                   <span className="inline-flex items-center justify-between gap-1 rounded-[7px] bg-muted px-2 py-1 border w-[102px] h-[36px] ">
                     <ArrowUpRight className="w-5 h-5 text-lime-400" />
-                    <span className="text-[15px] font-sora font-bold text-foreground">
+                    <span className="text-fs-meta font-sora font-bold text-foreground">
                       {growthPercentageLabel}
                     </span>
                   </span>
                 </div>
-                <p className="text-[14px] font-sora text-muted-foreground">Receita Bruta</p>
+                <p className="text-fs-small font-sora text-muted-foreground">Receita Bruta</p>
               </div>
               <div className="relative flex items-center" ref={visualizationRef}>
                 <button
                   onClick={() => setVisualizationOpen(prev => !prev)}
-                  className="rounded-[16px] flex items-center justify-center text-muted-foreground self-start -mt-8"
+                  className="flex items-center justify-center rounded-[16px] text-muted-foreground"
                   aria-label="Abrir opções de visualização"
                   type="button"
                 >
@@ -507,10 +519,11 @@ export default function Dashboard() {
                 </button>
                 {isVisualizationOpen && (
                   <div
-                    className={`${cardSurface} absolute right-full mr-3 top-[148px] -translate-y-1/2 w-[346px] h-[359px] z-50 p-5 space-y-4`}
+                    className={`${cardSurface} absolute right-0 z-50 mt-3 w-[clamp(260px,22vw,340px)] max-h-[420px] overflow-y-auto p-5 space-y-4`}
+                    style={{ top: "calc(100% + 8px)" }}
                   >
                     <div className="flex items-center justify-between border-b border-foreground/10 pb-2">
-                      <p className="text-[17px] font-semibold text-foreground">Visualização</p>
+                      <p className="text-fs-section font-semibold text-foreground">Visualização</p>
                       <button
                         onClick={() => setVisualizationOpen(false)}
                         className="text-muted-foreground transition hover:text-foreground"
@@ -555,7 +568,7 @@ export default function Dashboard() {
                                 />
                               </span>
                             </span>
-                            <span className="text-[23px] font-semibold flex-1 text-left">{option.label}</span>
+                            <span className="text-fs-lead font-semibold flex-1 text-left">{option.label}</span>
                           </button>
                         );
                       })}
@@ -564,8 +577,8 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-            <div className="w-[703px] h-[264px]">
-              <ResponsiveContainer>
+            <div className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="1 1" stroke={gridColor} />
                   <XAxis
@@ -614,16 +627,16 @@ export default function Dashboard() {
 
           <div className={`${cardSurface} w-full py-6 px-5 flex flex-col gap-5`}>
             <div>
-              <p className="text-[23px] font-sora font-bold text-foreground tracking-wide">
+              <p className="text-fs-lead font-sora font-bold text-foreground tracking-wide">
                 Sua jornada ZUPTOS
               </p>
               <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
                 <span>
-                  Você é <span className="text-[15px] font-bold" style={{ color: JOURNEY_INACTIVE_COLOR }}>expert</span>
+                  Você é <span className="text-fs-meta font-bold" style={{ color: JOURNEY_INACTIVE_COLOR }}>expert</span>
                 </span>
                 <span>
                   Próximo nível é{" "}
-                  <span className="text-[15px] font-semibold text-foreground/80">
+                  <span className="text-fs-meta font-semibold text-foreground/80">
                     {mockData.user.nextLevel}
                   </span>
                 </span>
@@ -666,11 +679,11 @@ export default function Dashboard() {
                         borderColor: "var(--border)"
                       }}
                     />
-                    <p className="text-[17px] font-semibold text-foreground">
+                    <p className="text-fs-section font-semibold text-foreground">
                       {level.threshold >= 1000 ? `${level.threshold / 1000}k` : level.threshold}
                     </p>
                     <p
-                      className="text-[17px] font-medium"
+                      className="text-fs-section font-medium"
                       style={{
                         color: isActiveTier ? JOURNEY_HIGHLIGHT_COLOR : JOURNEY_INACTIVE_COLOR
                       }}
@@ -685,7 +698,13 @@ export default function Dashboard() {
         </section>
 
         {/* Linha 4 - métodos de pagamento */}
-        <section className="grid grid-cols-[419.63px_419.63px_419.63px] gap-3">
+        <section
+          className="grid gap-3 w-full"
+          style={{
+            gridTemplateColumns: `repeat(3, minmax(0, var(--dash-pay-col)))`,
+            maxWidth: "var(--dash-layout-width)"
+          }}
+        >
           {mockData.paymentMethods.map(method => (
             <div
               key={method.id}
@@ -695,10 +714,10 @@ export default function Dashboard() {
                 <div className="h-15 w-15">
                   {getPaymentIcon(method.id)}
                 </div>
-                <p className="text-[19px] font-sora text-foreground">
+                <p className="text-fs-stat font-sora text-foreground">
                   {method.name}
                 </p>
-                <p className="text-[19px] font-sora text-muted-foreground">{method.percentage}%</p>
+                <p className="text-fs-stat font-sora text-muted-foreground">{method.percentage}%</p>
               </div>
               <div className="h-[100px]">
                 <ResponsiveContainer width="100%">

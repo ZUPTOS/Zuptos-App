@@ -9,6 +9,7 @@ export type Column<T> = {
   header: string;
   headerClassName?: string;
   cellClassName?: string;
+  width?: string;
   render: (row: T, index: number) => ReactNode;
 };
 
@@ -22,6 +23,9 @@ interface PaginatedTableProps<T> {
   tableContainerClassName?: string;
   paginationContainerClassName?: string;
   wrapperClassName?: string;
+  tableClassName?: string;
+  headerRowClassName?: string;
+  minWidth?: string;
   onRowClick?: (row: T, index: number) => void;
   getRowClassName?: (row: T, index: number) => string;
 }
@@ -38,6 +42,9 @@ export default function PaginatedTable<T>({
   tableContainerClassName = "",
   paginationContainerClassName = "",
   wrapperClassName = "",
+  tableClassName = "",
+  headerRowClassName = "",
+  minWidth,
   onRowClick,
   getRowClassName
 }: PaginatedTableProps<T>) {
@@ -50,6 +57,10 @@ export default function PaginatedTable<T>({
     setCurrentPage(prev => Math.min(prev, totalPages));
   }, [totalPages]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [safeData, rowsPerPage, initialPage]);
+
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * rowsPerPage;
     return safeData.slice(start, start + rowsPerPage);
@@ -61,11 +72,18 @@ export default function PaginatedTable<T>({
     <div className={`flex flex-col gap-2 ${wrapperClassName}`}>
       <div className={tableContainerClassName}>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-center text-[14px]">
+          <table
+            className={`w-full text-center text-[14px] ${tableClassName} ${safeColumns.some(col => col.width) ? "table-fixed" : ""}`}
+            style={minWidth ? { minWidth } : undefined}
+          >
             <thead>
-              <tr className="text-muted-foreground">
+              <tr className={`text-muted-foreground ${headerRowClassName}`}>
                 {safeColumns.map(column => (
-                  <th key={column.id} className={`px-6 py-4 font-medium ${column.headerClassName ?? ""}`}>
+                  <th
+                    key={column.id}
+                    className={`px-6 py-4 font-medium ${column.headerClassName ?? ""}`}
+                    style={column.width ? { width: column.width } : undefined}
+                  >
                     {column.header}
                   </th>
                 ))}
@@ -83,7 +101,11 @@ export default function PaginatedTable<T>({
                       onClick={() => onRowClick?.(row, index)}
                     >
                       {safeColumns.map(column => (
-                        <td key={column.id} className={`px-6 py-4 align-center ${column.cellClassName ?? ""}`}>
+                        <td
+                          key={column.id}
+                          className={`px-6 py-4 align-center ${column.cellClassName ?? ""}`}
+                          style={column.width ? { width: column.width } : undefined}
+                        >
                           {column.render(row, index)}
                         </td>
                       ))}

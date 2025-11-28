@@ -19,7 +19,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-background text-foreground transition-colors">
       <Sidebar />
-      <div className="flex-1 flex flex-col ml-20">
+      <div className="flex-1 flex flex-col" style={{ marginLeft: "var(--sidebar-collapsed)" }}>
         <Header
           userName={userName}
           userLocation={userLocation}

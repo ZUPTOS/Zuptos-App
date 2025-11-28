@@ -1,4 +1,4 @@
-const API_BASE_URL = "/api/auth";
+const MOCK_TOKEN = "mock-token";
 
 export interface SignInRequest {
   email: string;
@@ -34,144 +34,98 @@ export interface ApiError extends Error {
   response?: Response;
 }
 
-const handleResponse = async (response: Response): Promise<AuthResponse> => {
-  if (!response.ok) {
-    const error: ApiError = new Error(`API Error: ${response.statusText}`);
-    error.status = response.status;
-    error.response = response;
-    console.error("❌ API Error Response:", {
-      status: response.status,
-      statusText: response.statusText,
-      url: response.url,
-    });
-    throw error;
-  }
-
-  try {
-    const data = await response.json();
-    console.log("✅ API Success Response:", {
-      status: response.status,
-      url: response.url,
-      data: data,
-    });
-    return data;
-  } catch {
-    const successResponse = {
-      success: response.ok,
-      message: "Request completed",
-    };
-    console.log("✅ API Response (no JSON):", successResponse);
-    return successResponse;
-  }
-};
-
 export const authApi = {
   signIn: async (credentials: SignInRequest): Promise<AuthResponse> => {
-    console.log("📤 [signIn] Request:", {
-      url: `${API_BASE_URL}/sign-in`,
-      method: "POST",
+    console.log("📤 [signIn] mock Request:", {
       email: credentials.email,
     });
-    
-    const response = await fetch(`${API_BASE_URL}/sign-in`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
-    });
 
-    return handleResponse(response);
+    return Promise.resolve({
+      access_token: MOCK_TOKEN,
+      success: true,
+      data: {
+        token: MOCK_TOKEN,
+        user: {
+          id: "mock-user",
+          email: credentials.email,
+          fullName: credentials.email,
+          accessType: "purchases",
+        },
+      },
+    });
   },
 
   signUp: async (data: SignUpRequest): Promise<AuthResponse> => {
-    console.log("📤 [signUp] Request:", {
-      url: `${API_BASE_URL}/sign-up`,
-      method: "POST",
+    console.log("📤 [signUp] mock Request:", {
       username: data.username,
       email: data.email,
       accessType: data.accessType,
     });
-    
-    const response = await fetch(`${API_BASE_URL}/sign-up`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
 
-    return handleResponse(response);
+    return Promise.resolve({
+      access_token: MOCK_TOKEN,
+      success: true,
+      data: {
+        token: MOCK_TOKEN,
+        user: {
+          id: "mock-user",
+          email: data.email,
+          fullName: data.username,
+          accessType: data.accessType,
+        },
+      },
+    });
   },
 
   getCurrentUser: async (token: string) => {
-    console.log("📤 [getCurrentUser] Request:", {
-      url: `${API_BASE_URL}/me`,
-      method: "GET",
+    console.log("📤 [getCurrentUser] mock Request:", {
       tokenLength: token?.length || 0,
     });
-    
-    const response = await fetch(`${API_BASE_URL}/me`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+
+    return Promise.resolve({
+      success: true,
+      data: {
+        token: token || MOCK_TOKEN,
+        user: {
+          id: "mock-user",
+          email: "mock@user.com",
+          fullName: "Usuário Zuptos",
+          accessType: "purchases",
+        },
       },
     });
-
-    return handleResponse(response);
   },
 
   signOut: async (token: string): Promise<AuthResponse> => {
-    console.log("📤 [signOut] Request:", {
-      url: `${API_BASE_URL}/sign-out`,
-      method: "DELETE",
+    console.log("📤 [signOut] mock Request:", {
       tokenLength: token?.length || 0,
     });
-    
-    const response = await fetch(`${API_BASE_URL}/sign-out`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
 
-    return handleResponse(response);
+    return Promise.resolve({
+      success: true,
+      message: "Signed out (mock)",
+    });
   },
 
   recoverPassword: async (email: string): Promise<AuthResponse> => {
-    console.log("📤 [recoverPassword] Request:", {
-      url: `${API_BASE_URL}/v1/auth/recover_password`,
-      method: "POST",
+    console.log("📤 [recoverPassword] mock Request:", {
       email: email,
     });
-    
-    const response = await fetch(`${API_BASE_URL}/v1/auth/recover_password`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
-    });
 
-    return handleResponse(response);
+    return Promise.resolve({
+      success: true,
+      message: "Recover password (mock)",
+    });
   },
 
   resetPassword: async (token: string, newPassword: string): Promise<AuthResponse> => {
-    console.log("📤 [resetPassword] Request:", {
-      url: `${API_BASE_URL}/v1/auth/reset_password`,
-      method: "POST",
+    console.log("📤 [resetPassword] mock Request:", {
       tokenLength: token?.length || 0,
     });
-    
-    const response = await fetch(`${API_BASE_URL}/v1/auth/reset_password`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token, newPassword }),
-    });
 
-    return handleResponse(response);
+    return Promise.resolve({
+      success: true,
+      message: "Reset password (mock)",
+    });
   },
 };

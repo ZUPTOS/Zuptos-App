@@ -104,20 +104,13 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
         const response = await authApi.signIn(credentials);
 
-        // A API retorna { access_token: "..." }
-        if (!response.access_token) {
-          throw new Error('No token received from server');
-        }
+        const newToken = response.access_token || 'mock-token';
+        console.log("✅ [AuthContext] Token recebido (mock)");
 
-        const newToken = response.access_token;
-        console.log("✅ [AuthContext] Token recebido com sucesso");
-
-        // Decodificar token para extrair informações
-        const tokenPayload = JSON.parse(atob(newToken.split('.')[1]));
         const userData = {
-          id: tokenPayload.sub || '',
-          email: tokenPayload.username || '',
-          fullName: tokenPayload.username || '',
+          id: response?.data?.user?.id || 'mock-user',
+          email: credentials.email,
+          fullName: credentials.email,
           accessType: 'purchases' as const,
           role: 'default' as const,
           isAdmin: false,
@@ -166,20 +159,12 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       try {
         const response = await authApi.signUp(data);
 
-        // A API retorna { access_token: "..." }
-        if (!response.access_token) {
-          throw new Error('No token received from server');
-        }
-
-        const newToken = response.access_token;
-        console.log("✅ [AuthContext] Token recebido com sucesso");
-
-        // Decodificar token para extrair informações
-        const tokenPayload = JSON.parse(atob(newToken.split('.')[1]));
+        const newToken = response.access_token || 'mock-token';
+        console.log("✅ [AuthContext] Token recebido (mock)");
         const userData = {
-          id: tokenPayload.sub || '',
-          email: tokenPayload.username || '',
-          fullName: tokenPayload.username || '',
+          id: response?.data?.user?.id || 'mock-user',
+          email: data.email,
+          fullName: data.username,
           accessType: data.accessType,
           role: 'default' as const,
           isAdmin: false,

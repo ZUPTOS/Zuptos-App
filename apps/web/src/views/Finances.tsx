@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import DateFilter from "@/components/DateFilter";
@@ -15,6 +15,7 @@ import {
   Upload,
   X
 } from "lucide-react";
+import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 
 const tabs = [
   { id: "saldos", label: "Saldos" },
@@ -106,11 +107,27 @@ export default function Finances() {
   const [hasBankAccount, setHasBankAccount] = useState(false);
   const [transactionFilter, setTransactionFilter] = useState<string>("todas");
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const itemsPerPage = 7;
+  const [rowsPerPage, setRowsPerPage] = useState(4);
+
+  useEffect(() => {
+    const updateRows = () => {
+      if (typeof window === "undefined") return;
+      const width = window.innerWidth;
+      if (width >= 1900) {
+        setRowsPerPage(6);
+      } else if (width >= 1600) {
+        setRowsPerPage(5);
+      } else {
+        setRowsPerPage(4);
+      }
+    };
+    updateRows();
+    window.addEventListener("resize", updateRows);
+    return () => window.removeEventListener("resize", updateRows);
+  }, []);
 
   const parseDate = (dateStr: string) => {
     const [day, month, year] = dateStr.split("/").map(Number);
@@ -131,45 +148,6 @@ export default function Finances() {
     return matchesFilter && matchesSearch && matchesDate;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
-  const paginatedTransactions = filteredTransactions.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const headerHeight = 52;
-  const rowHeight = 85;
-  const tableHeight = Math.min(647, headerHeight + rowHeight * Math.max(1, paginatedTransactions.length));
-
-  const paginationItems = (() => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    const pages = new Set<number>([1, 2, 3, totalPages - 2, totalPages - 1, totalPages]);
-    if (currentPage > 3 && currentPage < totalPages - 2) {
-      pages.add(currentPage);
-    }
-
-    const sortedPages = Array.from(pages).sort((a, b) => a - b);
-    const output: Array<number | string> = [];
-
-    for (let i = 0; i < sortedPages.length; i += 1) {
-      const page = sortedPages[i];
-      const prevPage = sortedPages[i - 1];
-      if (prevPage && page - prevPage > 1) {
-        output.push("...");
-      }
-      output.push(page);
-    }
-
-    return output;
-  })();
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [transactionFilter, searchTerm]);
-
   const handleOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, action: () => void) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -177,10 +155,102 @@ export default function Finances() {
     }
   };
 
+  const transactionColumns: Column<Transaction>[] = useMemo(
+    () => [
+      {
+        id: "id",
+        header: "ID",
+        width: "11%",
+        headerClassName: "text-center",
+        cellClassName: "px-3 py-3 text-center text-fs-body font-semibold text-foreground whitespace-nowrap",
+        render: transaction => transaction.id
+      },
+      {
+        id: "descricao",
+        header: "Descrição",
+        width: "23%",
+        headerClassName: "text-center",
+        cellClassName: "px-3 py-3",
+        render: transaction => (
+          <div className="flex flex-col items-center space-y-1 text-center leading-tight">
+            <p className="font-semibold truncate w-full max-w-[180px]">{transaction.title}</p>
+            <p className="text-fs-body text-muted-foreground truncate w-full max-w-[180px]">
+              {transaction.subtitle}
+            </p>
+          </div>
+        )
+      },
+      {
+        id: "valor",
+        header: "Valor",
+        width: "14%",
+        headerClassName: "text-center",
+        cellClassName: "px-3 py-3 text-center text-fs-body font-semibold text-foreground whitespace-nowrap",
+        render: transaction => formatCurrency(transaction.value)
+      },
+      {
+        id: "data",
+        header: "Data",
+        width: "14%",
+        headerClassName: "text-center",
+        cellClassName: "px-3 py-3 text-fs-body text-foreground",
+        render: transaction => (
+          <div className="flex flex-col items-center leading-tight text-center">
+            <span className="font-semibold">{transaction.date}</span>
+            <span className="text-fs-body text-muted-foreground">{transaction.time}</span>
+          </div>
+        )
+      },
+      {
+        id: "saldo",
+        header: "Saldo após lançamento",
+        width: "20%",
+        headerClassName: "text-center",
+        cellClassName: "px-3 py-3 text-fs-body text-foreground",
+        render: transaction => (
+          <div className="flex items-center justify-center gap-2 leading-tight">
+            <span className="font-semibold">{formatCurrency(transaction.balanceAfter)}</span>
+            {transaction.type === "entrada" ? (
+              <ArrowDown className="h-4 w-4 shrink-0 text-emerald-400" aria-label="Entrada" />
+            ) : (
+              <ArrowUp className="h-4 w-4 shrink-0 text-red-400" aria-label="Saída" />
+            )}
+          </div>
+        )
+      },
+      {
+        id: "categoria",
+        header: "Categoria",
+        width: "18%",
+        headerClassName: "text-center",
+        cellClassName: "px-3 py-3 text-center",
+        render: transaction => (
+          <span
+            className={`inline-flex min-w-[72px] items-center justify-center rounded-full px-2 py-[6px] text-[10px] font-semibold leading-tight ${
+              transaction.category === "Venda"
+                ? "bg-emerald-500/15 text-emerald-200"
+                : transaction.category === "Estorno"
+                  ? "bg-red-500/15 text-red-200"
+                  : transaction.category === "MED"
+                    ? "bg-red-500/15 text-red-200"
+                    : "bg-rose-500/15 text-rose-200"
+            }`}
+          >
+            {transaction.category}
+          </span>
+        )
+      }
+    ],
+    []
+  );
+
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Finanças">
       <div className="min-h-full py-6">
-        <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6 px-4 md:px-6">
+        <div
+          className="mx-auto flex w-full flex-col gap-6 px-4 md:px-6"
+          style={{ maxWidth: "var(--fin-layout-width)" }}
+        >
 
           <div className="flex flex-wrap items-center gap-6 border-b border-muted/30 pb-1 text-base font-semibold">
             {tabs.map(tab => {
@@ -206,22 +276,22 @@ export default function Finances() {
           </div>
 
           {activeTab === "saldos" && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[708px_721px] lg:justify-between lg:gap-[10px]">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[708px_721px] lg:justify-center lg:gap-[10px]">
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[245px]">
-                <p className="text-[24px] font-semibold text-primary">Saldo Disponível</p>
-                <p className="mt-2 text-[34px] font-semibold text-foreground">
+                <p className="text-fs-title font-semibold text-primary">Saldo Disponível</p>
+                <p className="mt-2 text-fs-display font-semibold text-foreground">
                   {formatCurrency(balanceCards[0].value ?? 0)}
                 </p>
-                <p className="mt-3 text-[19px] text-muted-foreground">
+                <p className="mt-3 text-fs-stat text-muted-foreground">
                   {balanceCards[0].description}
                 </p>
               </div>
 
               <div className="flex h-full w-full flex-col justify-center gap-4 rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[245px]">
-                <p className="text-[24px] font-semibold text-primary">Conta Bancária Principal</p>
+                <p className="text-fs-title font-semibold text-primary">Conta Bancária Principal</p>
                 {hasBankAccount ? (
                   <>
-                    <div className="space-y-2 text-[19px] text-foreground">
+                    <div className="space-y-2 text-fs-stat text-foreground">
                       <div className="flex items-center gap-2 font-semibold">
                         <Image src="/images/ICON-4.svg" alt="" width={28} height={28} className="h-7 w-7" />
                         {balanceCards[2].bank} <span className="text-muted-foreground"> {balanceCards[2].accountType}</span>
@@ -242,8 +312,8 @@ export default function Finances() {
                     </div>
                   </>
                 ) : (
-                  <div className="space-y-4 text-[19px] text-foreground">
-                    <p className="text-[19px] text-muted-foreground">
+                  <div className="space-y-4 text-fs-stat text-foreground">
+                    <p className="text-fs-stat text-muted-foreground">
                       Nenhuma conta bancária cadastrada. Configure uma conta para realizar saques.
                     </p>
                     <button
@@ -258,18 +328,18 @@ export default function Finances() {
               </div>
 
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[146px]">
-                <p className="text-[24px] font-semibold text-foreground">Saldo pendente</p>
-                <p className="mt-2 text-[34px] font-semibold text-foreground">
+                <p className="text-fs-title font-semibold text-foreground">Saldo pendente</p>
+                <p className="mt-2 text-fs-display font-semibold text-foreground">
                   {formatCurrency(balanceCards[1].value ?? 0)}
                 </p>
               </div>
 
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[146px]">
                 <div className="flex items-center justify-between">
-                  <p className="text-[24px] font-semibold text-foreground">Comissões a receber</p>
+                  <p className="text-fs-title font-semibold text-foreground">Comissões a receber</p>
                   <Banknote className="h-5 w-5 text-muted-foreground" aria-hidden />
                 </div>
-                <p className="mt-2 text-[34px] font-semibold text-foreground">
+                <p className="mt-2 text-fs-display font-semibold text-foreground">
                   {formatCurrency(balanceCards[3].value ?? 0)}
                 </p>
               </div>
@@ -277,7 +347,10 @@ export default function Finances() {
           )}
 
           {activeTab === "transacoes" && (
-            <div className="mx-auto flex w-full max-w-[1280px] flex-col items-stretch gap-4">
+            <div
+              className="mx-auto flex w-full flex-col items-stretch gap-4"
+              style={{ maxWidth: "var(--fin-table-width)" }}
+            >
               <div className="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
                   {transactionTabs.map(tab => {
@@ -335,139 +408,19 @@ export default function Finances() {
                 </div>
               </div>
 
-              <div
-                className="flex w-[1280px] justify-center overflow-hidden rounded-[16px] border border-muted bg-card/70"
-                style={{ height: `${tableHeight}px` }}
-              >
-                <table className="min-w-[1280px] w-[1280px] border-separate border-spacing-0 text-[15px]">
-                  <thead className="bg-card/60 text-[15px] uppercase text-muted-foreground">
-                    <tr className="h-[52px]">
-                      <th scope="col" className="px-5 py-3 text-center font-semibold">
-                        ID
-                      </th>
-                      <th scope="col" className="px-5 py-3 text-center font-semibold">
-                        Descrição
-                      </th>
-                      <th scope="col" className="px-5 py-3 text-center font-semibold">
-                        Valor
-                      </th>
-                      <th scope="col" className="px-5 py-3 text-center font-semibold">
-                        Data
-                      </th>
-                      <th scope="col" className="px-5 py-3 text-center font-semibold">
-                        Saldo após lançamento
-                      </th>
-                      <th scope="col" className="px-5 py-3 text-center font-semibold">
-                        Categoria
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedTransactions.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted-foreground">
-                          Nenhuma transação encontrada.
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedTransactions.map(transaction => (
-                        <tr
-                          key={transaction.id + transaction.date + transaction.time}
-                          className="h-[85px] cursor-pointer border-t border-muted/60 transition-colors hover:bg-muted/10"
-                          onClick={() => setSelectedTransaction(transaction)}
-                        >
-                          <td className="px-5 py-4 text-[15px] font-semibold text-foreground text-center">{transaction.id}</td>
-                          <td className="px-5 py-4 text-[15px] text-foreground">
-                            <div className="flex flex-col items-center space-y-1 text-center">
-                              <p className="font-semibold leading-tight">{transaction.title}</p>
-                              <p className="text-[15px] text-muted-foreground">{transaction.subtitle}</p>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-[15px] font-semibold text-foreground text-center">
-                            {formatCurrency(transaction.value)}
-                          </td>
-                          <td className="px-5 py-4 text-[15px] text-foreground">
-                            <div className="flex flex-col items-center leading-tight text-center">
-                              <span className="font-semibold">{transaction.date}</span>
-                              <span className="text-[15px] text-muted-foreground">{transaction.time}</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-[15px] text-foreground">
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="font-semibold">{formatCurrency(transaction.balanceAfter)}</span>
-                              {transaction.type === "entrada" ? (
-                                <ArrowDown className="h-4 w-4 text-emerald-400" aria-label="Entrada" />
-                              ) : (
-                                <ArrowUp className="h-4 w-4 text-red-400" aria-label="Saída" />
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-[15px] text-center">
-                            <span
-                              className={`inline-flex min-w-[96px] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                transaction.category === "Venda"
-                                  ? "bg-emerald-500/15 text-emerald-200"
-                                  : transaction.category === "Estorno"
-                                    ? "bg-red-500/15 text-red-200"
-                                    : transaction.category === "MED"
-                                      ? "bg-red-500/15 text-red-200"
-                                      : "bg-rose-500/15 text-rose-200"
-                              }`}
-                            >
-                              {transaction.category}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-muted px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="mr-2 text-lg leading-none">‹</span>
-                  Anterior
-                </button>
-
-                <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-                  {paginationItems.map((item, index) =>
-                    typeof item === "string" ? (
-                      <span key={`${item}-${index}`} className="px-2 text-muted-foreground">
-                        {item}
-                      </span>
-                    ) : (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => setCurrentPage(item)}
-                        className={`h-8 min-w-[32px] rounded-[8px] px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
-                          currentPage === item
-                            ? "bg-card text-foreground"
-                            : "bg-card/60 text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {item}
-                      </button>
-                    )
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-muted px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Próximo
-                  <span className="ml-2 text-lg leading-none">›</span>
-                </button>
-              </div>
+              <PaginatedTable<Transaction>
+                data={filteredTransactions}
+                columns={transactionColumns}
+                rowKey={transaction => transaction.id + transaction.date + transaction.time}
+                rowsPerPage={rowsPerPage}
+                emptyMessage="Nenhuma transação encontrada."
+                tableContainerClassName="flex w-full justify-center overflow-hidden rounded-[16px] border border-muted bg-card/70"
+                tableClassName="text-fs-body"
+                headerRowClassName="bg-card/60 text-fs-body uppercase text-muted-foreground h-[46px]"
+                paginationContainerClassName="mx-auto flex w-full max-w-[1280px] flex-col gap-2 md:flex-row md:items-center md:justify-between"
+                onRowClick={setSelectedTransaction}
+                wrapperClassName="w-full"
+              />
             </div>
           )}
 
@@ -491,7 +444,7 @@ export default function Finances() {
           />
           <div className="fixed right-0 top-0 z-50 h-screen w-[443px] border-l border-muted bg-card px-6 pb-10 pt-8 shadow-2xl">
             <div className="mb-6 flex items-start justify-between">
-              <h2 className="text-[28px] font-semibold text-foreground">Filtrar</h2>
+              <h2 className="text-fs-title font-semibold text-foreground">Filtrar</h2>
               <button
                 type="button"
                 onClick={() => setIsFilterOpen(false)}
@@ -502,7 +455,7 @@ export default function Finances() {
               </button>
             </div>
 
-            <div className="space-y-6 text-[15px] text-foreground">
+            <div className="space-y-6 text-fs-body text-foreground">
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">Data</p>
                 <DateFilter
@@ -518,11 +471,11 @@ export default function Finances() {
                   {["Venda", "Comissão", "Saque", "Chargeback"].map(option => (
                     <label
                       key={option}
-                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-[15px]"
+                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-fs-body"
                     >
                       <input
                         type="checkbox"
-                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-fs-caption [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
                       />
                       <span>{option}</span>
                     </label>
@@ -536,11 +489,11 @@ export default function Finances() {
                   {["Entrada", "Saída"].map(option => (
                     <label
                       key={option}
-                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-[15px]"
+                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-fs-body"
                     >
                       <input
                         type="checkbox"
-                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-fs-caption [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
                       />
                       <span>{option}</span>
                     </label>
@@ -573,7 +526,7 @@ export default function Finances() {
           />
           <div className="fixed right-0 top-0 z-50 h-screen w-[501px] border-l border-muted bg-card px-7 pb-10 pt-8 shadow-2xl">
             <div className="mb-6 flex items-start justify-between">
-              <h2 className="text-[33px] font-semibold text-foreground">Detalhes</h2>
+              <h2 className="text-fs-display font-semibold text-foreground">Detalhes</h2>
               <button
                 type="button"
                 onClick={() => setSelectedTransaction(null)}
@@ -584,18 +537,18 @@ export default function Finances() {
               </button>
             </div>
 
-            <div className="space-y-4 text-[15px] text-foreground">
+            <div className="space-y-4 text-fs-body text-foreground">
               <div className="flex items-center gap-3 rounded-[12px] border border-muted/60 px-4 py-3">
                 <div className="h-[56px] w-[56px] rounded-[8px] bg-muted/30" aria-hidden />
                 <div className="space-y-1">
-                  <p className="text-[17px] font-semibold leading-tight">{selectedTransaction.title}</p>
+                  <p className="text-fs-section font-semibold leading-tight">{selectedTransaction.title}</p>
                   <p className="text-sm text-muted-foreground">{selectedTransaction.subtitle}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 text-foreground">
                 <Tag className="h-5 w-5 text-foreground" aria-hidden />
-                <span className="text-[16px] font-semibold">Order bump(s)</span>
+                <span className="text-fs-body font-semibold">Order bump(s)</span>
                 <span className="flex h-6 min-w-6 items-center justify-center rounded-[6px] border border-muted/60 px-2 text-sm text-muted-foreground">
                   1
                 </span>
@@ -604,7 +557,7 @@ export default function Finances() {
               <div className="flex items-center gap-3 rounded-[12px] border border-muted/60 px-4 py-3">
                 <div className="h-[56px] w-[56px] rounded-[8px] bg-muted/30" aria-hidden />
                 <div className="space-y-1">
-                  <p className="text-[17px] font-semibold leading-tight">{selectedTransaction.title}</p>
+                  <p className="text-fs-section font-semibold leading-tight">{selectedTransaction.title}</p>
                   <p className="text-sm text-muted-foreground">{selectedTransaction.subtitle}</p>
                 </div>
               </div>
@@ -688,9 +641,9 @@ export default function Finances() {
             onClick={() => setIsWithdrawOpen(false)}
             onKeyDown={event => handleOverlayKeyDown(event, () => setIsWithdrawOpen(false))}
           />
-          <div className="fixed left-1/2 top-1/2 z-50 h-[538px] w-[501px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card">
+          <div className="fixed left-1/2 top-1/2 z-50 h-[538px] w-full max-w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card">
             <div className="flex items-start justify-between border-b border-muted px-5 py-4">
-              <p className="text-[23px] font-semibold text-foreground">Solicitar saque</p>
+              <p className="text-fs-lead font-semibold text-foreground">Solicitar saque</p>
               <button
                 type="button"
                 onClick={() => setIsWithdrawOpen(false)}
@@ -702,15 +655,15 @@ export default function Finances() {
             </div>
             <div className="space-y-4 px-5 py-5">
               <div>
-                <p className="text-[24px] font-semibold text-foreground">Quanto você quer sacar?</p>
+                <p className="text-fs-title font-semibold text-foreground">Quanto você quer sacar?</p>
                 <input
                   type="text"
-                  className="mt-3 h-[49px] w-[447px] rounded-[10px] border border-muted bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="mt-3 h-[49px] w-full max-w-[420px] rounded-[10px] border border-muted bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   placeholder="R$ 0,00"
                 />
               </div>
               <div
-                className="flex h-[42px] w-[447px] items-center justify-between rounded-[10px] px-4 text-[19px] font-semibold text-foreground"
+                className="flex h-[42px] w-full max-w-[420px] items-center justify-between rounded-[10px] px-4 text-fs-stat font-semibold text-foreground"
                 style={{
                   background: "linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--muted)) 50%, hsl(var(--card)) 100%)"
                 }}
@@ -718,7 +671,7 @@ export default function Finances() {
                 <span className="text-muted-foreground">Saldo disponível:</span>
                 <span>{formatCurrency(balanceCards[0].value ?? 0)}</span>
               </div>
-              <div className="w-[447px] space-y-3 text-[19px] text-muted-foreground">
+              <div className="w-full max-w-[420px] space-y-3 text-fs-stat text-muted-foreground">
                 <div className="flex items-center justify-between">
                   <span>Chave pix:</span>
                   <span>------</span>
@@ -738,7 +691,7 @@ export default function Finances() {
               </div>
               <button
                 type="button"
-                className="mt-2 inline-flex h-[49px] w-[447px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white"
+                className="mt-2 inline-flex h-[49px] w-full max-w-[420px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white"
               >
                 Solicitar
               </button>
@@ -759,7 +712,7 @@ export default function Finances() {
           />
           <div className="fixed left-1/2 top-1/2 z-50 h-[534px] w-[443px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-6">
             <div className="flex items-center justify-between border-b border-muted pb-4">
-              <p className="text-[24px] font-semibold text-foreground">Configurar conta bancária</p>
+              <p className="text-fs-title font-semibold text-foreground">Configurar conta bancária</p>
               <button
                 type="button"
                 onClick={() => setShowAccountForm(false)}
@@ -771,7 +724,7 @@ export default function Finances() {
             </div>
             <div className="space-y-8 pt-2 text-[12px]">
               <div className="space-y-2">
-                <p className="mb-5 text-[22px] font-semibold text-muted-foreground">Informações do titular</p>
+                <p className="mb-5 text-fs-title font-semibold text-muted-foreground">Informações do titular</p>
                 <label className="flex w-full flex-col gap-3 text-[12px] text-muted-foreground">
                   <span className="text-left">Instituição bancária</span>
                   <select className="h-11 w-full rounded-[10px] border border-muted bg-card px-3 text-left text-[12px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
@@ -783,7 +736,7 @@ export default function Finances() {
                 </label>
               </div>
               <div className="flex space-y-2 items-start flex-col">
-                <p className="mb-5 text-[22px] font-semibold text-muted-foreground">Chave pix</p>
+                <p className="mb-5 text-fs-title font-semibold text-muted-foreground">Chave pix</p>
                 <label className="flex w-full flex-col gap-3 text-[12px] text-muted-foreground">
                   <span className="text-left">Tipo de chave PIX</span>
                   <select className="h-11 w-full rounded-[10px] border border-muted bg-card px-3 text-left text-[12px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">

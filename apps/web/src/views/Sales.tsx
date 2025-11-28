@@ -12,8 +12,6 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Filter,
   Search,
@@ -23,6 +21,7 @@ import type { LucideIcon } from "lucide-react";
 import salesData from "@/data/salesData.json";
 import SalesFilterPanel, { SalesFilters, OfferFilter } from "@/views/components/SalesFilterPanel";
 import SalesDetailPanel from "@/views/components/SalesDetailPanel";
+import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 
 export type PaymentMethod = "credit_card" | "pix" | "boleto";
 export type SaleStatus = "aprovada" | "recusada" | "expirada";
@@ -55,8 +54,6 @@ const { metricCards, salesHistory } = salesData as {
   metricCards: MetricCard[];
   salesHistory: Sale[];
 };
-
-const ROWS_PER_PAGE = 6;
 
 const paymentMethods: Record<
   PaymentMethod,
@@ -198,73 +195,6 @@ const MetricCardChart = ({
   </ResponsiveContainer>
 );
 
-const SalesTableRow = ({
-  sale,
-  onSelect
-}: {
-  sale: Sale;
-  onSelect?: (sale: Sale) => void;
-}) => {
-  const payment = paymentMethods[sale.paymentMethod];
-  const status = statusConfig[sale.status];
-  const saleDate = new Date(sale.saleDate);
-  const dateLabel = saleDate.toLocaleDateString("pt-BR");
-  const timeLabel = saleDate.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-
-  return (
-    <tr
-      className="border-t text-center border-muted/20 transition-colors hover:bg-card/20 cursor-pointer"
-      onClick={() => onSelect?.(sale)}
-    >
-      <td className="px-6 py-4 text-sm font-semibold text-foreground/90">
-        {sale.id}
-      </td>
-      <td className="px-6 py-4">
-        <p className="font-semibold text-card-foreground">{sale.productName}</p>
-        <p className="text-xs text-muted-foreground">{sale.productType}</p>
-      </td>
-      <td className="px-6 py-4">
-        <p className="font-semibold text-card-foreground">{sale.buyerName}</p>
-        <p className="text-xs text-muted-foreground">{sale.buyerEmail}</p>
-      </td>
-      <td className="px-6 py-4 text-sm font-semibold text-card-foreground">
-        {sale.saleType}
-      </td>
-      <td className="px-6 py-4 text-sm">
-        <p className="font-semibold text-card-foreground">{dateLabel}</p>
-        <p className="text-xs text-muted-foreground">às {timeLabel}</p>
-      </td>
-      <td className="px-6 py-4">
-          <span className="flex items-center justify-center">
-            <Image
-              src={payment.icon}
-              alt={payment.label}
-              width={60}
-              height={60}
-              className="h-12 w-12"
-            />
-          </span>
-      </td>
-      <td className="px-6 py-4">
-        <p className="font-semibold text-card-foreground">
-          {formatCurrency(sale.total)}
-        </p>
-        <p className="text-xs text-muted-foreground">{sale.plan}</p>
-      </td>
-      <td className="px-6 py-4">
-        <span
-          className={`inline-flex rounded-[8px] px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
-        >
-          {status.label}
-        </span>
-      </td>
-    </tr>
-  );
-};
-
 const initialFilters: SalesFilters = {
   dateFrom: "",
   dateTo: "",
@@ -280,8 +210,8 @@ const initialFilters: SalesFilters = {
 };
 
 export default function Sales() {
+  const [rowsPerPage, setRowsPerPage] = useState(6);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<SalesFilters>(initialFilters);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -335,33 +265,128 @@ export default function Sales() {
   }, [normalizedSearch, filters]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [normalizedSearch, filters]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredSales.length / ROWS_PER_PAGE)
-  );
-
-  useEffect(() => {
-    setCurrentPage(prev => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  const paginatedSales = useMemo(() => {
-    const start = (currentPage - 1) * ROWS_PER_PAGE;
-    return filteredSales.slice(start, start + ROWS_PER_PAGE);
-  }, [filteredSales, currentPage]);
-
-  const paginationItems = useMemo(
-    () => buildPaginationItems(totalPages),
-    [totalPages]
-  );
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+    const updateRows = () => {
+      if (typeof window === "undefined") return;
+      const width = window.innerWidth;
+      if (width >= 1900) setRowsPerPage(7);
+      else if (width >= 1600) setRowsPerPage(6);
+      else setRowsPerPage(5);
+    };
+    updateRows();
+    window.addEventListener("resize", updateRows);
+    return () => window.removeEventListener("resize", updateRows);
+  }, []);
 
   const filterAreaRef = useRef<HTMLDivElement>(null);
+
+  const salesColumns: Column<Sale>[] = useMemo(
+    () => [
+      {
+        id: "id",
+        header: "ID",
+        width: "10%",
+        cellClassName: "whitespace-nowrap font-semibold text-foreground/90 text-fs-body px-3 py-3",
+        render: sale => sale.id
+      },
+      {
+        id: "product",
+        header: "Produto",
+        width: "17%",
+        cellClassName: "px-3 py-3",
+        render: sale => (
+          <div className="flex flex-col">
+            <p className="font-semibold text-card-foreground truncate">{sale.productName}</p>
+            <p className="text-fs-meta text-muted-foreground truncate">{sale.productType}</p>
+          </div>
+        )
+      },
+      {
+        id: "buyer",
+        header: "Comprador",
+        width: "17%",
+        cellClassName: "px-3 py-3",
+        render: sale => (
+          <div className="flex flex-col">
+            <p className="font-semibold text-card-foreground truncate">{sale.buyerName}</p>
+            <p className="text-fs-meta text-muted-foreground truncate">{sale.buyerEmail}</p>
+          </div>
+        )
+      },
+      {
+        id: "saleType",
+        header: "Tipo de venda",
+        width: "11%",
+        cellClassName: "px-3 py-3 whitespace-nowrap text-fs-body font-semibold text-card-foreground",
+        render: sale => sale.saleType
+      },
+      {
+        id: "saleDate",
+        header: "Data de venda",
+        width: "13%",
+        cellClassName: "px-3 py-3 text-fs-body",
+        render: sale => {
+          const saleDate = new Date(sale.saleDate);
+          const dateLabel = saleDate.toLocaleDateString("pt-BR");
+          const timeLabel = saleDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          return (
+            <div className="flex flex-col">
+              <p className="font-semibold text-card-foreground">{dateLabel}</p>
+              <p className="text-fs-meta text-muted-foreground">às {timeLabel}</p>
+            </div>
+          );
+        }
+      },
+      {
+        id: "payment",
+        header: "Método",
+        width: "10%",
+        cellClassName: "px-3 py-3",
+        render: sale => {
+          const payment = paymentMethods[sale.paymentMethod];
+          return (
+            <span className="flex items-center justify-center">
+              <Image
+                src={payment.icon}
+                alt={payment.label}
+                width={40}
+                height={40}
+                className="h-10 w-10 object-contain"
+              />
+            </span>
+          );
+        }
+      },
+      {
+        id: "total",
+        header: "Valor",
+        width: "12%",
+        cellClassName: "px-3 py-3",
+        render: sale => (
+          <div className="flex flex-col">
+            <p className="font-semibold text-card-foreground whitespace-nowrap">{formatCurrency(sale.total)}</p>
+            <p className="text-fs-meta text-muted-foreground truncate">{sale.plan}</p>
+          </div>
+        )
+      },
+      {
+        id: "status",
+        header: "Status",
+        width: "10%",
+        cellClassName: "px-3 py-3",
+        render: sale => {
+          const status = statusConfig[sale.status];
+          return (
+            <span
+              className={`inline-flex min-w-[70px] items-center justify-center rounded-[8px] px-2 py-[6px] text-[11px] font-semibold leading-tight ${status.badgeClass}`}
+            >
+              {status.label}
+            </span>
+          );
+        }
+      }
+    ],
+    []
+  );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -381,8 +406,11 @@ export default function Sales() {
       pageTitle="Vendas"
     >
       <div className="min-h-full py-4">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3">
-          <section className="grid md:grid-cols-3 md:gap-[30px]">
+        <div
+          className="mx-auto flex w-full flex-col gap-3 px-4 md:px-6"
+          style={{ maxWidth: "var(--dash-layout-width)" }}
+        >
+          <section className="grid gap-3 md:grid-cols-3 md:gap-[18px]">
             {metricCards.map(card => {
               const gradientId = `metric-chart-${card.id}`;
               const isPositive = card.change >= 0;
@@ -390,36 +418,46 @@ export default function Sales() {
               return (
                 <article
                   key={card.id}
-                  className="rounded-[8px] border border-muted bg-card/40 px-6 py-5"
+                  className="rounded-[8px] border border-muted bg-card/60 px-4 py-3"
                 >
-                  <h1 className="text-[19px] font-semibold text-muted-foreground">
+                  <h1
+                    className="text-fs-title font-semibold text-muted-foreground"
+                    style={{ fontSize: "clamp(14px, 1.1vw, var(--fs-title))" }}
+                  >
                     {card.title}
                   </h1>
-                  <div className="flex items-center justify-between">
-                  <div className="flex flex-col items-start">
-                    <p className="text-[25px] font-semibold text-foreground/90">
-                      {card.id === "total-vendas"
-                        ? card.value.toString().padStart(2, "0")
-                        : formatCurrency(card.value)}
-                    </p>
-                  
-                  <div
-                    className={`flex items-center gap-2 text-[13px] font-medium ${
-                      isPositive ? "text-emerald-400" : "text-red-400"
-                    }`}
-                  >
-                    <ChangeIcon className="h-4 w-4" aria-hidden />
-                    <span>
-                      {`${isPositive ? "+" : ""}${card.change
-                        .toFixed(1)
-                        .replace(".", ",")}%`}
-                      <span className="ml-1 text-muted-foreground">
-                        vs o período anterior
-                      </span>
-                    </span>
-                  </div>
-                  </div>
-                    <div className="h-20 w-28">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col items-start gap-2">
+                      <p
+                        className="text-fs-display font-semibold text-foreground/90 leading-tight"
+                        style={{ fontSize: "clamp(18px, 1.6vw, var(--fs-display))" }}
+                      >
+                        {card.id === "total-vendas"
+                          ? card.value.toString().padStart(2, "0")
+                          : formatCurrency(card.value)}
+                      </p>
+
+                      <div
+                        className={`flex items-center gap-2 text-fs-stat font-medium ${
+                          isPositive ? "text-emerald-400" : "text-red-400"
+                        }`}
+                        style={{ fontSize: "clamp(11px, 0.9vw, var(--fs-stat))", whiteSpace: "nowrap" }}
+                      >
+                        <ChangeIcon className="h-4 w-4" aria-hidden />
+                        <span>
+                          {`${isPositive ? "+" : ""}${card.change
+                            .toFixed(1)
+                            .replace(".", ",")}%`}
+                          <span className="ml-1 text-muted-foreground">
+                            vs o período anterior
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className="flex-shrink-0"
+                      style={{ width: "clamp(78px, 10vw, 104px)", height: "clamp(54px, 7vw, 66px)" }}
+                    >
                       <MetricCardChart data={card.data} gradientId={gradientId} />
                     </div>
                   </div>
@@ -429,15 +467,18 @@ export default function Sales() {
           </section>
 
           <section className="space-y-3">
-            <div className="flex justify-end gap-3">
-              <label className="flex w-[454px] h-[49px] items-center gap-3 rounded-[8px] border border-muted bg-background px-4 py-3 text-xs text-muted-foreground focus-within:border-primary/60 focus-within:text-primary">
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <label
+                className="flex h-[46px] items-center gap-3 rounded-[8px] border border-muted bg-background px-3 text-fs-body text-muted-foreground focus-within:border-primary/60 focus-within:text-primary"
+                style={{ width: "clamp(280px, 32vw, 440px)" }}
+              >
                 <Search className="h-4 w-4" aria-hidden />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={event => setSearchTerm(event.target.value)}
                   placeholder="Buscar por CPF, ID da transação, e-mail ou nome"
-                  className="w-full bg-transparent text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="w-full bg-transparent text-fs-body text-card-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
               <div className="relative flex items-center gap-2" ref={filterAreaRef}>
@@ -461,104 +502,20 @@ export default function Sales() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[8px] border border-muted bg-card">
-              <table className="min-w-full">
-                <thead className="bg-card/30 text-sora text-muted-foreground">
-                  <tr className="h-[52px]">
-                    {[
-                      "ID",
-                      "Produto",
-                      "Comprador",
-                      "Tipo de venda",
-                      "Data de venda",
-                      "Método",
-                      "Valor",
-                      "Status"
-                    ].map(column => (
-                      <th key={column} className="px-2 py-2 font-semibold text-center">
-                        {column}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedSales.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-6 py-10 align-middle text-center text-sm text-muted-foreground"
-                      >
-                        Nenhuma venda encontrada para o filtro aplicado.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedSales.map(sale => (
-                      <SalesTableRow key={sale.id} sale={sale} onSelect={setSelectedSale} />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mx-auto h-[50px] flex w-full max-w-[1279px] items-center justify-between rounded-[8px] py-2 text-sm text-muted-foreground">
-              <button
-                type="button"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className={`flex items-center gap-2 rounded-[8px] border border-muted px-4 py-2 font-medium text-card-foreground transition-colors bg-foreground/10 disabled:opacity-40 ${
-                  currentPage === 1 ? "" : "hover:border-primary/60 hover:text-primary"
-                }`}
-              >
-                <ChevronLeft className="h-4 w-4" aria-hidden />
-                Anterior
-              </button>
-
-              <div className="flex flex-wrap items-center justify-center gap-1">
-                {paginationItems.map((item, index) => {
-                  if (typeof item === "string") {
-                    return (
-                      <span
-                        key={`ellipsis-${index}`}
-                        className="px-2 text-muted-foreground/70"
-                      >
-                        {item}
-                      </span>
-                    );
-                  }
-                  const isActive = item === currentPage;
-                  return (
-                    <button
-                      key={`page-${item}`}
-                      type="button"
-                      onClick={() => handlePageChange(item)}
-                      className={`h-9 w-9 rounded-[8px] px-3 text-sm font-semibold transition-colors ${
-                        isActive
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-transparent text-card-foreground hover:border-primary/40 hover:text-primary"
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setCurrentPage(prev => Math.min(totalPages, prev + 1))
-                }
-                disabled={currentPage === totalPages}
-                className={`flex items-center gap-2 rounded-[8px] border border-muted px-4 py-2 font-medium bg-foreground/10 text-card-foreground transition-colors disabled:opacity-40 ${
-                  currentPage === totalPages
-                    ? ""
-                    : "hover:border-primary/60 hover:text-primary"
-                }`}
-              >
-                Próximo
-                <ChevronRight className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
+            <PaginatedTable<Sale>
+              data={filteredSales}
+              columns={salesColumns}
+              rowKey={sale => sale.id}
+              rowsPerPage={rowsPerPage}
+              emptyMessage="Nenhuma venda encontrada para o filtro aplicado."
+              tableContainerClassName="overflow-hidden rounded-[12px] border border-muted bg-card"
+              tableClassName="text-fs-body"
+              headerRowClassName="bg-card/30 text-sora text-muted-foreground h-[44px]"
+              paginationContainerClassName="mx-auto w-full max-w-[1279px]"
+              wrapperClassName="w-full"
+              onRowClick={setSelectedSale}
+              minWidth="1100px"
+            />
         </section>
       </div>
     </div>

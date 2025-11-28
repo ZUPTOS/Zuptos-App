@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,14 @@ const inputPlaceholders = {
   createPasswordField: `Crie sua ${PASSWORD_WORD}`,
   confirmPasswordField: `Confirme sua ${PASSWORD_WORD}`
 };
+
+const authLayoutStyles = {
+  panel: { maxWidth: "var(--auth-panel-width)" },
+  formWidth: { width: "var(--auth-form-width)" },
+  inputWidth: { width: "var(--auth-input-width)" },
+  selectWidth: { width: "var(--auth-select-width)" },
+  wallpaper: { width: "var(--auth-wallpaper-width)", height: "var(--auth-wallpaper-height)" }
+} as const;
 
 type PasswordFieldProps = Readonly<{
   id: string;
@@ -103,7 +111,8 @@ function PasswordField(props: PasswordFieldProps) {
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className="h-12 w-[373px] rounded-[8px] bg-card pr-12 text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={authLayoutStyles.inputWidth}
+          className="h-11 rounded-[8px] bg-card pr-12 text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           type="button"
@@ -148,7 +157,8 @@ function SignUpFields(props: SignUpFieldsProps) {
           value={username}
           onChange={onUsernameChange}
           disabled={disabled}
-          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={authLayoutStyles.inputWidth}
+          className="h-11 rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
       <div className="space-y-2">
@@ -160,7 +170,8 @@ function SignUpFields(props: SignUpFieldsProps) {
           value={email}
           onChange={onEmailChange}
           disabled={disabled}
-          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={authLayoutStyles.inputWidth}
+          className="h-11 rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
       <PasswordField
@@ -181,7 +192,7 @@ function SignUpFields(props: SignUpFieldsProps) {
         onChange={onConfirmPasswordChange}
         disabled={disabled}
       />
-      <div className="flex w-[373px] items-center gap-4">
+      <div className="flex items-center gap-3" style={authLayoutStyles.inputWidth}>
         <Checkbox
           id="terms"
           checked={termsAccepted}
@@ -230,7 +241,8 @@ function SignInFields(props: SignInFieldsProps) {
           value={email}
           onChange={onEmailChange}
           disabled={disabled}
-          className="h-12 w-[373px] rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={authLayoutStyles.inputWidth}
+          className="h-11 rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
       <PasswordField
@@ -253,17 +265,23 @@ function AccessSelector(props: AccessSelectorProps) {
 
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className="flex min-h-[102px] w-[405px] items-center justify-between rounded-[8px] bg-card px-[28px] py-[28px] text-left text-base font-sora text-[20px] font-semibold text-foreground/70 disabled:opacity-50 disabled:cursor-not-allowed">
+      <SelectTrigger
+        style={authLayoutStyles.selectWidth}
+        className="flex min-h-[clamp(74px,8vh,96px)] items-center justify-between rounded-[8px] bg-card px-6 py-6 text-left font-sora text-fs-lead font-semibold text-foreground/70 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
         <div className="flex flex-col gap-[1px] text-left">
           <SelectValue placeholder="Escolha uma opção" />
-          <span className="text-[14px] font-sora text-foreground/30">{selectedAccess.description}</span>
+          <span className="text-fs-small font-sora text-foreground/30">{selectedAccess.description}</span>
         </div>
       </SelectTrigger>
-      <SelectContent className="flex min-h-[70px] w-[405px] items-center justify-between rounded-[8px] bg-card text-left text-base font-sora text-[20px] font-semibold text-foreground/70 shadow-none">
+      <SelectContent
+        style={authLayoutStyles.selectWidth}
+        className="flex min-h-[64px] items-center justify-between rounded-[8px] bg-card text-left font-sora text-fs-lead font-semibold text-foreground/70 shadow-none"
+      >
         {accessOptions.map(option => (
           <SelectItem
             key={option.value}
-            className="flex min-h-[70px] w-[405px] items-center justify-between rounded-[8px] bg-card px-[28px] py-[18px] text-left text-base font-sora text-[20px] font-semibold text-foreground/70"
+            className="flex min-h-[64px] w-full items-center justify-between rounded-[8px] bg-card px-6 py-4 text-left font-sora text-fs-lead font-semibold text-foreground/70"
             value={option.value}
           >
             {option.label}
@@ -277,11 +295,12 @@ function AccessSelector(props: AccessSelectorProps) {
 type TabsSwitcherProps = Readonly<{
   activeTab: string;
   onTabChange: (tab: string) => void;
+  style?: CSSProperties;
 }>;
 
-function AuthTabsSwitcher({ activeTab, onTabChange }: TabsSwitcherProps) {
+function AuthTabsSwitcher({ activeTab, onTabChange, style }: TabsSwitcherProps) {
   return (
-    <div className="flex w-full gap-2 rounded-[8px] bg-card px-[23px] py-[15px]">
+    <div className="flex w-full gap-2 rounded-[8px] bg-card px-6 py-3" style={style}>
       {authTabs.map(tab => {
         const isActive = tab.id === activeTab;
         return (
@@ -290,7 +309,7 @@ function AuthTabsSwitcher({ activeTab, onTabChange }: TabsSwitcherProps) {
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              "flex-1 rounded-[7px] px-4 py-2 text-base font-sora transition-all",
+              "flex-1 rounded-[7px] px-3 py-2 font-sora text-fs-body transition-all",
               isActive ? "bg-foreground/10 text-foreground " : "bg-transparent text-foreground hover:text-white"
             )}
             aria-pressed={isActive}
@@ -403,21 +422,30 @@ export default function LoginView() {
   const displayError = localError || error;
 
   return (
-    <div className="relative flex flex-col  text-white lg:flex-row">
+    <div className="relative flex min-h-screen flex-col text-white lg:flex-row">
       <div className="relative min-h-screen flex-1 overflow-hidden lg:flex">
-        <div className="flex items-center h-[945px] justify-center ">
+        <div
+          className="flex items-center justify-center w-full h-full"
+          style={{
+            width: "min(100%, var(--auth-wallpaper-width))",
+            height: "min(100vh, var(--auth-wallpaper-height))"
+          }}
+        >
           <Image
             src="/images/wallpaper.svg"
             alt="Plano de fundo Zuptos"
             width={1620}
             height={945}
             priority
-            className="object-cover h-[945px] w-[1620px]"
+            className="object-cover w-full h-full"
           />
         </div>
       </div>
 
-      <div className="relative flex items-center justify-center w-full flex-col gap-8 bg-background px-8 py-12 sm:px-12 lg:max-w-[496px]">
+      <div
+        className="relative flex w-full min-h-screen flex-col items-center justify-center gap-6 bg-background px-6 py-8 sm:px-10"
+        style={authLayoutStyles.panel}
+      >
         <div className="flex flex-col gap-6 items-center">
           <Image
             src="/images/expanded.svg"
@@ -428,23 +456,27 @@ export default function LoginView() {
             priority
           />
         </div>
-        <AuthTabsSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
+        <AuthTabsSwitcher activeTab={activeTab} onTabChange={setActiveTab} style={authLayoutStyles.formWidth} />
         <div className="self-center">
-          <h1 className="text-[23px] font-semibold text-white">
+          <h1 className="text-fs-title font-semibold text-white">
             {isSignUp ? "Crie sua conta" : "Acesse a sua conta"}
           </h1>
         </div>
         {!isSignUp && <AccessSelector value={accessType} onChange={setAccessType} disabled={isLoading} />}
 
         {displayError && (
-          <div className="w-[405px] rounded-[8px] bg-rose-500/10 border border-rose-500/30 px-4 py-3 flex items-center gap-3">
+          <div
+            className="rounded-[8px] bg-rose-500/10 border border-rose-500/30 px-4 py-3 flex items-center gap-3"
+            style={authLayoutStyles.selectWidth}
+          >
             <AlertCircle className="h-5 w-5 text-rose-400 flex-shrink-0" />
             <p className="text-sm text-rose-200">{displayError}</p>
           </div>
         )}
 
         <form
-          className="flex flex-col w-[405px] rounded-[8px] gap-4 bg-card px-[16px] py-[32px]"
+          className="flex flex-col rounded-[8px] gap-4 bg-card px-4 py-6"
+          style={authLayoutStyles.formWidth}
           onSubmit={handleSubmit}
         >
           {isSignUp ? (
@@ -481,7 +513,7 @@ export default function LoginView() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="mt-2 h-12 rounded-[8px] bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-base font-semibold transition"
+            className="mt-2 h-11 rounded-[8px] bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-base font-semibold transition"
           >
             {isLoading ? "Processando..." : activeTabConfig.ctaLabel}
           </Button>

@@ -5,6 +5,7 @@ import { ArrowLeft, Filter, Search, Upload } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import transactionsData from "@/data/admin-transacoes.json";
+import type { Transaction } from "@/types/transaction";
 
 const metricCards = [
   { id: "total", title: "Transações totais", value: "00" },
@@ -16,8 +17,6 @@ const metricCards = [
   { id: "aprovacao", title: "Taxa de aprovação", value: "00%" },
   { id: "chargebackRate", title: "Taxa de chargeback", value: "00%" }
 ] as const;
-
-type Transaction = (typeof transactionsData.transactions)[number];
 
 const statusVariants: Record<Transaction["status"], string> = {
   Aprovado: "bg-emerald-500/15 text-emerald-400",
@@ -70,6 +69,9 @@ const columns: Column<Transaction>[] = [
 export default function AdminTransacoes() {
   const router = useRouter();
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
+  const handleRowClick = (row: Transaction) => {
+    router.push(`/admin/transacoes/detalhes?id=${encodeURIComponent(row.id)}`);
+  };
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Transações (Admin)">
@@ -146,6 +148,7 @@ export default function AdminTransacoes() {
             emptyMessage="Nenhuma transação encontrada"
             tableContainerClassName={`${cardSurface} rounded-[8px]`}
             paginationContainerClassName="px-2"
+            onRowClick={handleRowClick}
           />
         </div>
       </div>

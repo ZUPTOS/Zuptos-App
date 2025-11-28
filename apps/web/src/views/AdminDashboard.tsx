@@ -90,7 +90,7 @@ const ChartTooltip = ({ active, payload, label }: ChartTooltipProps) => {
 
   return (
     <div className="min-w-[220px] rounded-[8px] border border-border bg-card px-4 py-3 text-xs shadow-xl">
-      <p className="mb-2 text-[11px] font-semibold text-muted-foreground">{label}</p>
+      <p className="mb-2 text-fs-micro font-semibold text-muted-foreground">{label}</p>
       <div className="flex flex-col gap-2">
         {payload.map(item => {
           const dataKey = item?.dataKey;
@@ -106,7 +106,7 @@ const ChartTooltip = ({ active, payload, label }: ChartTooltipProps) => {
           return (
             <div key={String(dataKey)} className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-[12px] text-card-foreground/90">
+              <span className="text-fs-caption text-card-foreground/90">
                 {line?.label ?? dataKey}:{" "}
                 <span className="font-semibold text-foreground">{formatted}</span>
               </span>
@@ -159,7 +159,7 @@ function CircularProgress({
         y="50%"
         dominantBaseline="middle"
         textAnchor="middle"
-        className="text-[12px] text-center font-semibold text-foreground"
+        className="text-fs-caption text-center font-semibold text-foreground"
         fill="currentColor"
       >
         {`${progress}%`}
@@ -191,17 +191,17 @@ function PaymentMethodCard({
         <span className="flex h-[56px] w-[56px] items-center justify-center rounded-[8px] border border-muted/60 bg-muted/30">
           <Image src={icon} alt={label} width={44} height={44} className="h-11 w-11 object-contain" />
         </span>
-        <p className="text-[22px] font-semibold text-muted-foreground">{label}</p>
+        <p className="text-fs-title font-semibold text-muted-foreground">{label}</p>
       </div>
 
       <div className="flex h-[88px] items-center gap-4">
         <CircularProgress value={progress} />
         <div className="flex flex-col items-start leading-tight">
-          <span className={`inline-flex items-center gap-1 rounded-[8px] border border-muted/70 bg-card px-2 py-1 text-[12px] font-semibold ${trendColor}`}>
+          <span className={`inline-flex items-center gap-1 rounded-[8px] border border-muted/70 bg-card px-2 py-1 text-fs-caption font-semibold ${trendColor}`}>
             {trendIcon}
             {trendLabel}
           </span>
-          <span className="text-[12px] text-muted-foreground">00/00</span>
+          <span className="text-fs-caption text-muted-foreground">00/00</span>
         </div>
       </div>
     </div>
@@ -228,7 +228,7 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Dashboard Admin">
       <div className="w-full">
-        <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-3">
+        <div className="mx-auto flex w-full flex-col gap-3" style={{ maxWidth: "var(--admin-layout-width)" }}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <DateFilter />
           </div>
@@ -245,8 +245,8 @@ export default function AdminDashboard() {
                       <span className="flex h-[56px] w-[56px] items-center justify-center rounded-[8px] border border-muted bg-muted/30">
                         <Receipt className="h-10 w-10 text-muted-foreground" />
                       </span>
-                      <span className="text-[18px] text-muted-foreground">{metric.label}</span>
-                      <span className="text-[33px] font-semibold leading-none text-foreground">
+                      <span className="text-fs-section text-muted-foreground">{metric.label}</span>
+                      <span className="text-fs-display font-semibold leading-none text-foreground">
                         {metric.value}
                       </span>
                     </div>
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
                     {isVisualizationOpen && (
                       <div className="absolute right-0 top-12 z-30 w-[260px] rounded-[12px] border border-muted/70 bg-card p-4 shadow-xl">
                         <div className="mb-3 flex items-center justify-between">
-                          <p className="text-[18px] font-semibold text-foreground">Visualização</p>
+                      <p className="text-fs-section font-semibold text-foreground">Visualização</p>
                           <button
                             type="button"
                             onClick={() => setVisualizationOpen(false)}
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
                                 key={line.key}
                                 type="button"
                                 onClick={() => toggleLine(line.key)}
-                                className="flex w-full items-center gap-3 rounded-[8px] px-2 py-2 text-left text-[16px] font-semibold text-muted-foreground hover:bg-muted/20"
+                                className="flex w-full items-center gap-3 rounded-[8px] px-2 py-2 text-left text-fs-body font-semibold text-muted-foreground hover:bg-muted/20"
                               >
                                 <span
                                   className="flex h-5 w-9 items-center rounded-full px-[3px]"
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
                                     className={`h-4 w-4 rounded-full border border-white/80 bg-white transition ${enabled ? "translate-x-3" : "translate-x-0"}`}
                                   />
                                 </span>
-                                <span className="text-[16px] font-semibold text-muted-foreground">{line.label}</span>
+                                <span className="text-fs-body font-semibold text-muted-foreground">{line.label}</span>
                               </button>
                             );
                           })}
@@ -347,10 +347,10 @@ export default function AdminDashboard() {
                 className={`${cardSurface} flex h-full min-h-[400px] flex-col justify-evenly gap-2 px-6 py-2 lg:px-6`}
               >
                 <div className="space-y-6">
-                  <h3 className="text-[25px] font-semibold text-foreground">Detalhamento financeiro</h3>
+                  <h3 className="text-fs-title font-semibold text-foreground">Detalhamento financeiro</h3>
                   <div className="space-y-6 px-4 py-2">
                     {financialBreakdown.map(item => (
-                      <div key={item.label} className="flex items-center justify-between text-[22px]">
+                      <div key={item.label} className="flex items-center justify-between text-fs-stat">
                         <span className="text-muted-foreground">{item.label}:</span>
                         <span className="font-semibold text-foreground">{item.value}</span>
                       </div>
@@ -359,10 +359,10 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-[25px] font-semibold text-foreground">Detalhamento transacional</h3>
+                  <h3 className="text-fs-title font-semibold text-foreground">Detalhamento transacional</h3>
                   <div className="space-y-6 px-4 py-3">
                     {transactionalBreakdown.map(item => (
-                      <div key={item.label} className="flex items-center justify-between text-[22px]">
+                      <div key={item.label} className="flex items-center justify-between text-fs-stat">
                         <span className="text-muted-foreground">{item.label}:</span>
                         <span className="font-semibold text-foreground">{item.value}</span>
                       </div>

@@ -91,7 +91,7 @@ export default function Header({
 
   return (
     <header className="bg-background sticky top-0 z-30 transition-colors">
-      <div className="flex items-center justify-between px-16 py-2">
+      <div className="flex items-center justify-between py-2" style={{ paddingInline: "var(--header-padding-x)" }}>
         <div className="flex flex-col gap-1">
           {pageSubtitle && (
             <span className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground/70">

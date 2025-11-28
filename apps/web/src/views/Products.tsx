@@ -29,15 +29,13 @@ interface Product {
 
 type TabId = "todos" | "producao" | "coproducao";
 
-const PRODUCTS_PER_PAGE = 12;
-
 const tabs: { id: TabId; label: string }[] = [
   { id: "todos", label: "Todos" },
   { id: "producao", label: "Produção" },
   { id: "coproducao", label: "Coprodução" }
 ];
 
-const DEFAULT_THUMBNAIL = "/images/logoSide.svg";
+const DEFAULT_THUMBNAIL = "/images/produto.png";
 
 const statusConfig: Record<
   ProductStatus,
@@ -101,6 +99,7 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("todos");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -146,19 +145,32 @@ export default function Products() {
     setCurrentPage(1);
   }, [normalizedSearch, activeTab]);
 
+  useEffect(() => {
+    const updateItems = () => {
+      if (typeof window === "undefined") return;
+      const width = window.innerWidth;
+      if (width >= 1900) setItemsPerPage(12);
+      else if (width >= 1600) setItemsPerPage(10);
+      else setItemsPerPage(8);
+    };
+    updateItems();
+    window.addEventListener("resize", updateItems);
+    return () => window.removeEventListener("resize", updateItems);
+  }, []);
+
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE)
+    Math.ceil(filteredProducts.length / itemsPerPage)
   );
 
   useEffect(() => {
     setCurrentPage(prev => Math.min(prev, totalPages));
-  }, [totalPages]);
+  }, [totalPages, itemsPerPage, filteredProducts.length]);
 
   const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
-    return filteredProducts.slice(start, start + PRODUCTS_PER_PAGE);
-  }, [filteredProducts, currentPage]);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(start, start + itemsPerPage);
+  }, [filteredProducts, currentPage, itemsPerPage]);
 
   const paginationItems = useMemo(
     () => buildPaginationItems(totalPages),
@@ -218,16 +230,22 @@ export default function Products() {
     <>
       <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Produtos">
         <div className="min-h-full py-6">
-          <div className="mx-auto flex w-full max-w-[1420px] flex-col gap-6 px-4 md:px-6">
+          <div
+            className="mx-auto flex w-full flex-col gap-6 px-4 md:px-6"
+            style={{ maxWidth: "var(--dash-layout-width)" }}
+          >
           <section className="flex flex-wrap items-center gap-3">
-            <label className="flex h-[49px] w-[454px] items-center gap-3 rounded-[10px] border border-muted bg-background px-4 text-sm text-muted-foreground focus-within:border-primary/60 focus-within:text-primary">
-              <Search className="h-4 w-4" aria-hidden />
+            <label
+              className="flex h-[49px] items-center gap-3 rounded-[8px] border border-muted bg-background px-3 text-fs-body text-muted-foreground focus-within:border-primary/60 focus-within:text-primary"
+              style={{ width: "clamp(280px, 32vw, 440px)" }}
+            >
+              <Search className="h-5 w-5" aria-hidden />
               <input
                 type="text"
-                placeholder="Buscar produto, curso ou assinatura"
+                placeholder="Buscar"
                 value={searchTerm}
                 onChange={event => setSearchTerm(event.target.value)}
-                className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
+                className="w-full bg-transparent text-fs-body text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
             </label>
             <button
@@ -243,7 +261,7 @@ export default function Products() {
               onClick={() => setIsAddProductOpen(true)}
               className="flex h-12 items-center justify-center gap-2 rounded-[8px] bg-primary px-6 text-sm font-semibold text-white transition-transform"
             >
-              <Plus className="h-4 w-4" aria-hidden />
+              <Plus className="h-5 w-5" aria-hidden />
               Adicionar produto
             </button>
           </section>
@@ -285,26 +303,29 @@ export default function Products() {
                   return (
                     <article
                       key={product.id}
-                      className="flex h-[148px] w-[448px] items-center gap-4 rounded-[16px] border border-muted bg-card/60 p-4"
+                      className="flex min-h-[140px] w-full items-center gap-4 rounded-[16px] border border-muted bg-card/60 p-4"
                     >
-                      <div className="flex h-[107px] w-[107px] flex-shrink-0 items-center justify-center rounded-[16px] bg-background/60">
+                      <div
+                        className="flex flex-shrink-0 items-center justify-center rounded-[16px] bg-background/60"
+                        style={{ width: "clamp(86px, 11vw, 110px)", height: "clamp(86px, 11vw, 110px)" }}
+                      >
                           <Image
                             src={thumbnailSrc}
                           alt={product.name}
-                          width={107}
-                          height={107}
+                          width={110}
+                          height={110}
                           className="h-full w-full rounded-[12px] object-cover"
                         />
                       </div>
                       <div className="flex flex-1 flex-col justify-center gap-2">
-                        <p className="text-lg font-semibold text-foreground">
+                        <p className="text-fs-title font-semibold text-foreground leading-tight">
                           {product.name}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-fs-body text-muted-foreground">
                           {product.category}
                         </p>
                         <span
-                          className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
+                          className={`inline-flex w-fit rounded-full px-3 py-[6px] text-[11px] font-semibold leading-tight ${status.badgeClass}`}
                         >
                           {status.label}
                         </span>
@@ -316,7 +337,7 @@ export default function Products() {
             )}
           </section>
 
-          <div className="flex flex-wrap items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
             <button
               type="button"
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -391,10 +412,18 @@ export default function Products() {
           onClick={() => setIsFilterOpen(false)}
           onKeyDown={event => handleOverlayKeyDown(event, () => setIsFilterOpen(false))}
         />
-        <aside className="fixed right-0 top-0 z-50 flex h-[1315px] w-[501px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+        <aside
+          className="fixed right-0 top-0 z-50 flex h-screen flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]"
+          style={{
+            width: "clamp(360px, 28vw, 500px)"
+          }}
+        >
           <div className="flex items-center justify-between border-b border-muted pb-4">
             <div>
-              <p className="text-[33px] font-semibold text-foreground" style={{ fontFamily: "Sora, sans-serif" }}>
+              <p
+                className="font-semibold text-foreground"
+                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(20px, 2vw, 28px)" }}
+              >
                 Filtrar
               </p>
             </div>
@@ -409,15 +438,18 @@ export default function Products() {
           </div>
           <div className="flex-1 space-y-6 overflow-y-auto mt-10 py-6">
             <div className="space-y-4 border-b border-muted pb-4">
-              <p className="text-[17px] font-semibold text-muted-foreground" style={{ fontFamily: "Sora, sans-serif" }}>
+              <p
+                className="font-semibold text-muted-foreground"
+                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(13px, 1.4vw, 17px)" }}
+              >
                 Tipo
               </p>
               <div className="space-y-4">
                 {filterTypeOptions.map(option => (
                   <label
                     key={option.value}
-                    className="flex items-center gap-3 text-[15px] text-foreground/30"
-                    style={{ fontFamily: "Sora, sans-serif" }}
+                    className="flex items-center gap-3 text-foreground/30"
+                    style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(12px, 1.2vw, 15px)" }}
                   >
                     <span className="relative flex items-center">
                       <input
@@ -436,15 +468,18 @@ export default function Products() {
               </div>
             </div>
             <div className="space-y-4 border-b border-muted pb-4">
-              <p className="text-[17px] font-semibold text-muted-foreground" style={{ fontFamily: "Sora, sans-serif" }}>
+              <p
+                className="font-semibold text-muted-foreground"
+                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(13px, 1.4vw, 17px)" }}
+              >
                 Status
               </p>
               <div className="space-y-4">
                 {filterStatusOptions.map(option => (
                   <label
                     key={option.value}
-                    className="flex items-center gap-3 text-[15px] text-foreground/30"
-                    style={{ fontFamily: "Sora, sans-serif" }}
+                    className="flex items-center gap-3 text-foreground/30"
+                    style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(12px, 1.2vw, 15px)" }}
                   >
                     <span className="relative flex items-center">
                       <input
@@ -485,16 +520,22 @@ export default function Products() {
           onClick={closeNewProductModal}
           onKeyDown={event => handleOverlayKeyDown(event, closeNewProductModal)}
         />
-        <aside className="fixed right-0 top-0 z-[60] flex h-full w-full max-w-[500px] flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+        <aside
+          className="fixed right-0 top-0 z-[60] flex h-full w-full flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]"
+          style={{ maxWidth: "clamp(360px, 30vw, 500px)" }}
+        >
           <div className="flex items-start justify-between border-b border-muted pb-4">
           <div>
             <p
-              className="text-[32px] font-semibold text-foreground"
-              style={{ fontFamily: "Sora, sans-serif" }}
+              className="font-semibold text-foreground"
+              style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(20px, 2vw, 28px)" }}
             >
               Novo produto
             </p>
-            <p className="text-[14px] text-muted-foreground">
+            <p
+              className="text-muted-foreground"
+              style={{ fontSize: "clamp(12px, 1.2vw, 14px)" }}
+            >
               Configure e dê um nome para o novo produto
             </p>
           </div>
@@ -509,13 +550,18 @@ export default function Products() {
         </div>
         <div className="flex-1 space-y-6 overflow-y-auto py-6 custom-scrollbar">
           <div className="space-y-3">
-            <p className="text-[16px] font-semibold text-foreground">Tipo</p>
+            <p
+              className="font-semibold text-foreground"
+              style={{ fontSize: "clamp(13px, 1.3vw, 16px)" }}
+            >
+              Tipo
+            </p>
             <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap custom-scrollbar">
               {filterTypeOptions.map(option => (
                 <label
                   key={option.value}
-                  className="flex items-center gap-3 text-sm text-foreground/80 whitespace-nowrap"
-                  style={{ fontFamily: "Sora, sans-serif" }}
+                  className="flex items-center gap-3 whitespace-nowrap text-foreground/80"
+                  style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(12px, 1.2vw, 14px)" }}
                 >
                   <span className="relative flex items-center">
                     <input
