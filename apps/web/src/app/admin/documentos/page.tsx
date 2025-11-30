@@ -1,10 +1,10 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminPlaceholder from "@/views/AdminPlaceholder";
+import AdminDocumentos from "@/views/AdminDocumentos";
 
 function AdminDocumentosPage() {
-  return <AdminPlaceholder title="Documentos" description="Centralize e faça upload de documentos de verificação." />;
+  return <AdminDocumentos />;
 }
 
 export default withAuth(AdminDocumentosPage);

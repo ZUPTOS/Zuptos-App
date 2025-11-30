@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, ChevronDown, KeyRound, LogIn, PhoneCall } from "lucide-react";
+import { Ban, ChevronDown, KeyRound, LogIn, PhoneCall, X } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -67,6 +67,8 @@ function CheckOption({ label }: { label: string }) {
 
 export default function AdminUsuarioDetalhes() {
   const [activeTab, setActiveTab] = useState<TabId>("taxas");
+  const [showManageBalance, setShowManageBalance] = useState(false);
+  const [showConfirmBalance, setShowConfirmBalance] = useState(false);
 
   const surface = "rounded-[10px] border border-foreground/10 bg-card/70";
   const installmentLabels = useMemo(
@@ -232,14 +234,61 @@ export default function AdminUsuarioDetalhes() {
                   <InfoCard title="Percentual de chargeback" value="00,00%" />
                   <InfoCard title="Total de chargebacks" value="00" />
                 </div>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <InfoCard title="Saldo disponível" value="R$00,00" className="w-full md:w-auto flex-1" />
                   <button
                     type="button"
+                    onClick={() => setShowManageBalance(true)}
                     className="inline-flex h-[46px] items-center justify-center rounded-[8px] bg-gradient-to-r from-purple-500 to-violet-600 px-4 text-sm font-semibold text-white shadow"
                   >
                     Gerenciar saldo
                   </button>
+
+                  {showManageBalance && (
+                    <div className="absolute right-0 top-full z-20 mt-3 w-[320px] rounded-[10px] border border-foreground/15 bg-card/95 p-4 shadow-xl">
+                      <div className="flex items-start justify-between">
+                        <p className="text-base font-semibold text-foreground">Gerenciar saldo</p>
+                        <button type="button" onClick={() => setShowManageBalance(false)} className="text-muted-foreground hover:text-foreground">
+                          <X className="h-4 w-4" aria-hidden />
+                        </button>
+                      </div>
+
+                      <div className="mt-4 space-y-4">
+                        <div className="rounded-[8px] border border-foreground/10 bg-card/60 p-3">
+                          <span className="text-sm text-muted-foreground">Saldo atual</span>
+                          <p className="text-xl font-semibold text-foreground">R$00,00</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="text-sm text-muted-foreground">Novo saldo</span>
+                          <Input
+                            placeholder="R$0,00"
+                            className="h-[46px] rounded-[8px] border border-foreground/15 bg-card/40 text-sm text-foreground placeholder:text-muted-foreground"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowManageBalance(false)}
+                            className="flex-1 rounded-[8px] border border-foreground/15 bg-card/50 px-3 py-2 text-sm font-semibold text-foreground"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowManageBalance(false);
+                              setShowConfirmBalance(true);
+                            }}
+                            className="flex-1 rounded-[8px] bg-gradient-to-r from-purple-500 to-violet-600 px-3 py-2 text-sm font-semibold text-white"
+                          >
+                            Alterar saldo
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -259,6 +308,35 @@ export default function AdminUsuarioDetalhes() {
               </div>
             </div>
           </div>
+
+          {showConfirmBalance && (
+            <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
+              <div className="w-full max-w-[420px] rounded-[10px] border border-foreground/15 bg-card/95 p-5 shadow-xl">
+                <div className="flex items-start justify-between">
+                  <p className="text-base font-semibold text-foreground">Tem certeza que deseja alterar o saldo?</p>
+                  <button type="button" onClick={() => setShowConfirmBalance(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
+                <div className="mt-5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmBalance(false)}
+                    className="flex-1 rounded-[8px] border border-foreground/15 bg-card/50 px-3 py-2 text-sm font-semibold text-foreground"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmBalance(false)}
+                    className="flex-1 rounded-[8px] bg-gradient-to-r from-purple-500 to-violet-600 px-3 py-2 text-sm font-semibold text-white"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
