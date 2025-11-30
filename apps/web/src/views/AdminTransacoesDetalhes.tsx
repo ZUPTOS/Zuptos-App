@@ -28,7 +28,7 @@ export default function AdminTransacoesDetalhes({ transactionId }: AdminTransaco
     null;
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Detalhes da Transação (Admin)">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
           <div className="mx-auto flex w-full max-w-[1241px] flex-col gap-6 px-4 py-6 lg:px-6">
             <button

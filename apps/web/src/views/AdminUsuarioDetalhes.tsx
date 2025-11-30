@@ -432,7 +432,7 @@ export default function AdminUsuarioDetalhes() {
   };
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Usuários (Admin)">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-6 px-4 py-6 lg:px-6">
           <Link href="/admin/usuarios" className="text-sm text-muted-foreground hover:text-foreground">

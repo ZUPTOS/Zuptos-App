@@ -169,7 +169,7 @@ export default function AdminProdutos() {
   const pages = [1, 2, 3, '...', 99, 100, 101] as const;
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Gerenciar Produtos">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-8 px-4 py-8 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-4">

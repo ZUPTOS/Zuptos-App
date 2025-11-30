@@ -23,7 +23,7 @@ export default function AdminSaquesDetalhes({ withdrawalId }: AdminSaquesDetalhe
   const selectedWithdrawal = withdrawalsData.withdrawals.find(withdrawal => withdrawal.id === withdrawalId) ?? withdrawalsData.withdrawals[0] ?? null;
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Detalhes do Saque (Admin)">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1241px] flex-col gap-6 px-4 py-6 lg:px-6">
           <button

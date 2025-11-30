@@ -74,7 +74,7 @@ export default function AdminTransacoes() {
   };
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Transações (Admin)">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-2 py-2 lg:px-6">
           <div className="flex items-center justify-between gap-3">

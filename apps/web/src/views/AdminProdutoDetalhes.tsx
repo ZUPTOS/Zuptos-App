@@ -112,7 +112,7 @@ export default function AdminProdutoDetalhes() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('produtor');
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Produtos (Detalhes)">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 py-8 lg:px-8">
           <button

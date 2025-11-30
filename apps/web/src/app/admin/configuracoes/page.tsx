@@ -1,10 +1,10 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminPlaceholder from "@/views/AdminPlaceholder";
+import AdminConfiguracoes from "@/views/AdminConfiguracoes";
 
 function AdminConfiguracoesPage() {
-  return <AdminPlaceholder title="Configurações" description="Ajuste preferências e parâmetros globais do admin." />;
+  return <AdminConfiguracoes />;
 }
 
 export default withAuth(AdminConfiguracoesPage);

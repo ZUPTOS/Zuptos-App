@@ -60,7 +60,7 @@ export default function WithdrawalDetailPanel({ withdrawal, statusStyles, cardSu
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
               <div className="flex flex-col gap-1">
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[withdrawal.status]}`}>
+                <span className={`inline-flex w-[130px] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[withdrawal.status]}`}>
                   {withdrawal.status}
                 </span>
                 <span className="text-xs text-muted-foreground">por {STATUS_AUTHOR}</span>

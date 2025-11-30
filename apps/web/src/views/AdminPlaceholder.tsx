@@ -12,7 +12,7 @@ export default function AdminPlaceholder({
   description = "Em breve teremos esta área disponível para administração."
 }: AdminPlaceholderProps) {
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle={`Admin ${title}`}>
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="flex min-h-[60vh] flex-col items-start gap-3 px-6 py-10">
         <h2 className="text-2xl font-semibold text-foreground">{title}</h2>
         <p className="text-muted-foreground">{description}</p>

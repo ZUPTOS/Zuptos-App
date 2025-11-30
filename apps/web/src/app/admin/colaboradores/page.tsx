@@ -1,10 +1,10 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminPlaceholder from "@/views/AdminPlaceholder";
+import AdminColaboradores from "@/views/AdminColaboradores";
 
 function AdminColaboradoresPage() {
-  return <AdminPlaceholder title="Colaboradores" description="Gerencie acessos e convites de colaboradores." />;
+  return <AdminColaboradores />;
 }
 
 export default withAuth(AdminColaboradoresPage);

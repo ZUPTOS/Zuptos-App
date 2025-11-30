@@ -36,20 +36,25 @@ export default function AdminFinancas() {
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Finanças (Admin)">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div
           className="mx-auto flex w-full flex-col gap-4 px-4 lg:px-6"
           style={{ maxWidth: "var(--admin-fin-layout-width)" }}
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-            <DateFilter />
-            <button
-              type="button"
-              className="flex h-[50px] w-[50px] items-center justify-center rounded-[8px] border border-muted bg-card text-muted-foreground"
-            >
-              <Filter className="h-5 w-5" />
-            </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-[26px] font-semibold text-foreground">Finanças (Admin)</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <DateFilter />
+              <button
+                type="button"
+                className="flex h-[50px] w-[50px] items-center justify-center rounded-[8px] border border-muted bg-card text-muted-foreground"
+              >
+                <Filter className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           <div className={`${cardSurface} w-full h-[287px] px-10 py-6`}>

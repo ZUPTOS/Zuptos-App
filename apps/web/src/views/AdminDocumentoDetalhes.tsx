@@ -46,7 +46,7 @@ export default function AdminDocumentoDetalhes() {
   const surface = "rounded-[10px] border border-foreground/10 bg-card/80";
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Documentos (Admin)">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-6 px-4 py-6 lg:px-6">
           <Link href="/admin/documentos" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">

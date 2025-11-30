@@ -42,6 +42,13 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Remove all shadows when light mode is active */
+:root:not(.dark) *,
+:root:not(.dark) *::before,
+:root:not(.dark) *::after {
+  box-shadow: none !important;
+}
+
 :root {
   --primary: #6c27d7;
   --primary-foreground: #fef9ff;

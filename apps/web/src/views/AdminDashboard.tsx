@@ -226,13 +226,16 @@ export default function AdminDashboard() {
   };
 
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Dashboard Admin">
+    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div
           className="mx-auto flex w-full flex-col gap-3 px-3 sm:px-4"
           style={{ maxWidth: "min(1280px, var(--admin-layout-width))" }}
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <p className="text-[26px] font-semibold text-foreground">Dashboard Admin</p>
+            </div>
             <DateFilter />
           </div>
 
