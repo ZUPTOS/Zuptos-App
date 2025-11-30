@@ -11,6 +11,7 @@ import {
   Landmark,
   Package as PackageIcon,
   Settings,
+  ShieldCheck,
   Users,
   UserCog,
   Wallet
