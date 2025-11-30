@@ -149,9 +149,9 @@ export default function Products() {
     const updateItems = () => {
       if (typeof window === "undefined") return;
       const width = window.innerWidth;
-      if (width >= 1900) setItemsPerPage(12);
-      else if (width >= 1600) setItemsPerPage(10);
-      else setItemsPerPage(8);
+      if (width < 640) setItemsPerPage(6);
+      else if (width < 900) setItemsPerPage(8);
+      else setItemsPerPage(12);
     };
     updateItems();
     window.addEventListener("resize", updateItems);
@@ -242,7 +242,7 @@ export default function Products() {
               <Search className="h-5 w-5" aria-hidden />
               <input
                 type="text"
-                placeholder="Buscar"
+                placeholder="Buscar produto"
                 value={searchTerm}
                 onChange={event => setSearchTerm(event.target.value)}
                 className="w-full bg-transparent text-fs-body text-foreground placeholder:text-muted-foreground focus:outline-none"

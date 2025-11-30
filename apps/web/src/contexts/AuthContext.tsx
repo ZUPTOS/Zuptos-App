@@ -51,6 +51,18 @@ const ADMIN_USER: User = {
   isAdmin: true,
 };
 
+const decodeTokenPayload = (token?: string): Record<string, unknown> => {
+  if (!token) return {};
+  const [, payload] = token.split(".");
+  if (!payload) return {};
+  try {
+    const decoded = Buffer.from(payload, "base64").toString("utf-8");
+    return JSON.parse(decoded) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+};
+
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -104,13 +116,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
         const response = await authApi.signIn(credentials);
 
-        const newToken = response.access_token || 'mock-token';
+        const newToken = response.access_token;
+        if (!newToken) {
+          throw new Error("No token received from server");
+        }
         console.log("✅ [AuthContext] Token recebido (mock)");
 
+        const payload = decodeTokenPayload(newToken);
         const userData = {
-          id: response?.data?.user?.id || 'mock-user',
-          email: credentials.email,
-          fullName: credentials.email,
+          id: (payload.sub as string) ?? "",
+          email: (payload.email as string) ?? credentials.email ?? "",
+          fullName: (payload.username as string) ?? (payload.name as string) ?? "",
           accessType: 'purchases' as const,
           role: 'default' as const,
           isAdmin: false,
@@ -159,12 +175,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       try {
         const response = await authApi.signUp(data);
 
-        const newToken = response.access_token || 'mock-token';
+        const newToken = response.access_token;
+        if (!newToken) {
+          throw new Error("No token received from server");
+        }
         console.log("✅ [AuthContext] Token recebido (mock)");
+        const payload = decodeTokenPayload(newToken);
         const userData = {
-          id: response?.data?.user?.id || 'mock-user',
-          email: data.email,
-          fullName: data.username,
+          id: (payload.sub as string) ?? "",
+          email: (payload.email as string) ?? "",
+          fullName: (payload.username as string) ?? (payload.name as string) ?? "",
           accessType: data.accessType,
           role: 'default' as const,
           isAdmin: false,
@@ -232,7 +252,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       router.push('/');
       
       setError(errorMessage);
-      throw err;
+      return Promise.reject(err);
     } finally {
       setIsLoading(false);
     }
