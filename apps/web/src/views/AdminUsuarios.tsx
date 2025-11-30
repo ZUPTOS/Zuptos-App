@@ -1,9 +1,11 @@
 'use client';
 
 import { Filter, Search, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import adminUsersData from "@/data/admin-usuarios.json";
+import { useRouter } from "next/navigation";
 
 const metricCards = [
   { id: "ativos", title: "Número de usuários ativos", value: "00" },
@@ -46,40 +48,57 @@ const columns: Column<UserRow>[] = [
 
 export default function AdminUsuarios() {
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
+  const [rowsPerPage, setRowsPerPage] = useState(6);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window === "undefined") return;
+      const width = window.innerWidth;
+      if (width < 1024) {
+        setRowsPerPage(5);
+      } else {
+        setRowsPerPage(6);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Usuários (Admin)">
       <div className="w-full">
-        <div className="mx-auto flex w-full max-w-[1241px] flex-col gap-6 px-4 py-6 lg:px-6">
-          <div className="flex items-center justify-between">
+        <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-6 px-4 py-6 lg:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <p className="text-[26px] font-semibold text-foreground">Usuários</p>
               <span className="text-sm text-muted-foreground">Visão geral dos usuários da plataforma</span>
             </div>
 
             <div className="flex items-center gap-3">
-              <label className="flex h-[48px] max-w-[260px] items-center gap-2 rounded-[8px] border border-foreground/10 bg-card px-3 text-sm text-muted-foreground">
-                <Search className="h-4 w-4" />
+              <label className="flex h-[46px] w-full min-w-[240px] max-w-[340px] items-center gap-2 rounded-[10px] border border-foreground/15 bg-card/40 px-3 text-sm text-muted-foreground">
+                <Search className="h-4 w-4" aria-hidden />
                 <input
                   type="text"
                   placeholder="Buscar usuário"
-                  className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="w-full bg-transparent text-sm uppercase text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
-              <button type="button" className="flex h-[48px] w-[48px] items-center justify-center rounded-[8px] border border-foreground/10 bg-card hover:bg-card/80 transition" aria-label="Filtrar">
-                <Filter className="h-5 w-5" />
+              <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Filtrar">
+                <Filter className="h-5 w-5" aria-hidden />
               </button>
-              <button type="button" className="flex h-[48px] w-[48px] items-center justify-center rounded-[8px] border border-foreground/10 bg-card hover:bg-card/80 transition" aria-label="Exportar">
-                <Upload className="h-5 w-5" />
+              <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Exportar">
+                <Upload className="h-5 w-5" aria-hidden />
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
             {metricCards.map(card => (
-              <div key={card.id} className={`${cardSurface} h-[128px] w-full p-5 flex flex-col justify-between`}>
-                <p className="text-[18px] text-muted-foreground">{card.title}</p>
-                <span className="text-[32px] font-semibold text-foreground">{card.value}</span>
+              <div key={card.id} className={`${cardSurface} h-[120px] w-full rounded-[8px] border-border/20 bg-card/60 p-4 flex flex-col justify-between`}>
+                <p className="text-[16px] text-muted-foreground">{card.title}</p>
+                <span className="text-[28px] font-semibold text-foreground">{card.value}</span>
               </div>
             ))}
           </div>
@@ -88,11 +107,15 @@ export default function AdminUsuarios() {
             data={usersData.users}
             columns={columns}
             rowKey={row => row.id}
-            rowsPerPage={5}
-            initialPage={3}
+            rowsPerPage={rowsPerPage}
+            initialPage={1}
             emptyMessage="Nenhum usuário encontrado"
-            tableContainerClassName={`${cardSurface} rounded-[12px]`}
+            tableContainerClassName="rounded-[8px] border border-foreground/10 bg-card/40"
             paginationContainerClassName="px-2"
+            headerRowClassName="uppercase text-xs tracking-[0.02em]"
+            tableClassName="text-left"
+            getRowClassName={() => "uppercase text-[13px] sm:text-[14px]"}
+            onRowClick={() => router.push("/admin/usuarios/detalhes")}
           />
         </div>
       </div>

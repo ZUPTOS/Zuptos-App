@@ -180,28 +180,28 @@ function PaymentMethodCard({
   progress: number;
   trend: number;
   trendLabel: string;
-}) {
+  }) {
   const isPositive = trend >= 0;
   const trendColor = isPositive ? "text-emerald-400" : "text-rose-400";
   const trendIcon = isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />;
 
   return (
-    <div className="flex items-center justify-between rounded-[8px] border border-foreground/10 bg-card px-5 py-4">
-      <div className="flex items-center gap-4">
-        <span className="flex h-[56px] w-[56px] items-center justify-center rounded-[8px] border border-muted/60 bg-muted/30">
-          <Image src={icon} alt={label} width={44} height={44} className="h-11 w-11 object-contain" />
+    <div className="flex items-center justify-between rounded-[8px] border border-foreground/10 bg-card px-4 py-3 sm:px-5 sm:py-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <span className="flex h-[48px] w-[48px] items-center justify-center rounded-[8px] border border-muted/60 bg-muted/30">
+          <Image src={icon} alt={label} width={40} height={40} className="h-10 w-10 object-contain" />
         </span>
-        <p className="text-fs-title font-semibold text-muted-foreground">{label}</p>
+        <p className="text-fs-stat sm:text-fs-title font-semibold text-muted-foreground">{label}</p>
       </div>
 
-      <div className="flex h-[88px] items-center gap-4">
+      <div className="flex h-[72px] sm:h-[88px] items-center gap-3 sm:gap-4">
         <CircularProgress value={progress} />
         <div className="flex flex-col items-start leading-tight">
-          <span className={`inline-flex items-center gap-1 rounded-[8px] border border-muted/70 bg-card px-2 py-1 text-fs-caption font-semibold ${trendColor}`}>
+          <span className={`inline-flex items-center gap-1 rounded-[8px] border border-muted/70 bg-card px-2 py-1 text-[11px] sm:text-fs-caption font-semibold ${trendColor}`}>
             {trendIcon}
             {trendLabel}
           </span>
-          <span className="text-fs-caption text-muted-foreground">00/00</span>
+          <span className="text-[11px] sm:text-fs-caption text-muted-foreground">00/00</span>
         </div>
       </div>
     </div>
@@ -228,25 +228,28 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Dashboard Admin">
       <div className="w-full">
-        <div className="mx-auto flex w-full flex-col gap-3" style={{ maxWidth: "var(--admin-layout-width)" }}>
+        <div
+          className="mx-auto flex w-full flex-col gap-3 px-3 sm:px-4"
+          style={{ maxWidth: "min(1280px, var(--admin-layout-width))" }}
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <DateFilter />
           </div>
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-3">
-              <div className={`${cardSurface} min-h-[180px] w-full px-4 py-4`}>
-                <div className="flex h-full gap-3 justify-between">
+              <div className={`${cardSurface} min-h-[150px] w-full px-4 py-4 sm:px-5`}>
+                <div className="grid h-full gap-3 sm:grid-cols-3">
                   {summaryMetrics.map(metric => (
                     <div
                       key={metric.id}
-                      className="flex h-full flex-col items-start justify-between gap-3 rounded-[8px] px-5 py-3"
+                      className="flex h-full flex-col items-start justify-between gap-2 rounded-[8px] px-3 py-2 sm:px-4 sm:py-3"
                     >
-                      <span className="flex h-[56px] w-[56px] items-center justify-center rounded-[8px] border border-muted bg-muted/30">
-                        <Receipt className="h-10 w-10 text-muted-foreground" />
+                      <span className="flex h-[48px] w-[48px] items-center justify-center rounded-[8px] border border-muted bg-muted/30">
+                        <Receipt className="h-9 w-9 text-muted-foreground" />
                       </span>
-                      <span className="text-fs-section text-muted-foreground">{metric.label}</span>
-                      <span className="text-fs-display font-semibold leading-none text-foreground">
+                      <span className="text-fs-body sm:text-fs-section text-muted-foreground">{metric.label}</span>
+                      <span className="text-[18px] sm:text-fs-title font-semibold leading-tight text-foreground">
                         {metric.value}
                       </span>
                     </div>
@@ -254,7 +257,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className={`${cardSurface} min-h-[585px] px-4 py-5 lg:px-6`}>
+              <div className={`${cardSurface} min-h-[420px] px-4 py-4 sm:px-5 lg:px-6`}>
                 <div className="mb-4 flex items-center justify-end">
                   <div className="relative">
                     <button
@@ -303,7 +306,7 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
-                <div className="h-[500px] w-full">
+                <div className="h-[360px] sm:h-[420px] md:h-[500px] w-full">
                   <ResponsiveContainer>
                     <LineChart data={adminChartData} margin={{ top: 10, right: 20, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
@@ -344,7 +347,7 @@ export default function AdminDashboard() {
 
             <div className="flex flex-col gap-3">
               <div
-                className={`${cardSurface} flex h-full min-h-[400px] flex-col justify-evenly gap-2 px-6 py-2 lg:px-6`}
+                className={`${cardSurface} flex h-full min-h-[320px] flex-col justify-evenly gap-2 px-5 py-3 lg:px-6`}
               >
                 <div className="space-y-6">
                   <h3 className="text-fs-title font-semibold text-foreground">Detalhamento financeiro</h3>
@@ -371,7 +374,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 lg:max-w-[520px] 2xl:max-w-[560px]">
                 {paymentMethods.map(method => (
                   <PaymentMethodCard
                     key={method.id}

@@ -44,6 +44,51 @@
       "status": "Não encontrado",
       "total": "R$ 0,00",
       "tax": "2%"
+    },
+    {
+      "id": "user-006",
+      "name": "Usuário 06",
+      "email": "usuario06@example.com",
+      "document": "678.901.234-55",
+      "status": "Aprovado",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-007",
+      "name": "Usuário 07",
+      "email": "usuario07@example.com",
+      "document": "789.012.345-66",
+      "status": "Pendente",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-008",
+      "name": "Usuário 08",
+      "email": "usuario08@example.com",
+      "document": "890.123.456-77",
+      "status": "Reprovado",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-009",
+      "name": "Usuário 09",
+      "email": "usuario09@example.com",
+      "document": "901.234.567-88",
+      "status": "Suspenso",
+      "total": "R$ 0,00",
+      "tax": "2%"
+    },
+    {
+      "id": "user-010",
+      "name": "Usuário 10",
+      "email": "usuario10@example.com",
+      "document": "012.345.678-99",
+      "status": "Aprovado",
+      "total": "R$ 0,00",
+      "tax": "2%"
     }
   ]
 }
