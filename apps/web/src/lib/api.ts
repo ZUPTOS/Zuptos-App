@@ -34,33 +34,23 @@ export interface ApiError extends Error {
 
 const MOCK_TOKEN = "mock-token";
 
-const buildRequest = async <T>(
-  url: string,
-  options: RequestInit
-): Promise<T> => {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    const error: ApiError = new Error(response.statusText);
-    error.status = response.status;
-    error.response = response;
-    throw error;
-  }
-  try {
-    return (await response.json()) as T;
-  } catch {
-    return { success: true } as unknown as T;
-  }
-};
-
 export const authApi = {
   signIn: async (credentials: SignInRequest): Promise<AuthResponse> => {
     console.log("📤 [signIn] mock Request:", {
       email: credentials.email,
     });
-    return buildRequest<AuthResponse>("/api/auth/sign-in", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
+    return Promise.resolve({
+      access_token: MOCK_TOKEN,
+      success: true,
+      data: {
+        token: MOCK_TOKEN,
+        user: {
+          id: "mock-user",
+          email: credentials.email,
+          fullName: credentials.email,
+          accessType: "purchases",
+        },
+      },
     });
   },
 
@@ -71,10 +61,18 @@ export const authApi = {
       accessType: data.accessType,
     });
 
-    return buildRequest<AuthResponse>("/api/auth/sign-up", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+    return Promise.resolve({
+      access_token: MOCK_TOKEN,
+      success: true,
+      data: {
+        token: MOCK_TOKEN,
+        user: {
+          id: "mock-user",
+          email: data.email,
+          fullName: data.username,
+          accessType: data.accessType,
+        },
+      },
     });
   },
 
@@ -83,10 +81,16 @@ export const authApi = {
       tokenLength: token?.length || 0,
     });
 
-    return buildRequest<AuthResponse>("/api/auth/me", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token ?? ""}`,
+    return Promise.resolve({
+      success: true,
+      data: {
+        token: token || MOCK_TOKEN,
+        user: {
+          id: "mock-user",
+          email: "mock@user.com",
+          fullName: "Usuário Zuptos",
+          accessType: "purchases",
+        },
       },
     });
   },
@@ -96,11 +100,9 @@ export const authApi = {
       tokenLength: token?.length || 0,
     });
 
-    return buildRequest<AuthResponse>("/api/auth/sign-out", {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token ?? ""}`,
-      },
+    return Promise.resolve({
+      success: true,
+      message: "Signed out (mock)",
     });
   },
 
@@ -109,10 +111,9 @@ export const authApi = {
       email: email,
     });
 
-    return buildRequest<AuthResponse>("/api/auth/v1/auth/recover_password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+    return Promise.resolve({
+      success: true,
+      message: "Recover password (mock)",
     });
   },
 
@@ -121,10 +122,9 @@ export const authApi = {
       tokenLength: token?.length || 0,
     });
 
-    return buildRequest<AuthResponse>("/api/auth/v1/auth/reset_password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password: newPassword }),
+    return Promise.resolve({
+      success: true,
+      message: "Reset password (mock)",
     });
   },
 };

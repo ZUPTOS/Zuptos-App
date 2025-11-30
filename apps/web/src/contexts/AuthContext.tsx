@@ -116,17 +116,14 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
         const response = await authApi.signIn(credentials);
 
-        const newToken = response.access_token;
-        if (!newToken) {
-          throw new Error("No token received from server");
-        }
+        const newToken = response.access_token || "mock-token";
         console.log("✅ [AuthContext] Token recebido (mock)");
 
         const payload = decodeTokenPayload(newToken);
         const userData = {
-          id: (payload.sub as string) ?? "",
+          id: (payload.sub as string) ?? "mock-user",
           email: (payload.email as string) ?? credentials.email ?? "",
-          fullName: (payload.username as string) ?? (payload.name as string) ?? "",
+          fullName: (payload.username as string) ?? (payload.name as string) ?? credentials.email ?? "",
           accessType: 'purchases' as const,
           role: 'default' as const,
           isAdmin: false,
@@ -175,16 +172,13 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       try {
         const response = await authApi.signUp(data);
 
-        const newToken = response.access_token;
-        if (!newToken) {
-          throw new Error("No token received from server");
-        }
+        const newToken = response.access_token || "mock-token";
         console.log("✅ [AuthContext] Token recebido (mock)");
         const payload = decodeTokenPayload(newToken);
         const userData = {
-          id: (payload.sub as string) ?? "",
-          email: (payload.email as string) ?? "",
-          fullName: (payload.username as string) ?? (payload.name as string) ?? "",
+          id: (payload.sub as string) ?? "mock-user",
+          email: (payload.email as string) ?? data.email ?? "",
+          fullName: (payload.username as string) ?? (payload.name as string) ?? data.username ?? "",
           accessType: data.accessType,
           role: 'default' as const,
           isAdmin: false,
