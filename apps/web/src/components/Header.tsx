@@ -34,6 +34,7 @@ export default function Header({
   const profileRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const isLightMode = theme === "light";
+  const [mounted, setMounted] = useState(false);
   
   const handleLogout = async () => {
     try {
@@ -88,6 +89,14 @@ export default function Header({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <header className="bg-background sticky top-0 z-30 transition-colors">
