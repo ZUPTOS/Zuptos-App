@@ -415,7 +415,7 @@ export default function LoginView() {
           alt="Plano de fundo Zuptos"
           fill
           priority
-          className="object-contain"
+          className="xl:object-contain 2xl:object-cover"
         />
       </div>
 
