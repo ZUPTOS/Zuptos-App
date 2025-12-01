@@ -322,7 +322,7 @@ export default function Dashboard() {
       pageTitle="Dashboard"
     >
       <div
-        className="px-10 py-5 space-y-3 w-full mx-auto"
+        className="py-5 space-y-3 w-full mx-auto"
         style={{ maxWidth: "var(--dash-layout-width)" }}
       >
         {/* Linha 1 - Data + filtro */}

@@ -153,11 +153,11 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
         type="button"
         aria-label="Alternar filtro de datas"
         onClick={() => setIsOpen(prev => !prev)}
-        className="flex items-center justify-start gap-3 rounded-[7px] border border-border/70 bg-card px-4 py-3 text-left"
+        className="flex items-center justify-start gap-3 rounded-[7px] border border-border/70 bg-card px-4 py-3 text-left text-sm xl:py-2 xl:px-3 xl:text-xs 2xl:text-sm"
         style={{ width: "clamp(240px, 20vw, 320px)" }}
       >
         <Calendar className="h-4 w-4 text-foreground" />
-        <span className="text-fs-body text-foreground leading-tight">{dateRange}</span>
+        <span className="text-foreground leading-tight">{dateRange}</span>
       </button>
 
       {isOpen && (
@@ -166,14 +166,14 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
           style={{ top: "calc(100% + 12px)", width: "clamp(300px, 24vw, 360px)" }}
         >
 
-          <div className="p-5 space-y-4">
+          <div className="p-5 space-y-4 xl:p-4 xl:space-y-3 2xl:p-4 2xl:space-y-3">
             <div className="space-y-2">
               {filterOptions.map(option => (
                 <button
                   key={option}
                   onClick={() => handlePresetSelect(option)}
                   type="button"
-                className={`w-full rounded-[8px] border px-4 py-3 text-left text-fs-body transition-colors ${
+                className={`w-full rounded-[8px] border px-4 py-3 text-left text-sm transition-colors xl:px-3 xl:py-2 xl:text-xs 2xl:text-sm ${
                   selectedPreset === option
                     ? "border-primary/60 bg-muted/40 text-foreground"
                     : "border-border/60 text-muted-foreground hover:bg-muted/30 hover:text-foreground"
@@ -188,7 +188,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
               onClick={handleDateButtonClick}
               type="button"
               aria-label="Alternar calendário detalhado"
-              className="flex w-full items-center justify-between border-t border-border/60 pt-3 text-left text-fs-small text-muted-foreground"
+              className="flex w-full items-center justify-between border-t border-border/60 pt-3 text-left text-xs text-muted-foreground xl:pt-2 2xl:pt-2"
             >
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />

@@ -153,7 +153,7 @@ export default function Sidebar() {
       <div
         className={`flex items-center ${
           isExpanded ? "justify-center px-6" : "justify-center"
-        } p-4`}
+        } p-4 xl:p-3 2xl:p-3`}
       >
         {isExpanded ? (
           <Image
@@ -177,7 +177,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex flex-col gap-2 p-4">
+      <nav className="flex flex-col gap-2 p-4 xl:p-3 2xl:p-3">
         {navItems.map((item) => {
           const Icon = item.IconComponent;
           const isActive =
@@ -188,15 +188,15 @@ export default function Sidebar() {
             <Link
               key={item.id}
               href={item.href}
-              className={`group relative flex w-full items-center gap-3 rounded-[7px] border border-card py-3 hover:bg-sidebar-hover transition-all duration-300 ${
+              className={`group relative flex w-full items-center gap-3 rounded-[7px] border border-card py-3 hover:bg-sidebar-hover transition-all duration-300 xl:py-2 2xl:py-2 ${
                 isActive ? "text-foreground" : ""
-              } ${isExpanded ? "px-4" : "justify-center px-4"}`}
+              } ${isExpanded ? "px-4 xl:px-3" : "justify-center px-4 xl:px-3"}`}
               title={item.label}
             >
               {isActive && (
                 <span className="absolute -left-2 h-10 w-[3px] bg-primary" />
               )}
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] xl:h-6 xl:w-6 2xl:h-7 2xl:w-7">
                 {item.iconSrc ? (
                   <Image
                     src={item.iconSrc}
@@ -211,7 +211,7 @@ export default function Sidebar() {
                   />
                 ) : Icon ? (
                   <Icon
-                    className={`h-5 w-5 ${
+                    className={`h-5 w-5 xl:h-3.5 xl:w-3.5 2xl:h-4 2xl:w-4 ${
                       isActive ? "text-primary" : "text-muted-foreground"
                     }`}
                   />
@@ -219,7 +219,7 @@ export default function Sidebar() {
               </span>
               {isExpanded && (
                 <span
-                  className={`text-[1rem] font-semibold tracking-tight transition-colors duration-200 ${
+                  className={`text-sm xl:text-xs 2xl:text-sm font-semibold tracking-tight transition-colors duration-200 ${
                     isActive
                       ? "text-primary"
                       : "text-foreground group-hover:text-white"
