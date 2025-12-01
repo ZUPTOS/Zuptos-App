@@ -147,31 +147,51 @@ export default function EditarCheckoutView() {
                       <div className="rounded-[8px] border border-dashed border-foreground/20 bg-card/50 px-3 py-4 text-xs text-muted-foreground">
                         Arraste a imagem ou clique aqui
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <p className="text-sm font-semibold text-foreground">Plano de Fundo</p>
                         <div className="grid grid-cols-2 gap-2">
-                          <button className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-sm text-foreground">
+                          <button
+                            className="rounded-[10px] border border-foreground/20 bg-[#d9d9d9] px-3 py-4 text-sm font-semibold text-black shadow-inner"
+                            type="button"
+                          >
                             Claro
                           </button>
-                          <button className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-sm text-foreground">
+                          <button
+                            className="rounded-[10px] border border-foreground/20 bg-[#232323] px-3 py-4 text-sm font-semibold text-foreground/60"
+                            type="button"
+                          >
                             Escuro
                           </button>
                         </div>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <p className="text-sm font-semibold text-foreground">Cores de destaque</p>
-                        <div className="grid grid-cols-4 gap-2">
-                          {["#8A2BE2", "#4CAF50", "#F5A623", "#A52A2A"].map(color => (
-                            <button
-                              key={color}
-                              className="h-8 rounded-[6px]"
-                              style={{ backgroundColor: color }}
-                              aria-label={color}
-                            />
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { color: "#000000", label: "Clean (padrão)" },
+                            { color: "#5f17ff", label: "Clean (padrão)" },
+                            { color: "#d000ff", label: "Clean (padrão)" },
+                            { color: "#007c35", label: "Clean (padrão)" },
+                            { color: "#c7a100", label: "Clean (padrão)" },
+                          ].map(option => (
+                            <div key={option.color} className="space-y-1 rounded-[10px] border border-foreground/15 bg-card p-2 text-center">
+                              <button
+                                className="h-10 w-full rounded-[8px]"
+                                style={{ backgroundColor: option.color }}
+                                aria-label={option.label}
+                              />
+                              <p className="text-[11px] text-foreground">{option.label}</p>
+                            </div>
                           ))}
-                          <button className="h-8 rounded-[6px] border border-foreground/20 bg-card text-xs text-foreground">
-                            Personalizado
-                          </button>
+                          <div className="space-y-1 rounded-[10px] border border-foreground/15 bg-card p-2 text-center">
+                            <input
+                              type="color"
+                              className="h-10 w-full cursor-pointer rounded-[8px] border border-foreground/20 bg-card"
+                              aria-label="Personalizado"
+                              defaultValue="#6C27D7"
+                            />
+                            <p className="text-[11px] text-foreground">Personalizado</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -256,120 +276,116 @@ export default function EditarCheckoutView() {
                 </SectionCard>
 
                 <SectionCard title="Gatilhos e Depoimentos" iconSrc="/images/editar-produtos/gatilhos.svg">
-                  <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between text-[15px] font-semibold text-foreground">
-                        <span>Contador Regressivo</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-[15px] font-semibold text-foreground">
+                      <span>Contador Regressivo</span>
+                      <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
+                        <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <span>Texto de mensagem ativa</span>
+                      <textarea
+                        className="min-h-[72px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        placeholder="Seu tempo acabou! Finalize a compra imediatamente."
+                      />
+                    </div>
+
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <span>Texto da contagem zerada</span>
+                      <textarea
+                        className="min-h-[72px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        placeholder="Seu tempo acabou! Finalize a compra imediatamente."
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Cor do fundo do contador</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="h-11 flex-1 rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          placeholder="#FFFFFF"
+                          value={counterBgColor}
+                          onChange={e => setCounterBgColor(e.target.value)}
+                        />
+                        <button
+                          className="h-11 w-16 rounded-[10px] border border-foreground/15"
+                          style={{ backgroundColor: counterBgColor }}
+                          aria-label="Selecionar cor de fundo"
+                          type="button"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Cor do Texto do contador</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="h-11 flex-1 rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          placeholder="#FFFFFF"
+                          value={counterTextColor}
+                          onChange={e => setCounterTextColor(e.target.value)}
+                        />
+                        <button
+                          className="h-11 w-16 rounded-[10px] border border-foreground/15"
+                          style={{ backgroundColor: counterTextColor }}
+                          aria-label="Selecionar cor do texto"
+                          type="button"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                        <span>Notificações de vendas</span>
                         <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
                           <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
                         </button>
                       </div>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <span>Texto de mensagem ativa</span>
-                        <textarea
-                          className="min-h-[72px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Seu tempo acabou! Finalize a compra imediatamente."
-                        />
-                      </div>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <span>Texto da contagem zerada</span>
-                        <textarea
-                          className="min-h-[72px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Seu tempo acabou! Finalize a compra imediatamente."
-                        />
-                      </div>
+                      <input className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-muted-foreground focus:border-primary focus:outline-none" placeholder="15 segundos" />
+                    </div>
 
-                      <div className="space-y-3">
-                        <p className="text-sm font-semibold text-foreground">Cor do fundo do contador</p>
-                        <div className="flex items-center gap-2">
-                          <input
-                            className="h-11 flex-1 rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                            placeholder="#FFFFFF"
-                            value={counterBgColor}
-                            onChange={e => setCounterBgColor(e.target.value)}
-                            onFocus={() => setActiveColorField("bg")}
-                          />
-                          <button
-                            className="h-11 w-16 rounded-[10px] border border-foreground/15"
-                            style={{ backgroundColor: counterBgColor }}
-                            onClick={() => setActiveColorField("bg")}
-                            aria-label="Selecionar cor de fundo"
-                            type="button"
-                          />
-                        </div>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-sm text-foreground">
+                        <span>Configure as notificações</span>
+                        <span className="text-[11px] text-muted-foreground">Qnt mínima</span>
                       </div>
+                      {[
+                        "XX pessoas estão comprando o produto.",
+                        "XX pessoas compraram o produto agora mesmo.",
+                        "XX pessoas compraram o produto nos últimos 30 minutos.",
+                        "XX pessoas compraram o produto na última hora.",
+                      ].map(label => (
+                        <label key={label} className="flex items-center justify-between gap-3 text-foreground">
+                          <span className="flex-1 text-xs text-muted-foreground">{label}</span>
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
+                            <input className="h-9 w-12 rounded-[8px] border border-foreground/20 bg-card px-2 text-xs text-foreground focus:outline-none" placeholder="1" />
+                          </div>
+                        </label>
+                      ))}
+                    </div>
 
-                      <div className="space-y-3">
-                        <p className="text-sm font-semibold text-foreground">Cor do Texto do contador</p>
-                        <div className="flex items-center gap-2">
-                          <input
-                            className="h-11 flex-1 rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                            placeholder="#FFFFFF"
-                            value={counterTextColor}
-                            onChange={e => setCounterTextColor(e.target.value)}
-                            onFocus={() => setActiveColorField("text")}
-                          />
-                          <button
-                            className="h-11 w-16 rounded-[10px] border border-foreground/15"
-                            style={{ backgroundColor: counterTextColor }}
-                            onClick={() => setActiveColorField("text")}
-                            aria-label="Selecionar cor do texto"
-                            type="button"
-                          />
-                        </div>
+                    <div className="space-y-2 pt-2">
+                      <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                        <span>Prova Social</span>
+                        <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
+                          <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                        </button>
                       </div>
+                      <textarea
+                        className="min-h-[70px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        placeholder="Outras ( num-visitantes ) visitantes estão finalizando a compra neste momento."
+                      />
+                    </div>
 
-                      <div className="space-y-2 pt-1">
-                        <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                          <span>Notificações de vendas</span>
-                          <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                            <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                          </button>
-                        </div>
-                        <input className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-muted-foreground focus:border-primary focus:outline-none" placeholder="15 segundos" />
-                      </div>
-
-                      <div className="space-y-2 text-xs text-muted-foreground">
-                        <div className="flex items-center justify-between text-sm text-foreground">
-                          <span>Configure as notificações</span>
-                          <span className="text-[11px] text-muted-foreground">Qnt mínima</span>
-                        </div>
-                        {[
-                          "XX pessoas estão comprando o produto.",
-                          "XX pessoas compraram o produto agora mesmo.",
-                          "XX pessoas compraram o produto nos últimos 30 minutos.",
-                          "XX pessoas compraram o produto na última hora.",
-                        ].map((label, idx) => (
-                          <label key={label} className="flex items-center justify-between gap-3 text-foreground">
-                            <span className="flex-1 text-xs text-muted-foreground">{label}</span>
-                            <div className="flex items-center gap-2">
-                              <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
-                              <input className="h-9 w-12 rounded-[8px] border border-foreground/20 bg-card px-2 text-xs text-foreground focus:outline-none" placeholder="1" />
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-
-                      <div className="space-y-2 pt-2">
-                        <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                          <span>Prova Social</span>
-                          <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                            <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                          </button>
-                        </div>
-                        <textarea
-                          className="min-h-[70px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Outras ( num-visitantes ) visitantes estão finalizando a compra neste momento."
-                        />
-                      </div>
-
-                      <div className="space-y-2 pt-2">
-                        <p className="text-sm font-semibold text-foreground">Mínimo de visitantes</p>
-                        <input
-                          className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="15 visitantes"
-                        />
-                      </div>
+                    <div className="space-y-2 pt-2">
+                      <p className="text-sm font-semibold text-foreground">Mínimo de visitantes</p>
+                      <input
+                        className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        placeholder="15 visitantes"
+                      />
                     </div>
 
                     <div className="space-y-4 pt-2">
