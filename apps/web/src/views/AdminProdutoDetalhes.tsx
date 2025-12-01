@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeft,
   Banknote,
@@ -98,7 +99,15 @@ const verificationBadge = (verified: boolean) =>
     ? 'inline-flex items-center rounded-md bg-emerald-700/30 px-3 py-1 text-sm font-semibold text-emerald-400'
     : 'inline-flex items-center rounded-md bg-rose-700/40 px-3 py-1 text-sm font-semibold text-rose-300';
 
-const stats = [
+type StatItem = {
+  id: string;
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  helper?: string;
+};
+
+const stats: StatItem[] = [
   { id: 'revenue', label: 'Faturamento', value: 'R$00,00', icon: CircleDollarSign },
   { id: 'sales', label: 'Vendas', value: '00', icon: Receipt },
   { id: 'created', label: 'Data de criação', value: 'dd/mm/aaaa', helper: 'às 18:45', icon: CalendarClock },

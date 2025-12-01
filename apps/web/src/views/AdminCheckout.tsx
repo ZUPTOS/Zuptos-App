@@ -195,7 +195,7 @@ export default function AdminCheckout() {
                     </div>
                   </div>
                   <p className="text-sm leading-relaxed text-neutral-300">
-                    Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry&#39;s
+                    Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry&apos;s
                     standard dummy text ever since the 1500s,
                   </p>
                 </div>
