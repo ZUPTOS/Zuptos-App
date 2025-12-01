@@ -75,7 +75,7 @@ const permissionSections = [
   }
 ] as const;
 
-function PermissionRow({ title, manage, view }: { title: string; manage: boolean; view: boolean }) {
+function PermissionRow({ title, view }: { title: string; view: boolean }) {
   const checkboxBase = 'flex h-5 w-5 items-center justify-center rounded border border-foreground/15 bg-transparent';
   const labelBase = 'text-sm text-muted-foreground';
 

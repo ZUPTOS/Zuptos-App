@@ -1,6 +1,6 @@
 'use client';
 
-import { Image as ImageIcon, Phone, X } from "lucide-react";
+import { Image as ImageIcon, Phone } from "lucide-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import { cn } from "@/lib/utils";

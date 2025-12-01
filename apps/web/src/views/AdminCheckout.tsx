@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Smartphone, Star, Wallet } from 'lucide-react';
+import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from 'lucide-react';
 import Image from 'next/image';
 
 const inputClass =

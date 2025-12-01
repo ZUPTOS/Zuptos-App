@@ -121,26 +121,6 @@ const matchesSearchTerm = (sale: Sale, search: string) => {
     .includes(search);
 };
 
-const buildPaginationItems = (totalPages: number): (number | string)[] => {
-  if (totalPages <= 6) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  const pages: (number | string)[] = [];
-
-  for (let page = 1; page <= 3; page += 1) {
-    pages.push(page);
-  }
-
-  pages.push("...");
-
-  for (let page = totalPages - 2; page <= totalPages; page += 1) {
-    pages.push(page);
-  }
-
-  return pages;
-};
-
 const ActionButton = ({
   icon: Icon,
   label

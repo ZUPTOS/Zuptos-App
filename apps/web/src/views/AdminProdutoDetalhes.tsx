@@ -7,7 +7,6 @@ import {
   Banknote,
   BarChart2,
   CalendarClock,
-  Check,
   CircleDollarSign,
   CreditCard,
   ExternalLink,

@@ -9,15 +9,22 @@ jest.mock("@/components/DashboardLayout", () => ({
 }));
 
 jest.mock("@/components/ui/select", () => {
-  const React = require("react");
   const SelectContext = React.createContext<{ onValueChange?: (v: string) => void; value?: string }>({});
 
-  const Select = ({ children, value, onValueChange }: any) => (
+  const Select: React.FC<{ children: React.ReactNode; value?: string; onValueChange?: (v: string) => void }> = ({
+    children,
+    value,
+    onValueChange
+  }) => (
     <SelectContext.Provider value={{ onValueChange, value }}>{children}</SelectContext.Provider>
   );
-  const SelectTrigger = ({ children }: any) => <div data-testid="select-trigger">{children}</div>;
-  const SelectValue = ({ placeholder }: any) => <span data-testid="select-value">{placeholder}</span>;
-  const SelectContent = ({ children }: any) => {
+  const SelectTrigger: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div data-testid="select-trigger">{children}</div>
+  );
+  const SelectValue: React.FC<{ placeholder?: string }> = ({ placeholder }) => (
+    <span data-testid="select-value">{placeholder}</span>
+  );
+  const SelectContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ctx = React.useContext(SelectContext);
     return (
       <select data-testid="account-select" value={ctx.value} onChange={e => ctx.onValueChange?.(e.target.value)}>
@@ -25,7 +32,9 @@ jest.mock("@/components/ui/select", () => {
       </select>
     );
   };
-  const SelectItem = ({ value, children }: any) => <option value={value}>{children}</option>;
+  const SelectItem: React.FC<{ value: string; children: React.ReactNode }> = ({ value, children }) => (
+    <option value={value}>{children}</option>
+  );
 
   return { Select, SelectTrigger, SelectContent, SelectItem, SelectValue };
 });

@@ -120,6 +120,7 @@ export const authApi = {
   resetPassword: async (token: string, newPassword: string): Promise<AuthResponse> => {
     console.log("📤 [resetPassword] mock Request:", {
       tokenLength: token?.length || 0,
+      newPasswordLength: newPassword?.length || 0,
     });
 
     return Promise.resolve({
