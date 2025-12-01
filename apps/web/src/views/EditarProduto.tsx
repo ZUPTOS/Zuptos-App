@@ -99,7 +99,7 @@ export default function EditarProdutoView() {
         <div className="mx-auto flex w-full max-w-6xl gap-6">
           <nav className="w-52 shrink-0">
             <ul className="space-y-2 text-sm">
-              {tabs.map((tab, index) => {
+              {tabs.map(tab => {
                 const isActive = activeTab === tab;
                 return (
                   <li key={tab}>

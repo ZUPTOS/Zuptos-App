@@ -35,20 +35,8 @@ const SectionCard = ({
   </div>
 );
 
-const tabs = [
-  "Entregável",
-  "Ofertas",
-  "Checkouts",
-  "Configurações",
-  "Pixels de rastreamento",
-  "Upsell, downsell e mais",
-  "Cupons",
-  "Coprodução",
-] as const;
-
 export default function EditarCheckoutView() {
   const router = useRouter();
-  const activeTab: (typeof tabs)[number] = "Checkouts";
   const [counterBgColor, setCounterBgColor] = useState("#FFFFFF");
   const [counterTextColor, setCounterTextColor] = useState("#FFFFFF");
 
@@ -434,7 +422,7 @@ export default function EditarCheckoutView() {
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard
+                            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry&apos;s standard
                             dummy text ever since the 1500s,
                           </p>
                         </div>
