@@ -214,6 +214,8 @@ describe("AuthContext", () => {
   });
 
   it("exige AuthProvider para usar o hook", () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     expect(() => renderHook(() => useAuth())).toThrow("useAuth must be used within an AuthProvider");
+    consoleSpy.mockRestore();
   });
 });

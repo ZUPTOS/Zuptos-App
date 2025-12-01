@@ -15,7 +15,7 @@ import {
   YAxis
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
-import { Search, ChevronDown, ArrowUpRight, X, Eye } from "lucide-react";
+import { Search, ChevronDown, ArrowUpRight, X, Eye, EyeOff } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import DateFilter from "@/components/DateFilter";
 import mockData from "@/data/mockData.json";
@@ -155,6 +155,7 @@ export default function Dashboard() {
   });
   const [isFilterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, boolean>>({});
+  const [hideValues, setHideValues] = useState(false);
 
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const visualizationRef = useRef<HTMLDivElement>(null);
@@ -229,6 +230,17 @@ export default function Dashboard() {
   }, [visualizationOptions]);
 
   const chartData = useMemo(() => {
+    if (hideValues) {
+      return (mockData.revenue.daily ?? []).map(point => ({
+        ...point,
+        faturamento: 0,
+        receitaLiquida: 0,
+        vendas: 0,
+        ticketMedio: 0,
+        chargeback: 0,
+        reembolso: 0
+      }));
+    }
     switch (chartType) {
       case "daily":
         return mockData.revenue.daily;
@@ -237,7 +249,7 @@ export default function Dashboard() {
       case "yearly":
         return mockData.revenue.yearly;
     }
-  }, [chartType]);
+  }, [chartType, hideValues]);
 
   const axisColor = "var(--muted-foreground)";
   const gridColor = "var(--border)";
@@ -314,6 +326,10 @@ export default function Dashboard() {
     const active = visualizationOptions.filter(option => visibleLines[option.id] !== false);
     return active.length ? active : visualizationOptions;
   }, [visibleLines, visualizationOptions]);
+
+  const progressWidth = hideValues ? 0 : mockData.user.progress;
+
+  const maskValue = (value: string) => (hideValues ? "•••" : value);
 
   return (
     <DashboardLayout
@@ -397,8 +413,13 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <button className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[10px] border border-border/70 bg-card text-muted-foreground transition hover:text-foreground dark:bg-card/90">
-              <Eye className="w-6 h-6" />
+            <button
+              className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[10px] border border-border/70 bg-card text-muted-foreground transition hover:text-foreground dark:bg-card/90"
+              type="button"
+              onClick={() => setHideValues(prev => !prev)}
+              aria-label="Alternar ocultar valores"
+            >
+              {hideValues ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
             </button>
           </div>
         </section>
@@ -438,7 +459,7 @@ export default function Dashboard() {
               </div>
                 <span className="text-fs-micro text-muted-foreground mb-1">{card.label}</span>
                 <span className="text-fs-lead font-semibold leading-none text-muted-foreground">
-                  R$ 0{card.value.toFixed(2).replace(".", ",")}
+                  {maskValue(`R$ 0${card.value.toFixed(2).replace(".", ",")}`)}
                 </span>
               </div>
             </div>
@@ -461,7 +482,7 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-[25px] mt-4 flex-col sm:flex-row sm:items-center sm:gap-[12px]">
               <p className="text-fs-display font-semibold text-foreground leading-none">
-                {mockData.account.healthScore}
+                {hideValues ? "•••" : mockData.account.healthScore}
               </p>
               <span className="text-fs-stat text-muted-foreground leading-tight">
                 A saúde da conta está{" "}
@@ -475,7 +496,7 @@ export default function Dashboard() {
                   key={detail.label}
                   className="inline-flex justify-center items-center gap-2 rounded-[8px] px-[6px] py-[6px] whitespace-nowrap bg-foreground/10 text-muted-foreground"
                 >
-                  {detail.label} {detail.percentage}%
+                  {detail.label} {hideValues ? "•••" : `${detail.percentage}%`}
                 </span>
               ))}
             </div>
@@ -497,16 +518,18 @@ export default function Dashboard() {
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <p className="text-fs-title font-sora font-bold text-foreground leading-none">
-                    {grossRevenueLabel}
+                    {maskValue(grossRevenueLabel)}
                   </p>
                   <span className="inline-flex items-center justify-between gap-1 rounded-[7px] bg-muted px-2 py-1 border w-[102px] h-[36px] ">
                     <ArrowUpRight className="w-5 h-5 text-lime-400" />
                     <span className="text-fs-meta font-sora font-bold text-foreground">
-                      {growthPercentageLabel}
+                      {maskValue(growthPercentageLabel)}
                     </span>
                   </span>
                 </div>
-                <p className="text-fs-small font-sora text-muted-foreground">Receita Bruta</p>
+                  <p className="text-fs-small font-sora text-muted-foreground">
+                    {hideValues ? "•••" : "Receita Bruta"}
+                  </p>
               </div>
               <div className="relative flex items-center" ref={visualizationRef}>
                 <button
@@ -632,31 +655,37 @@ export default function Dashboard() {
               </p>
               <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
                 <span>
-                  Você é <span className="text-fs-meta font-bold" style={{ color: JOURNEY_INACTIVE_COLOR }}>expert</span>
+                  Você é{" "}
+                  <span
+                    className="text-fs-meta font-bold"
+                    style={{ color: JOURNEY_INACTIVE_COLOR }}
+                  >
+                    {hideValues ? "•••" : "expert"}
+                  </span>
                 </span>
                 <span>
                   Próximo nível é{" "}
                   <span className="text-fs-meta font-semibold text-foreground/80">
-                    {mockData.user.nextLevel}
+                    {hideValues ? "•••" : mockData.user.nextLevel}
                   </span>
                 </span>
               </div>
             </div>
-            <div
-              className="w-full h-3 rounded-full overflow-hidden border"
-              style={{
-                borderColor: JOURNEY_HIGHLIGHT_COLOR,
-                backgroundColor: "rgba(88, 35, 178, 0.15)"
-              }}
-            >
               <div
-                className="h-full rounded-full"
+                className="w-full h-3 rounded-full overflow-hidden border"
                 style={{
-                  width: `${mockData.user.progress}%`,
-                  background: `linear-gradient(90deg, ${JOURNEY_HIGHLIGHT_COLOR} 20%, #a768ff 70%, #dbc4ff 100%)`,
+                  borderColor: JOURNEY_HIGHLIGHT_COLOR,
+                  backgroundColor: "rgba(88, 35, 178, 0.15)"
                 }}
-              />
-            </div>
+              >
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${progressWidth}%`,
+                    background: `linear-gradient(90deg, ${JOURNEY_HIGHLIGHT_COLOR} 20%, #a768ff 70%, #dbc4ff 100%)`,
+                  }}
+                />
+              </div>
             <div className="grid grid-cols-3 gap-4">
               {mockData.levels.map((level, index) => {
                 const isCurrentLevel = level.id === mockData.user.level;
@@ -680,7 +709,11 @@ export default function Dashboard() {
                       }}
                     />
                     <p className="text-fs-section font-semibold text-foreground">
-                      {level.threshold >= 1000 ? `${level.threshold / 1000}k` : level.threshold}
+                      {hideValues
+                        ? "•••"
+                        : level.threshold >= 1000
+                          ? `${level.threshold / 1000}k`
+                          : level.threshold}
                     </p>
                     <p
                       className="text-fs-section font-medium"
@@ -717,11 +750,19 @@ export default function Dashboard() {
                 <p className="text-fs-stat font-sora text-foreground">
                   {method.name}
                 </p>
-                <p className="text-fs-stat font-sora text-muted-foreground">{method.percentage}%</p>
+                <p className="text-fs-stat font-sora text-muted-foreground">
+                  {hideValues ? "•••" : `${method.percentage}%`}
+                </p>
               </div>
               <div className="h-[100px]">
                 <ResponsiveContainer width="100%">
-                  <AreaChart data={method.data}>
+                  <AreaChart
+                    data={
+                      hideValues
+                        ? method.data.map(point => ({ ...point, value: 0 }))
+                        : method.data
+                    }
+                  >
                     <CartesianGrid strokeDasharray="1 1" stroke={gridColor} vertical={false} />
                     <XAxis dataKey="time" hide />
                     <YAxis hide />

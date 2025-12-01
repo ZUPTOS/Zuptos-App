@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   ChevronDown,
@@ -14,6 +14,8 @@ import {
   endOfWeek,
   format,
   getDay,
+  isValid,
+  parse,
   startOfMonth,
   startOfWeek
 } from "date-fns";
@@ -71,7 +73,14 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
 
   const today = new Date();
   const activeRange = selectedRange ?? { start: today, end: today };
-  const dateRange = `${format(activeRange.start, "dd/MM/yyyy", { locale: ptBR })} - ${format(activeRange.end, "dd/MM/yyyy", { locale: ptBR })}`;
+
+  const dateRange = useMemo(
+    () =>
+      `${format(activeRange.start, "dd/MM/yyyy", { locale: ptBR })} - ${format(activeRange.end, "dd/MM/yyyy", { locale: ptBR })}`,
+    [activeRange.end, activeRange.start]
+  );
+
+  const [rangeInput, setRangeInput] = useState(dateRange);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -140,6 +149,9 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     const range = getPresetRange(option);
     if (range) {
       setSelectedRange(range);
+      setRangeInput(
+        `${format(range.start, "dd/MM/yyyy", { locale: ptBR })} - ${format(range.end, "dd/MM/yyyy", { locale: ptBR })}`
+      );
       onDateChange?.(range.start, range.end);
     }
     setSelectedPreset(option);
@@ -147,18 +159,58 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     setIsOpen(false);
   };
 
+  useEffect(() => {
+    setRangeInput(dateRange);
+  }, [dateRange]);
+
+  const commitRangeInput = (value: string) => {
+    const [startStr, endStr] = value.split("-").map(part => part.trim());
+    if (!startStr || !endStr) {
+      setRangeInput(dateRange);
+      return;
+    }
+    const parsedStart = parse(startStr, "dd/MM/yyyy", today);
+    const parsedEnd = parse(endStr, "dd/MM/yyyy", today);
+    if (isValid(parsedStart) && isValid(parsedEnd)) {
+      setSelectedRange({ start: parsedStart, end: parsedEnd });
+      setSelectedPreset(null);
+      onDateChange?.(parsedStart, parsedEnd);
+    } else {
+      setRangeInput(dateRange);
+    }
+  };
+
   return (
     <div className="relative" ref={containerRef}>
-      <button
-        type="button"
-        aria-label="Alternar filtro de datas"
-        onClick={() => setIsOpen(prev => !prev)}
-        className="flex items-center justify-start gap-3 rounded-[7px] border border-border/70 bg-card px-4 py-3 text-left text-sm xl:py-2 xl:px-3 xl:text-xs 2xl:text-sm"
+      <div
+        className="flex items-center gap-3 rounded-[7px] border border-border/70 bg-card px-4 py-3 text-sm xl:py-2 xl:px-3 xl:text-xs 2xl:text-sm"
         style={{ width: "clamp(240px, 20vw, 320px)" }}
       >
         <Calendar className="h-4 w-4 text-foreground" />
-        <span className="text-foreground leading-tight">{dateRange}</span>
-      </button>
+        <input
+          className="flex-1 bg-transparent text-foreground focus:outline-none"
+          value={rangeInput}
+          onChange={e => setRangeInput(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => commitRangeInput(rangeInput)}
+          onKeyDown={e => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitRangeInput(rangeInput);
+              setIsOpen(false);
+            }
+          }}
+          aria-label="Intervalo de datas"
+        />
+        <button
+          type="button"
+          aria-label="Alternar filtro de datas"
+          onClick={() => setIsOpen(prev => !prev)}
+          className="text-muted-foreground"
+        >
+          <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} />
+        </button>
+      </div>
 
       {isOpen && (
         <div

@@ -20,10 +20,12 @@ jest.mock("next/image", () => ({
   default: ({
     alt,
     priority: _priority,
+    fill: _fill,
     ...props
   }: {
     alt?: string;
     priority?: boolean;
+    fill?: boolean;
     [key: string]: unknown;
   }) => React.createElement("img", { alt: alt ?? "mock-image", ...props })
 }));
