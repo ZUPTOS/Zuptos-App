@@ -63,6 +63,8 @@ const decodeTokenPayload = (token?: string): Record<string, unknown> => {
   }
 };
 
+const getPayloadString = (value: unknown) => (typeof value === "string" ? value : "");
+
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -116,14 +118,18 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
         const response = await authApi.signIn(credentials);
 
-        const newToken = response.access_token || "mock-token";
+        if (!response?.access_token) {
+          throw new Error("No token received from server");
+        }
+
+        const newToken = response.access_token;
         console.log("✅ [AuthContext] Token recebido (mock)");
 
         const payload = decodeTokenPayload(newToken);
         const userData = {
-          id: (payload.sub as string) ?? "mock-user",
-          email: (payload.email as string) ?? credentials.email ?? "",
-          fullName: (payload.username as string) ?? (payload.name as string) ?? credentials.email ?? "",
+          id: getPayloadString(payload.sub),
+          email: getPayloadString(payload.email),
+          fullName: getPayloadString(payload.username) || getPayloadString(payload.name),
           accessType: 'purchases' as const,
           role: 'default' as const,
           isAdmin: false,
@@ -172,13 +178,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       try {
         const response = await authApi.signUp(data);
 
-        const newToken = response.access_token || "mock-token";
+        if (!response?.access_token) {
+          throw new Error("No token received from server");
+        }
+
+        const newToken = response.access_token;
         console.log("✅ [AuthContext] Token recebido (mock)");
         const payload = decodeTokenPayload(newToken);
         const userData = {
-          id: (payload.sub as string) ?? "mock-user",
-          email: (payload.email as string) ?? data.email ?? "",
-          fullName: (payload.username as string) ?? (payload.name as string) ?? data.username ?? "",
+          id: getPayloadString(payload.sub),
+          email: getPayloadString(payload.email),
+          fullName: getPayloadString(payload.username) || getPayloadString(payload.name),
           accessType: data.accessType,
           role: 'default' as const,
           isAdmin: false,

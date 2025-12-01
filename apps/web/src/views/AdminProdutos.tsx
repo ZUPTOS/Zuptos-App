@@ -183,12 +183,18 @@ export default function AdminProdutos() {
                 <Search className="h-4 w-4" aria-hidden />
                 <input
                   type="text"
-                  placeholder="Buscar usuário"
+                  placeholder="Buscar produto"
                   value={searchQuery}
                   onChange={handleSearch}
                   className="w-full bg-transparent text-sm uppercase text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
+              <button
+                type="button"
+                className="flex h-[46px] items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(127,90,240,0.25)] transition hover:bg-primary/90"
+              >
+                Novo Produto
+              </button>
               <button
                 type="button"
                 className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/10 bg-card transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
