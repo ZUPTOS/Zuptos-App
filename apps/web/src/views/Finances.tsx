@@ -247,11 +247,7 @@ export default function Finances() {
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Finanças">
       <div className="min-h-full py-6">
-        <div
-          className="mx-auto flex w-full flex-col gap-6 px-4 md:px-6"
-          style={{ maxWidth: "var(--fin-layout-width)" }}
-        >
-
+        <div className="mx-auto 2xl:justify-center 2xl:w-[1250px] flex w-full flex-col gap-6 xl:justify-center xl:w-[1000px]">
           <div className="flex flex-wrap items-center gap-6 border-b border-muted/30 pb-1 text-base font-semibold">
             {tabs.map(tab => {
               const isActive = activeTab === tab.id;
@@ -276,8 +272,8 @@ export default function Finances() {
           </div>
 
           {activeTab === "saldos" && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[708px_721px] lg:justify-center lg:gap-[10px]">
-              <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[245px]">
+            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[608px_621px] 2xl:justify-center 2xl:gap-[10px] xl:grid-cols-[508px_521px] xl:gap-[10px]">
+              <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 2xl:h-[245px]">
                 <p className="text-fs-title font-semibold text-primary">Saldo Disponível</p>
                 <p className="mt-2 text-fs-display font-semibold text-foreground">
                   {formatCurrency(balanceCards[0].value ?? 0)}
