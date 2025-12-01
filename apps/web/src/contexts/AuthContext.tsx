@@ -128,8 +128,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         const payload = decodeTokenPayload(newToken);
         const userData = {
           id: getPayloadString(payload.sub),
-          email: getPayloadString(payload.email),
-          fullName: getPayloadString(payload.username) || getPayloadString(payload.name),
+          email: getPayloadString(payload.email) || credentials.email || "",
+          fullName: getPayloadString(payload.username) || getPayloadString(payload.name) || "",
           accessType: 'purchases' as const,
           role: 'default' as const,
           isAdmin: false,
@@ -187,8 +187,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         const payload = decodeTokenPayload(newToken);
         const userData = {
           id: getPayloadString(payload.sub),
-          email: getPayloadString(payload.email),
-          fullName: getPayloadString(payload.username) || getPayloadString(payload.name),
+          email: getPayloadString(payload.email) || "",
+          fullName: getPayloadString(payload.username) || getPayloadString(payload.name) || "",
           accessType: data.accessType,
           role: 'default' as const,
           isAdmin: false,

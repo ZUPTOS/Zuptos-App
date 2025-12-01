@@ -91,13 +91,21 @@ const mockProducts: Product[] = [
 
 const infoIconClass = 'h-4 w-4 text-muted-foreground';
 
-function ProductCard({ product, onSelect }: { product: Product; onSelect: () => void }) {
+function ProductCard({
+  product,
+  onSelect,
+  menuOpen,
+  onToggleMenu,
+  onMenuAction
+}: {
+  product: Product;
+  onSelect: () => void;
+  menuOpen: boolean;
+  onToggleMenu: () => void;
+  onMenuAction: (action: 'visualizar' | 'editar' | 'deletar') => void;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="w-full text-left rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b] p-6 transition hover:-translate-y-0.5 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-    >
+    <div className="w-full text-left rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b] p-6 transition hover:-translate-y-0.5 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
       <div className="flex items-start gap-4">
         <div className="flex h-[70px] w-[70px] items-center justify-center rounded-[14px] border border-foreground/10 bg-foreground/70" />
         <div className="flex flex-col gap-1">
@@ -127,11 +135,61 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: () => 
 
       <div className="mt-6 flex items-center justify-between border-t border-foreground/10 pt-4">
         <span className="text-sm font-semibold text-muted-foreground">Status</span>
-        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[product.status] ?? 'bg-muted/30 text-muted-foreground'}`}>
+        <span
+          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[product.status] ?? 'bg-muted/30 text-muted-foreground'}`}
+        >
           {product.status}
         </span>
       </div>
-    </button>
+
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          aria-label="Abrir menu do produto"
+          onClick={e => {
+            e.stopPropagation();
+            onToggleMenu();
+          }}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-foreground/10 bg-card text-foreground/70 transition hover:border-foreground/30 hover:text-foreground"
+        >
+          ···
+        </button>
+        {menuOpen && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onMenuAction('visualizar');
+              }}
+              className="rounded-[8px] border border-foreground/10 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/30"
+            >
+              Visualizar
+            </button>
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onMenuAction('editar');
+              }}
+              className="rounded-[8px] border border-foreground/10 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/30"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onMenuAction('deletar');
+              }}
+              className="rounded-[8px] border border-foreground/10 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/30"
+            >
+              Deletar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -139,6 +197,7 @@ export default function AdminProdutos() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState(mockProducts);
   const [currentPage, setCurrentPage] = useState(3);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,11 +274,27 @@ export default function AdminProdutos() {
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredProducts.length > 0 ? (
               filteredProducts.map(product => (
-                <ProductCard
+                <div
                   key={product.id}
-                  product={product}
-                  onSelect={() => router.push('/admin/produtos/detalhes')}
-                />
+                  onClick={() => router.push('/admin/produtos/detalhes')}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push('/admin/produtos/detalhes');
+                    }
+                  }}
+                >
+                  <ProductCard
+                    product={product}
+                    onSelect={() => router.push('/admin/produtos/detalhes')}
+                    menuOpen={openMenuId === product.id}
+                    onToggleMenu={() => setOpenMenuId(product.id)}
+                    onMenuAction={action => {
+                      setOpenMenuId(product.id);
+                      console.log(`Product ID: ${product.id} - ${action}`);
+                    }}
+                  />
+                </div>
               ))
             ) : (
               <div className="col-span-full flex flex-col items-center justify-center rounded-[12px] border border-dashed border-foreground/15 bg-card/40 py-12 text-center text-muted-foreground">
