@@ -93,13 +93,11 @@ const infoIconClass = 'h-4 w-4 text-muted-foreground';
 
 function ProductCard({
   product,
-  onSelect,
   menuOpen,
   onToggleMenu,
   onMenuAction
 }: {
   product: Product;
-  onSelect: () => void;
   menuOpen: boolean;
   onToggleMenu: () => void;
   onMenuAction: (action: 'visualizar' | 'editar' | 'deletar') => void;
@@ -286,7 +284,6 @@ export default function AdminProdutos() {
                 >
                   <ProductCard
                     product={product}
-                    onSelect={() => router.push('/admin/produtos/detalhes')}
                     menuOpen={openMenuId === product.id}
                     onToggleMenu={() => setOpenMenuId(product.id)}
                     onMenuAction={action => {

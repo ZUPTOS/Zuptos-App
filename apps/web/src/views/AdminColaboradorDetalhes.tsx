@@ -75,17 +75,30 @@ const permissionSections = [
   }
 ] as const;
 
-function PermissionRow({ title, view }: { title: string; view: boolean }) {
-  const checkboxBase = 'flex h-5 w-5 items-center justify-center rounded border border-foreground/15 bg-transparent';
+function PermissionRow({
+  title,
+  manage,
+  view,
+}: {
+  title: string;
+  manage: boolean;
+  view: boolean;
+}) {
+  const checkboxBase =
+    'flex h-5 w-5 items-center justify-center rounded border border-foreground/15 bg-transparent';
   const labelBase = 'text-sm text-muted-foreground';
 
   return (
     <div className="grid grid-cols-[1fr,1fr,1fr] items-center gap-4 py-3">
       <span className="text-base font-semibold text-foreground">{title}</span>
-      <div className="flex items-center gap-2">
-        <span className={checkboxBase} aria-hidden />
-        <span className={labelBase}>Gerenciar</span>
-      </div>
+      {manage ? (
+        <div className="flex items-center gap-2">
+          <span className={checkboxBase} aria-hidden />
+          <span className={labelBase}>Gerenciar</span>
+        </div>
+      ) : (
+        <span className="text-sm text-muted-foreground" />
+      )}
       {view ? (
         <div className="flex items-center gap-2">
           <span className={checkboxBase} aria-hidden />
