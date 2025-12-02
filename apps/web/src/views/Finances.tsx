@@ -286,15 +286,16 @@ export default function Finances() {
                 <p className="text-fs-title font-semibold text-primary">Conta Bancária Principal</p>
                 {hasBankAccount ? (
                   <>
-                    <div className="space-y-2 text-fs-stat text-foreground">
-                      <div className="flex items-center gap-2 font-semibold">
-                        <Image src="/images/ICON-4.svg" alt="" width={18} height={18} className="h-6 w-6" />
-                        {balanceCards[2].bank} <span className="text-muted-foreground"> {balanceCards[2].accountType}</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Image src="/images/ICON-4.svg" alt="" width={18} height={18} className="h-[24px] w-[24px]" />
+                        <span className="text-sora">{balanceCards[2].bank}</span> <span className="text-sora"> {balanceCards[2].accountType}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <span className="inline-flex items-center gap-2">
-                          <Image src="/images/pix2.svg" alt="Ícone Pix" width={32} height={32} className="h-[26px] w-[26px]" />
-                          Chave PIX: {balanceCards[2].pixKey}
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-2">
+                          <Image src="/images/pix2.svg" alt="Ícone Pix" width={32} height={32} className="h-[24px] w-[24px]" />
+                          <span className="text-sora">Chave PIX:</span>
+                          <span className="text-sora">{balanceCards[2].pixKey}</span>
                         </span>
                       </div>
                     </div>
