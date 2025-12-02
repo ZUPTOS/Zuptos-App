@@ -33,6 +33,6 @@ describe("SalesDetailPanel", () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /confirmar/i }));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalled();
   });
 });

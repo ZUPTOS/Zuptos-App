@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, Search, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type OfferFilter = "assinatura" | "preco_unico";
 

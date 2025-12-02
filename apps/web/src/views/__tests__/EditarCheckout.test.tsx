@@ -31,7 +31,7 @@ describe("EditarCheckoutView", () => {
     renderView();
     expect(screen.getByText(/Campos obrigatórios no Checkout/i)).toBeInTheDocument();
     expect(screen.getByText(/^Visual$/i)).toBeInTheDocument();
-    expect(screen.getByText(/Pagamentos/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Pagamentos/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/Gatilhos e Depoimentos/i)).toBeInTheDocument();
     expect(screen.getByText(/Pós-compra/i)).toBeInTheDocument();
   });

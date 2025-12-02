@@ -1,7 +1,7 @@
 'use client';
 
 import Image from "next/image";
-import { Copy, DollarSign, Package, Phone, X } from "lucide-react";
+import { Copy, Package, Phone, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PaymentMethod, Sale, SaleStatus } from "@/views/Sales";
 
