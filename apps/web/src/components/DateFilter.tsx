@@ -183,7 +183,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   return (
     <div className="relative" ref={containerRef}>
       <div
-        className="flex items-center gap-3 rounded-[7px] border border-border/70 bg-card px-4 py-3 text-sm xl:py-2 xl:px-3 xl:text-xs 2xl:text-sm"
+        className="flex h-[48px] items-center gap-3 rounded-[7px] border border-border/70 bg-card px-4 text-sm"
         style={{ width: "clamp(240px, 20vw, 320px)" }}
       >
         <Calendar className="h-4 w-4 text-foreground" />

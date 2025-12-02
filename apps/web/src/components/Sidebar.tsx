@@ -176,8 +176,10 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[6px] transition-[width] duration-300 z-40"
-      style={{ width: isVisible ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)" }}
+      className="fixed left-0 top-0 z-40 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[6px] transition-[width] duration-300 xl:max-w-[220px] 2xl:max-w-[240px]"
+      style={{
+        width: isVisible ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)"
+      }}
       onMouseEnter={() => !isPinned && setIsExpanded(true)}
       onMouseLeave={() => !isPinned && setIsExpanded(false)}
     >
@@ -220,7 +222,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex flex-col gap-2 p-4 xl:p-3 2xl:p-3">
+      <nav className="flex flex-col gap-2 p-4 xl:px-2 xl:py-2 2xl:p-3">
         {navItems.map((item) => {
           const Icon = item.IconComponent;
           const isActive =

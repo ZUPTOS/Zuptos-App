@@ -114,8 +114,8 @@ const ChartTooltip = ({ active, payload, options }: ChartTooltipProps) => {
   const header = REVENUE_TOOLTIP_DATE;
 
   return (
-    <div className="min-w-[210px] rounded-[16px] border border-card bg-card px-4 py-3 text-xs text-card-foreground shadow-xl">
-      <p className="mb-3 font-sora text-fs-mini text-card-foreground/85">
+    <div className="min-w-[210px] rounded-[16px] border border-card bg-card px-4 py-3 text-card-foreground shadow-xl xl:text-[12px] 2xl:text-[18px]">
+      <p className="mb-3 font-sora text-card-foreground/85 xl:text-[12px] 2xl:text-[18px]">
         {header}
       </p>
       <div className="flex flex-col gap-2">
@@ -129,10 +129,10 @@ const ChartTooltip = ({ active, payload, options }: ChartTooltipProps) => {
           const formattedValue = formatTooltipValue(numericValue, metricKey);
           const color = option?.color ?? item.color ?? "#ffffff";
           return (
-            <div key={`${labelText}-${index}`} className="flex items-center gap-2 leading-tight">
+            <div key={`${labelText}-${index}`} className="flex items-center gap-2 leading-tight xl:text-[12px] 2xl:text-[18px]">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-fs-caption font-sora">
-                {labelText}: <span className="text-card-foreground/90">{formattedValue}</span>
+              <span className="font-sora">
+                {labelText}: <span className="text-card-foreground/90 xl:text-[12px] 2xl:text-[18px]">{formattedValue}</span>
               </span>
             </div>
           );
@@ -149,7 +149,7 @@ export default function Dashboard() {
   const [visibleLines, setVisibleLines] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     visualizationOptions.forEach(option => {
-      initial[option.id] = true;
+      initial[option.id] = option.id === "faturamento";
     });
     return initial;
   });
@@ -337,18 +337,15 @@ export default function Dashboard() {
       userLocation={mockData.user.location}
       pageTitle="Dashboard"
     >
-      <div
-        className="py-5 space-y-3 w-full mx-auto"
-        style={{ maxWidth: "var(--dash-layout-width)" }}
-      >
+      <div className="py-5 space-y-3 mx-auto 2xl:w-[1200px] xl:w-[900px]">
         {/* Linha 1 - Data + filtro */}
-        <section className="grid grid-cols-[minmax(0,clamp(240px,22vw,320px))_1fr] items-start gap-2">
+        <section className="grid grid-cols-[minmax(0,clamp(240px,20vw,320px))_1fr] items-start gap-2">
           <div className="w-full">
             <DateFilter />
           </div>
 
-          <div className="flex justify-end gap-3">
-            <div className="relative flex w-full max-w-[451px] items-center gap-3" ref={filterDropdownRef}>
+          <div className="flex justify-end gap-2">
+            <div className="relative flex w-full max-w-[420px] items-center gap-3" ref={filterDropdownRef}>
               <button
                 type="button"
                 onClick={() => setFilterDropdownOpen(prev => !prev)}
@@ -431,13 +428,13 @@ export default function Dashboard() {
           }}
         >
           <div className={`${cardSurface} p-6 flex flex-col justify-between`}>
-            <p className="text-fs-small text-muted-foreground">
+            <p className="text-muted-foreground xl:text-[12px] 2xl:text-[15px]">
               Hoje é 8 de setembro, 2025
             </p>
-            <h1 className="text-fs-hero text-foreground mb-1">
+            <h1 className="text-foreground xl:text-[20px] 2xl:text-[28px]">
               Olá, {mockData.user.name}
             </h1>
-            <p className="text-fs-small text-muted-foreground">
+            <p className="text-muted-foreground xl:text-[12px] 2xl:text-[15px]">
               Lorem Ipsum is simply dummy text of the printing
             </p>
           </div>
@@ -454,11 +451,10 @@ export default function Dashboard() {
                   alt={card.label}
                   width={43.34}
                   height={43.34}
-                  style={isLightMode ? { filter: "brightness(0)" } : undefined}
                 />
               </div>
-                <span className="text-fs-micro text-muted-foreground mb-1">{card.label}</span>
-                <span className="text-fs-lead font-semibold leading-none text-muted-foreground">
+                <span className="text-muted-foreground xl:text-[12px] 2xl:text-[15px]">{card.label}</span>
+                <span className="font-semibold leading-none text-muted-foreground xl:text-[12px] 2xl:text-[15px]">
                   {maskValue(`R$ 0${card.value.toFixed(2).replace(".", ",")}`)}
                 </span>
               </div>
@@ -480,21 +476,21 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <div className="flex items-center gap-[25px] mt-4 flex-col sm:flex-row sm:items-center sm:gap-[12px]">
-              <p className="text-fs-display font-semibold text-foreground leading-none">
+            <div className="flex items-center gap-[25px] mt-4 flex-col sm:flex-row sm:items-center sm:gap-[12px] xl:text-[12px] 2xl:text-[15px]">
+              <p className="text-fs-display font-semibold text-foreground leading-none xl:text-[12px] 2xl:text-[15px]">
                 {hideValues ? "•••" : mockData.account.healthScore}
               </p>
-              <span className="text-fs-stat text-muted-foreground leading-tight">
+              <span className="text-muted-foreground leading-tight xl:text-[12px] 2xl:text-[15px]">
                 A saúde da conta está{" "}
                 <span className="text-foreground font-semibold">boa</span>
               </span>
             </div>
 
-            <div className="flex gap-2 text-fs-mini mt-[13px] text-muted-foreground flex-nowrap">
+            <div className="flex gap-2 text-muted-foreground flex-nowrap">
               {healthSegments.map(detail => (
                 <span
                   key={detail.label}
-                  className="inline-flex justify-center items-center gap-2 rounded-[8px] px-[6px] py-[6px] whitespace-nowrap bg-foreground/10 text-muted-foreground"
+                  className="inline-flex justify-center items-center gap-2 rounded-[8px] px-[6px] py-[6px] bg-foreground/10 text-muted-foreground 2xl:text-[12px] xl:text-[10px]"
                 >
                   {detail.label} {hideValues ? "•••" : `${detail.percentage}%`}
                 </span>
@@ -517,7 +513,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <p className="text-fs-title font-sora font-bold text-foreground leading-none">
+                  <p className="text-fs-title font-sora font-bold text-foreground leading-none xl:text-[12px] 2xl:text-[15px]">
                     {maskValue(grossRevenueLabel)}
                   </p>
                   <span className="inline-flex items-center justify-between gap-1 rounded-[7px] bg-muted px-2 py-1 border w-[102px] h-[36px] ">
@@ -527,7 +523,7 @@ export default function Dashboard() {
                     </span>
                   </span>
                 </div>
-                  <p className="text-fs-small font-sora text-muted-foreground">
+                  <p className="text-muted-foreground xl:text-[12px] 2xl:text-[15px]">
                     {hideValues ? "•••" : "Receita Bruta"}
                   </p>
               </div>
