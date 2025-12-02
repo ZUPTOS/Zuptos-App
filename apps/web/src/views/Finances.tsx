@@ -7,7 +7,6 @@ import DateFilter from "@/components/DateFilter";
 import {
   ArrowDown,
   ArrowUp,
-  Banknote,
   Eye,
   Filter,
   Search,

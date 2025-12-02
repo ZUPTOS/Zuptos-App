@@ -65,6 +65,13 @@ const decodeTokenPayload = (token?: string): Record<string, unknown> => {
 
 const getPayloadString = (value: unknown) => (typeof value === "string" ? value : "");
 
+const logError = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== "test") {
+    // eslint-disable-next-line no-console
+    console.error(...args);
+  }
+};
+
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -83,7 +90,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error("⚠️ [AuthContext] Erro ao restaurar sessão:", error);
+      logError("⚠️ [AuthContext] Erro ao restaurar sessão:", error);
       localStorage.removeItem('authToken');
       localStorage.removeItem('authUser');
     } finally {
@@ -159,7 +166,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         }
 
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during login';
-        console.error("❌ [AuthContext] Erro no signIn:", errorMessage);
+        logError("❌ [AuthContext] Erro no signIn:", errorMessage);
         setError(errorMessage);
         throw err;
       } finally {
@@ -210,7 +217,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         router.push('/dashboard');
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during registration';
-        console.error("❌ [AuthContext] Erro no signUp:", errorMessage);
+        logError("❌ [AuthContext] Erro no signUp:", errorMessage);
         setError(errorMessage);
         throw err;
       } finally {
@@ -246,7 +253,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       router.push('/');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during logout';
-      console.error("⚠️ [AuthContext] Erro no signOut (continuando logout local):", errorMessage);
+      logError("⚠️ [AuthContext] Erro no signOut (continuando logout local):", errorMessage);
       
       // Fazer logout local mesmo em caso de erro na API
       localStorage.removeItem('authToken');

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from 'lucide-react';
@@ -207,4 +208,3 @@ export default function AdminCheckout() {
     </div>
   );
 }
-'use client';
