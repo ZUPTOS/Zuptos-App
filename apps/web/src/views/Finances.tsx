@@ -289,12 +289,14 @@ export default function Finances() {
                   <>
                     <div className="space-y-2 text-fs-stat text-foreground">
                       <div className="flex items-center gap-2 font-semibold">
-                        <Image src="/images/ICON-4.svg" alt="" width={28} height={28} className="h-7 w-7" />
+                        <Image src="/images/ICON-4.svg" alt="" width={18} height={18} className="h-6 w-6" />
                         {balanceCards[2].bank} <span className="text-muted-foreground"> {balanceCards[2].accountType}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Image src="/images/pix.svg" alt="Ícone Pix" width={30} height={30} className="h-[30px] w-[30px]" />
-                        Chave PIX: {balanceCards[2].pixKey}
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <span className="inline-flex items-center gap-2">
+                          <Image src="/images/pix2.svg" alt="Ícone Pix" width={32} height={32} className="h-[26px] w-[26px]" />
+                          Chave PIX: {balanceCards[2].pixKey}
+                        </span>
                       </div>
                     </div>
                     <div className="relative flex">
@@ -636,7 +638,7 @@ export default function Finances() {
             onClick={() => setIsWithdrawOpen(false)}
             onKeyDown={event => handleOverlayKeyDown(event, () => setIsWithdrawOpen(false))}
           />
-          <div className="fixed left-1/2 top-1/2 z-50 h-[538px] w-full max-w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card">
+          <div className="fixed left-1/2 top-1/2 z-50 h-[500px] w-full max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card">
             <div className="flex items-start justify-between border-b border-muted px-5 py-4">
               <p className="text-fs-lead font-semibold text-foreground">Solicitar saque</p>
               <button
@@ -686,7 +688,7 @@ export default function Finances() {
               </div>
               <button
                 type="button"
-                className="mt-2 inline-flex h-[49px] w-full max-w-[420px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white"
+                className="mt-2 inline-flex h-[44px] w-full max-w-[360px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white"
               >
                 Solicitar
               </button>
@@ -705,7 +707,7 @@ export default function Finances() {
             onClick={() => setShowAccountForm(false)}
             onKeyDown={event => handleOverlayKeyDown(event, () => setShowAccountForm(false))}
           />
-          <div className="fixed left-1/2 top-1/2 z-50 h-[534px] w-[443px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-6">
+          <div className="fixed left-1/2 top-1/2 z-50 h-[500px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-5">
             <div className="flex items-center justify-between border-b border-muted pb-4">
               <p className="text-fs-title font-semibold text-foreground">Configurar conta bancária</p>
               <button
@@ -717,7 +719,7 @@ export default function Finances() {
                 <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
-            <div className="space-y-8 pt-2 text-[12px]">
+            <div className="space-y-6 pt-2 text-[12px]">
               <div className="space-y-2">
                 <p className="mb-5 text-fs-title font-semibold text-muted-foreground">Informações do titular</p>
                 <label className="flex w-full flex-col gap-3 text-[12px] text-muted-foreground">
@@ -734,10 +736,10 @@ export default function Finances() {
                 <p className="mb-5 text-fs-title font-semibold text-muted-foreground">Chave pix</p>
                 <label className="flex w-full flex-col gap-3 text-[12px] text-muted-foreground">
                   <span className="text-left">Tipo de chave PIX</span>
-                  <select className="h-11 w-full rounded-[10px] border border-muted bg-card px-3 text-left text-[12px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
-                    <option value="">Selecione o tipo de chave PIX</option>
-                    <option>CPF/CNPJ</option>
-                    <option>E-mail</option>
+                <select className="h-11 w-full rounded-[10px] border border-muted bg-card px-3 text-left text-[12px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                  <option value="">Selecione o tipo de chave PIX</option>
+                  <option>CPF/CNPJ</option>
+                  <option>E-mail</option>
                     <option>Telefone</option>
                     <option>Chave aleatória</option>
                   </select>
