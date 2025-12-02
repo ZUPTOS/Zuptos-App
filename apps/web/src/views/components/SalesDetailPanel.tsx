@@ -75,9 +75,13 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
 
   if (!sale || !detailData) return null;
 
+  const handleBackdropClick = () => {
+    onClose();
+  };
+
   return (
-    <aside className="absolute inset-0 z-50 flex items-start justify-end bg-black/30">
-      <div className="relative mr-2 mt-4 w-[480px] max-h-[90vh] rounded-[16px] border border-muted bg-background shadow-2xl custom-scrollbar overflow-y-auto">
+    <aside className="absolute inset-0 z-50 flex items-start justify-end bg-black/30" onClick={handleBackdropClick}>
+      <div className="relative mr-2 w-[480px] h-full bg-card shadow-2xl custom-scrollbar overflow-y-auto" onClick={event => event.stopPropagation()}>
         <header className="flex items-center justify-between border-b border-muted px-5 py-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
             <span>ID da transação: #{sale.id}</span>
@@ -101,7 +105,7 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
             {detailData.orderBumps.map((item, index) => (
               <div
                 key={`${item.title}-${index}`}
-                className="flex items-center justify-between rounded-[12px] border border-muted bg-background/60 px-4 py-3"
+                className="flex items-center justify-between rounded-[12px] border border-muted bg-card/70 px-4 py-3"
               >
                 <div className="flex items-center gap-3">
                   <Image
@@ -126,7 +130,7 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
 
         <section className="px-5 py-4">
           <h2 className="text-sm font-semibold text-card-foreground">Comprador</h2>
-          <div className="mt-3 grid gap-2 rounded-[12px] border border-muted bg-background/60 px-4 py-3 text-xs">
+          <div className="mt-3 grid gap-2 rounded-[12px] border border-muted bg-card/60 px-4 py-3 text-xs">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Nome</span>
               <span className="text-foreground">{detailData.buyer.name}</span>
@@ -154,7 +158,7 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
 
         <section className="px-5 py-4">
           <h2 className="text-sm font-semibold text-card-foreground">Transação</h2>
-          <div className="mt-3 grid gap-2 rounded-[12px] border border-muted bg-background/60 px-4 py-3 text-xs">
+          <div className="mt-3 grid gap-2 rounded-[12px] border border-muted bg-card/60 px-4 py-3 text-xs">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Status</span>
               <span
@@ -228,7 +232,7 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
 
         <section className="px-5 py-4">
           <h2 className="text-sm font-semibold text-card-foreground">Marketing</h2>
-          <div className="mt-3 rounded-[12px] border border-muted bg-background/60 px-4 py-3 text-xs text-muted-foreground">
+          <div className="mt-3 rounded-[12px] border border-muted bg-card/60 px-4 py-3 text-xs text-muted-foreground">
             {Object.entries(detailData.marketing).map(([key, value]) => (
               <div key={key} className="flex justify-between">
                 <span className="capitalize">{key.replace("utm", "UTM ")}</span>
@@ -240,14 +244,15 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
 
         {sale.status === "aprovada" && (
           <div className="px-5 py-4">
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-muted px-4 py-3 text-sm font-semibold text-card-foreground transition hover:border-primary hover:text-primary"
-              onClick={() => setRefundModalOpen(true)}
-            >
-              <DollarSign className="h-4 w-4" />
-              Estornar venda
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="flex w-1/2 items-center justify-center gap-2 rounded-[10px] border border-muted px-4 py-3 text-sm font-semibold text-card-foreground transition hover:bg-primary hover:text-foreground"
+                onClick={() => setRefundModalOpen(true)}
+              >
+                Estornar venda
+              </button>
+            </div>
           </div>
         )}
       </div>

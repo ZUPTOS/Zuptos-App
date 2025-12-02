@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import {
   ArrowLeftRight,
   FileText,
@@ -27,7 +27,16 @@ interface NavItem {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const initialPinned = (() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("sidebarPinned") === "true";
+    } catch {
+      return false;
+    }
+  })();
+  const [isPinned, setIsPinned] = useState(initialPinned);
+  const [isExpanded, setIsExpanded] = useState(initialPinned);
   const { theme } = useTheme();
   const isLightMode = theme === "light";
   const getIconStyle = (isActive: boolean) => {
@@ -141,18 +150,40 @@ export default function Sidebar() {
   const isAdminRoute = pathname?.startsWith("/admin");
   const navItems = isAdminRoute ? adminNavItems : defaultNavItems;
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("sidebarPinned", isPinned ? "true" : "false");
+    } catch {
+      // ignore
+    }
+  }, [isPinned]);
+
+  const isVisible = isExpanded || isPinned;
+
+  useEffect(() => {
+    if (isPinned) {
+      setIsExpanded(true);
+    }
+  }, [isPinned]);
+
+  useEffect(() => {
+    const currentWidth = isVisible ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)";
+    document.documentElement.style.setProperty("--sidebar-current-width", currentWidth);
+    return () => {
+      document.documentElement.style.removeProperty("--sidebar-current-width");
+    };
+  }, [isVisible]);
+
   return (
     <aside
       className="fixed left-0 top-0 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[6px] transition-[width] duration-300 z-40"
-      style={{ width: isExpanded ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)" }}
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
+      style={{ width: isVisible ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)" }}
+      onMouseEnter={() => !isPinned && setIsExpanded(true)}
+      onMouseLeave={() => !isPinned && setIsExpanded(false)}
     >
       {/* Logo Section */}
       <div
-        className={`flex items-center ${
-          isExpanded ? "justify-center px-6" : "justify-center"
-        } p-4 xl:p-3 2xl:p-3`}
+        className={`relative flex items-center justify-center ${isExpanded ? "px-6" : ""} p-3 xl:p-3 2xl:p-3`}
       >
         {isExpanded ? (
           <Image
@@ -167,11 +198,24 @@ export default function Sidebar() {
           <Image
             src="/images/logoSide.svg"
             alt="Zuptos icon"
-            width={43}
-            height={43}
+            width={32}
+            height={32}
             priority
-            className="h-12 w-auto"
+            className="h-9 w-auto"
           />
+        )}
+        {isVisible && (
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full bg-transparent p-2 transition hover:text-primary"
+            onClick={() => {
+              setIsPinned(prev => !prev);
+              if (!isPinned) setIsExpanded(true);
+            }}
+            title={isPinned ? "Desafixar barra lateral" : "Fixar barra lateral"}
+          >
+            <Image src="/images/sidebutton.svg" alt="Toggle sidebar" width={24} height={24} />
+          </button>
         )}
       </div>
 
@@ -187,9 +231,9 @@ export default function Sidebar() {
             <Link
               key={item.id}
               href={item.href}
-              className={`group relative flex w-full items-center gap-3 rounded-[7px] border border-card py-3 hover:bg-sidebar-hover transition-all duration-300 xl:py-2 2xl:py-2 ${
-                isActive ? "text-foreground" : ""
-              } ${isExpanded ? "px-4 xl:px-3" : "justify-center px-4 xl:px-3"}`}
+                className={`group relative flex w-full items-center gap-3 rounded-[7px] border border-card py-3 hover:bg-sidebar-hover transition-all duration-300 xl:py-2 2xl:py-2 ${
+                  isActive ? "text-foreground" : ""
+                } ${isVisible ? "px-4 xl:px-3" : "justify-center px-4 xl:px-3"}`}
               title={item.label}
             >
               {isActive && (
@@ -216,7 +260,7 @@ export default function Sidebar() {
                   />
                 ) : null}
               </span>
-              {isExpanded && (
+              {isVisible && (
                 <span
                   className={`text-sm xl:text-xs 2xl:text-sm font-semibold tracking-tight transition-colors duration-200 ${
                     isActive

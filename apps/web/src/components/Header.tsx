@@ -99,7 +99,7 @@ export default function Header({
   }
 
   return (
-    <header className="bg-background sticky top-0 z-30 transition-colors">
+    <header className="bg-background sticky top-0 z-30 transition-colors border-b">
       <div className="flex items-center justify-between py-2" style={{ paddingInline: "var(--header-padding-x)" }}>
         <div className="flex flex-col gap-1">
           {pageSubtitle && (

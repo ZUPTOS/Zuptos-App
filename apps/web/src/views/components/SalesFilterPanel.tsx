@@ -97,16 +97,16 @@ const InputField = ({
   icon?: React.ReactNode;
   type?: string;
 }) => (
-  <div className="flex flex-col gap-2">
+  <div className="flex flex-col gap-3">
     <p className="text-sm font-semibold text-card-foreground">{label}</p>
-    <label className="flex items-center gap-2 rounded-[10px] border border-muted bg-background/60 px-3 py-3 text-xs text-muted-foreground focus-within:border-primary/60 focus-within:text-primary">
+    <label className="flex items-center gap-3 rounded-[10px] border border-muted bg-card/70 px-4 py-3 text-sm text-muted-foreground focus-within:border-primary/60 focus-within:text-primary">
       {icon}
       <input
         type={type}
         value={value}
         onChange={event => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full bg-transparent text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none"
+        className="w-full bg-transparent text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none"
       />
     </label>
   </div>
@@ -175,16 +175,6 @@ export default function SalesFilterPanel({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const wrapperClasses = useMemo(
-    () =>
-      `absolute -top-[220px] right-0 w-[454px] max-h-[820px] overflow-y-auto rounded-[16px] border border-muted bg-background shadow-2xl custom-scrollbar transition-all duration-200 z-50 ${
-        isOpen
-          ? "pointer-events-auto opacity-100 translate-y-0"
-          : "pointer-events-none opacity-0 -translate-y-3"
-      }`,
-    [isOpen]
-  );
-
   const handleArrayToggle = (
     key: keyof Pick<SalesFilters, "offers" | "statuses" | "tipos" | "vendedor">,
     value: string
@@ -198,9 +188,25 @@ export default function SalesFilterPanel({
   };
 
   return (
-    <aside className={wrapperClasses}>
-      <div className="flex items-center justify-between border-b border-muted px-4 py-3">
-        <p className="text-sm font-semibold text-card-foreground">Filtrar</p>
+    <div
+      className={`fixed inset-0 z-50 flex transition-opacity duration-200 ${
+        isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+      }`}
+      role="presentation"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="flex-1 bg-black/40 transition-opacity duration-200"
+        aria-label="Fechar filtros"
+      />
+      <aside
+        className={`relative flex w-[480px] h-full shrink-0 flex-col overflow-y-auto bg-card shadow-2xl custom-scrollbar transition-transform duration-200 ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+      <div className="flex items-center justify-between border-b border-muted px-5 py-4">
+        <p className="text-sm font-semibold text-card-foreground tracking-wide">Filtrar</p>
         <button
           type="button"
           onClick={onClose}
@@ -209,21 +215,21 @@ export default function SalesFilterPanel({
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="flex flex-col gap-4 px-4 py-4 text-sm">
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-card-foreground">Data</p>
-          <div className="relative" ref={datePickerRef}>
-            <button
-              type="button"
-              onClick={() => setDatePickerOpen(prev => !prev)}
-              className="flex w-full items-center gap-2 rounded-[10px] border border-muted bg-background/60 px-3 py-2 text-left text-xs text-card-foreground"
-            >
+      <div className="flex flex-col gap-4 px-5 py-5 text-sm">
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-semibold text-card-foreground">Data</p>
+        <div className="relative" ref={datePickerRef}>
+          <button
+            type="button"
+            onClick={() => setDatePickerOpen(prev => !prev)}
+            className="flex w-full items-center gap-3 rounded-[10px] border border-muted bg-card/60 px-4 py-3 text-left text-sm text-card-foreground"
+          >
               <Calendar className="h-4 w-4" />
               {rangeInputValue || "DD/MM/AAAA - DD/MM/AAAA"}
             </button>
             {isDatePickerOpen && (
-              <div className="absolute top-full z-20 mt-2 w-full rounded-[10px] border border-muted bg-background p-3 shadow-xl">
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              <div className="absolute top-full z-20 mt-3 w-full rounded-[10px] border border-muted bg-background p-4 shadow-xl">
+                <label className="flex flex-col gap-2 text-xs text-muted-foreground">
                   Início
                   <input
                     type="text"
@@ -236,10 +242,10 @@ export default function SalesFilterPanel({
                       });
                     }}
                     placeholder="DD/MM/AAAA"
-                    className="rounded-[8px] border border-muted bg-transparent px-2 py-1 text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="rounded-[8px] border border-muted bg-transparent px-3 py-2 text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </label>
-                <label className="mt-3 flex flex-col gap-1 text-xs text-muted-foreground">
+                <label className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">
                   Fim
                   <input
                     type="text"
@@ -252,7 +258,7 @@ export default function SalesFilterPanel({
                       });
                     }}
                     placeholder="DD/MM/AAAA"
-                    className="rounded-[8px] border border-muted bg-transparent px-2 py-1 text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="rounded-[8px] border border-muted bg-transparent px-3 py-2 text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </label>
                 <button
@@ -277,7 +283,7 @@ export default function SalesFilterPanel({
                     );
                     setDatePickerOpen(false);
                   }}
-                  className="mt-4 w-full rounded-[8px] bg-primary/80 py-1 text-xs font-semibold text-primary-foreground"
+                  className="mt-4 w-full rounded-[8px] bg-primary/80 py-3 text-sm font-semibold text-primary-foreground"
                 >
                   Definir período
                 </button>
@@ -391,6 +397,7 @@ export default function SalesFilterPanel({
           Adicionar filtro
         </button>
       </div>
-    </aside>
+      </aside>
+    </div>
   );
 }

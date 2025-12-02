@@ -15,7 +15,8 @@ import {
   Eye,
   Filter,
   Search,
-  Upload
+  Upload,
+  X
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import salesData from "@/data/salesData.json";
@@ -123,14 +124,24 @@ const matchesSearchTerm = (sale: Sale, search: string) => {
 
 const ActionButton = ({
   icon: Icon,
-  label
+  label,
+  active,
+  onClick
 }: {
   icon: LucideIcon;
   label: string;
+  active?: boolean;
+  onClick?: () => void;
 }) => (
   <button
     type="button"
-    className="flex h-12 w-12 items-center justify-center rounded-xl border border-muted bg-background/40 text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+    onClick={onClick}
+    aria-pressed={active}
+    className={`flex h-12 w-12 items-center justify-center rounded-xl border px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+      active
+        ? "border-primary bg-primary/10 text-primary"
+        : "border-muted bg-background/40 text-muted-foreground hover:border-primary/60 hover:text-primary"
+    }`}
     aria-label={label}
   >
     <Icon className="h-5 w-5" aria-hidden />
@@ -193,6 +204,8 @@ export default function Sales() {
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterOpen, setFilterOpen] = useState(false);
+  const [hideSensitive, setHideSensitive] = useState(false);
+  const [isExportModalOpen, setExportModalOpen] = useState(false);
   const [filters, setFilters] = useState<SalesFilters>(initialFilters);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const handleFiltersChange = (patch: Partial<SalesFilters>) => {
@@ -285,12 +298,16 @@ export default function Sales() {
         header: "Comprador",
         width: "17%",
         cellClassName: "px-3 py-3",
-        render: sale => (
-          <div className="flex flex-col">
-            <p className="font-semibold text-card-foreground truncate">{sale.buyerName}</p>
-            <p className="text-fs-meta text-muted-foreground truncate">{sale.buyerEmail}</p>
-          </div>
-        )
+        render: sale => {
+          const buyerLabel = hideSensitive ? "..." : sale.buyerName;
+          const emailLabel = hideSensitive ? "..." : sale.buyerEmail;
+          return (
+            <div className="flex flex-col">
+              <p className="font-semibold text-card-foreground truncate">{buyerLabel}</p>
+              <p className="text-fs-meta text-muted-foreground truncate">{emailLabel}</p>
+            </div>
+          );
+        }
       },
       {
         id: "saleType",
@@ -343,8 +360,8 @@ export default function Sales() {
         cellClassName: "px-3 py-3",
         render: sale => (
           <div className="flex flex-col">
-            <p className="font-semibold text-card-foreground whitespace-nowrap">{formatCurrency(sale.total)}</p>
-            <p className="text-fs-meta text-muted-foreground truncate">{sale.plan}</p>
+            <p className="font-semibold text-card-foreground whitespace-nowrap">{hideSensitive ? "..." : formatCurrency(sale.total)}</p>
+            <p className="text-fs-meta text-muted-foreground truncate">{hideSensitive ? "..." : sale.plan}</p>
           </div>
         )
       },
@@ -365,7 +382,7 @@ export default function Sales() {
         }
       }
     ],
-    []
+    [hideSensitive]
   );
 
   useEffect(() => {
@@ -387,58 +404,60 @@ export default function Sales() {
     >
       <div className="min-h-full py-4">
         <div
-          className="mx-auto flex w-full flex-col gap-3 px-4 md:px-6"
+          className="mx-auto flex 2xl:w-[1500px] xl:w-[1100px] flex-col gap-2 2xl:px-4 xl:px-6"
           style={{ maxWidth: "var(--dash-layout-width)" }}
         >
-          <section className="grid gap-3 md:grid-cols-3 md:gap-[18px]">
+          <section className="grid gap-2 md:grid-cols-3">
             {metricCards.map(card => {
               const gradientId = `metric-chart-${card.id}`;
               const isPositive = card.change >= 0;
               const ChangeIcon = isPositive ? ArrowUpRight : ArrowDownRight;
+              const chartData = hideSensitive
+                ? card.data.map(entry => ({ ...entry, value: 0 }))
+                : card.data;
+              const displayValue = hideSensitive
+                ? "..."
+                : card.id === "total-vendas"
+                  ? card.value.toString().padStart(2, "0")
+                  : formatCurrency(card.value);
               return (
                 <article
                   key={card.id}
-                  className="rounded-[8px] border border-muted bg-card/60 px-4 py-3"
+                  className="rounded-[8px] xl:h-[120px] 2xl:h-[140px] border border-muted bg-card/60 2xl:px-6 2xl:py-5 xl:px-4 xl:py-4"
                 >
                   <h1
-                    className="text-fs-title font-semibold text-muted-foreground"
-                    style={{ fontSize: "clamp(14px, 1.1vw, var(--fs-title))" }}
+                    className="xl:text-md 2xl:text-lg font-semibold text-muted-foreground"
                   >
                     {card.title}
                   </h1>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex flex-col items-start gap-2">
-                      <p
-                        className="text-fs-display font-semibold text-foreground/90 leading-tight"
-                        style={{ fontSize: "clamp(18px, 1.6vw, var(--fs-display))" }}
-                      >
-                        {card.id === "total-vendas"
-                          ? card.value.toString().padStart(2, "0")
-                          : formatCurrency(card.value)}
+                      <p className="xl:text-md 2xl:text-lg">
+                        {displayValue}
                       </p>
 
-                      <div
-                        className={`flex items-center gap-2 text-fs-stat font-medium ${
-                          isPositive ? "text-emerald-400" : "text-red-400"
-                        }`}
-                        style={{ fontSize: "clamp(11px, 0.9vw, var(--fs-stat))", whiteSpace: "nowrap" }}
-                      >
-                        <ChangeIcon className="h-4 w-4" aria-hidden />
-                        <span>
-                          {`${isPositive ? "+" : ""}${card.change
-                            .toFixed(1)
-                            .replace(".", ",")}%`}
-                          <span className="ml-1 text-muted-foreground">
-                            vs o período anterior
+                        <div
+                          className={`flex items-center gap-2 xl:text-xs 2xl:text-xs ${
+                            isPositive ? "text-emerald-400" : "text-red-400"
+                          }`}
+                        >
+                          <ChangeIcon className="h-4 w-4" aria-hidden />
+                          <span>
+                            {hideSensitive ? "--" : `${isPositive ? "+" : ""}${card.change
+                              .toFixed(1)
+                              .replace(".", ",")}%`}
+                            {!hideSensitive && (
+                              <span className="ml-1 text-muted-foreground">
+                                vs o período anterior
+                              </span>
+                            )}
                           </span>
-                        </span>
-                      </div>
+                        </div>
                     </div>
                     <div
-                      className="flex-shrink-0"
-                      style={{ width: "clamp(78px, 10vw, 104px)", height: "clamp(54px, 7vw, 66px)" }}
+                      className="flex-shrink-0 xl:w-[78px] xl:h-[54px] 2xl:w-[104px] 2xl:h-[66px]"
                     >
-                      <MetricCardChart data={card.data} gradientId={gradientId} />
+                      <MetricCardChart data={chartData} gradientId={gradientId} />
                     </div>
                   </div>
                 </article>
@@ -450,7 +469,6 @@ export default function Sales() {
             <div className="flex flex-wrap items-center justify-end gap-3">
               <label
                 className="flex h-[46px] items-center gap-3 rounded-[8px] border border-muted bg-background px-3 text-fs-body text-muted-foreground focus-within:border-primary/60 focus-within:text-primary"
-                style={{ width: "clamp(280px, 32vw, 440px)" }}
               >
                 <Search className="h-4 w-4" aria-hidden />
                 <input
@@ -458,7 +476,7 @@ export default function Sales() {
                   value={searchTerm}
                   onChange={event => setSearchTerm(event.target.value)}
                   placeholder="Buscar por CPF, ID da transação, e-mail ou nome"
-                  className="w-full bg-transparent text-fs-body text-card-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="2xl:w-[300px] xl:w-[200px] w-full bg-transparent text-fs-body text-card-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
               <div className="relative flex items-center gap-2" ref={filterAreaRef}>
@@ -470,8 +488,20 @@ export default function Sales() {
                 >
                   <Filter className="h-5 w-5" aria-hidden />
                 </button>
-                <ActionButton icon={Eye} label="Visualizar configurações" />
-                <ActionButton icon={Upload} label="Exportar vendas" />
+                <ActionButton
+                  icon={Eye}
+                  label={hideSensitive ? "Mostrar valores" : "Ocultar valores"}
+                  active={hideSensitive}
+                  onClick={() => setHideSensitive(prev => !prev)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setExportModalOpen(true)}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-muted bg-background/50 text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  aria-label="Exportar vendas"
+                >
+                  <Upload className="h-5 w-5" aria-hidden />
+                </button>
                 <SalesFilterPanel
                   isOpen={isFilterOpen}
                   onClose={() => setFilterOpen(false)}
@@ -488,19 +518,45 @@ export default function Sales() {
               rowKey={sale => sale.id}
               rowsPerPage={rowsPerPage}
               emptyMessage="Nenhuma venda encontrada para o filtro aplicado."
-              tableContainerClassName="overflow-hidden rounded-[12px] border border-muted bg-card"
-              tableClassName="text-fs-body"
-              headerRowClassName="bg-card/30 text-sora text-muted-foreground h-[44px]"
-              paginationContainerClassName="mx-auto w-full max-w-[1279px]"
-              wrapperClassName="w-full"
+              tableContainerClassName="overflow-hidden xl:max-w-[1200px] rounded-[8px] border border-muted bg-card"
+              tableClassName="xl:max-w-[1200px] 2xl:text-fs-body"
+              headerRowClassName="bg-card/30 text-fs-body h-[44px]"
+              paginationContainerClassName="mx-auto w-full max-w-[1200px]"
+              wrapperClassName="w-full xl:max-w-[1200px]"
               onRowClick={setSelectedSale}
-              minWidth="1100px"
+              minWidth="xl:1000px 2xl:1300px"
             />
         </section>
       </div>
     </div>
     {selectedSale && (
       <SalesDetailPanel sale={selectedSale} onClose={() => setSelectedSale(null)} />
+    )}
+    {isExportModalOpen && (
+      <aside className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div className="w-[320px] rounded-[16px] bg-card px-6 py-6 text-card-foreground shadow-2xl">
+          <div className="flex items-center justify-between">
+            <p className="text-lg font-semibold">Exportar relatório</p>
+            <button
+              type="button"
+              className="rounded-full p-1 text-muted-foreground hover:text-primary"
+              onClick={() => setExportModalOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Ao clicar em Confirmar, enviaremos o relatório para o e-mail associado à conta. Esse processo pode levar alguns minutos.
+          </p>
+          <button
+            type="button"
+            className="mt-6 w-full rounded-[10px] bg-gradient-to-r from-[#9f5cff] to-[#c14eff] px-4 py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90"
+            onClick={() => setExportModalOpen(false)}
+          >
+            Confirmar
+          </button>
+        </div>
+      </aside>
     )}
   </DashboardLayout>
 );
