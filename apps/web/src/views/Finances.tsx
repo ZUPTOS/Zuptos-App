@@ -638,8 +638,8 @@ export default function Finances() {
             onClick={() => setIsWithdrawOpen(false)}
             onKeyDown={event => handleOverlayKeyDown(event, () => setIsWithdrawOpen(false))}
           />
-          <div className="fixed left-1/2 top-1/2 z-50 h-[500px] w-full max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card">
-            <div className="flex items-start justify-between border-b border-muted px-5 py-4">
+          <div className="fixed left-1/2 top-1/2 z-50 h-[450px] w-full max-w-[410px] -translate-x-1/2 -translate-y-1/2 rounded-[8px] border border-muted bg-card">
+            <div className="flex items-start justify-between border-b border-muted px-5 py-5">
               <p className="text-fs-lead font-semibold text-foreground">Solicitar saque</p>
               <button
                 type="button"
@@ -655,12 +655,12 @@ export default function Finances() {
                 <p className="text-fs-title font-semibold text-foreground">Quanto você quer sacar?</p>
                 <input
                   type="text"
-                  className="mt-3 h-[49px] w-full max-w-[420px] rounded-[10px] border border-muted bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="mt-3 h-[49px] w-full max-w-[410px] rounded-[10px] border border-muted bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   placeholder="R$ 0,00"
                 />
               </div>
               <div
-                className="flex h-[42px] w-full max-w-[420px] items-center justify-between rounded-[10px] px-4 text-fs-stat font-semibold text-foreground"
+                className="flex h-[42px] w-full max-w-[410px] items-center justify-between rounded-[10px] px-4 text-fs-stat font-semibold text-foreground"
                 style={{
                   background: "linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--muted)) 50%, hsl(var(--card)) 100%)"
                 }}
@@ -668,7 +668,7 @@ export default function Finances() {
                 <span className="text-muted-foreground">Saldo disponível:</span>
                 <span>{formatCurrency(balanceCards[0].value ?? 0)}</span>
               </div>
-              <div className="w-full max-w-[420px] space-y-3 text-fs-stat text-muted-foreground">
+              <div className="w-full max-w-[410px] space-y-3 text-fs-stat text-muted-foreground">
                 <div className="flex items-center justify-between">
                   <span>Chave pix:</span>
                   <span>------</span>
@@ -707,7 +707,7 @@ export default function Finances() {
             onClick={() => setShowAccountForm(false)}
             onKeyDown={event => handleOverlayKeyDown(event, () => setShowAccountForm(false))}
           />
-          <div className="fixed left-1/2 top-1/2 z-50 h-[500px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-5">
+          <div className="fixed left-1/2 top-1/2 z-50 h-[500px] w-[410px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-muted bg-card p-5">
             <div className="flex items-center justify-between border-b border-muted pb-4">
               <p className="text-fs-title font-semibold text-foreground">Configurar conta bancária</p>
               <button
@@ -753,7 +753,7 @@ export default function Finances() {
                   />
                 </label>
               </div>
-              <div className="flex gap-3 justify-end">
+              <div className="flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setShowAccountForm(false)}
@@ -767,7 +767,7 @@ export default function Finances() {
                     setHasBankAccount(true);
                     setShowAccountForm(false);
                   }}
-                  className="h-[35px] w-[140px] rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-[12px] font-semibold text-white"
+                  className="h-[35px] w-full max-w-[140px] rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-[12px] font-semibold text-white"
                 >
                   Adicionar conta
                 </button>
