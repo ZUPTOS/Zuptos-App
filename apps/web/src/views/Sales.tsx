@@ -4,14 +4,6 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip
-} from "recharts";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
   Eye,
   Filter,
   Search,
@@ -146,44 +138,6 @@ const ActionButton = ({
   >
     <Icon className="h-5 w-5" aria-hidden />
   </button>
-);
-
-const MetricCardChart = ({
-  data,
-  gradientId
-}: {
-  data: MetricCard["data"];
-  gradientId: string;
-}) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={data}>
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#9f5cff" stopOpacity={0.6} />
-          <stop offset="95%" stopColor="#9f5cff" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <Tooltip
-        cursor={{ stroke: "var(--primary)", strokeWidth: 1 }}
-        contentStyle={{
-          backgroundColor: "var(--card)",
-          borderRadius: "12px",
-          border: "1px solid var(--border)",
-          color: "var(--foreground)",
-          fontSize: "12px"
-        }}
-      />
-      <Area
-        type="monotone"
-        dataKey="value"
-        stroke="#a855f7"
-        strokeWidth={2}
-        fillOpacity={1}
-        fill={`url(#${gradientId})`}
-        isAnimationActive={false}
-      />
-    </AreaChart>
-  </ResponsiveContainer>
 );
 
 const initialFilters: SalesFilters = {
@@ -409,12 +363,6 @@ export default function Sales() {
         >
           <section className="grid gap-2 md:grid-cols-3">
             {metricCards.map(card => {
-              const gradientId = `metric-chart-${card.id}`;
-              const isPositive = card.change >= 0;
-              const ChangeIcon = isPositive ? ArrowUpRight : ArrowDownRight;
-              const chartData = hideSensitive
-                ? card.data.map(entry => ({ ...entry, value: 0 }))
-                : card.data;
               const displayValue = hideSensitive
                 ? "..."
                 : card.id === "total-vendas"
@@ -423,43 +371,16 @@ export default function Sales() {
               return (
                 <article
                   key={card.id}
-                  className="rounded-[8px] xl:h-[120px] 2xl:h-[140px] border border-muted bg-card/60 2xl:px-6 2xl:py-5 xl:px-4 xl:py-4"
+                  className="rounded-[8px] xl:h-[90px] 2xl:h-[110px] border border-muted bg-card/60 2xl:px-6 2xl:py-5 xl:px-4 xl:py-4"
                 >
                   <h1
-                    className="xl:text-md 2xl:text-lg font-semibold text-muted-foreground"
+                    className="xl:text-[16px] 2xl:text-[18px] font-semibold text-muted-foreground"
                   >
                     {card.title}
                   </h1>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex flex-col items-start gap-2">
-                      <p className="xl:text-md 2xl:text-lg">
-                        {displayValue}
-                      </p>
-
-                        <div
-                          className={`flex items-center gap-2 xl:text-xs 2xl:text-xs ${
-                            isPositive ? "text-emerald-400" : "text-red-400"
-                          }`}
-                        >
-                          <ChangeIcon className="h-4 w-4" aria-hidden />
-                          <span>
-                            {hideSensitive ? "--" : `${isPositive ? "+" : ""}${card.change
-                              .toFixed(1)
-                              .replace(".", ",")}%`}
-                            {!hideSensitive && (
-                              <span className="ml-1 text-muted-foreground">
-                                vs o período anterior
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                    </div>
-                    <div
-                      className="flex-shrink-0 xl:w-[78px] xl:h-[54px] 2xl:w-[104px] 2xl:h-[66px]"
-                    >
-                      <MetricCardChart data={chartData} gradientId={gradientId} />
-                    </div>
-                  </div>
+                  <p className="mt-2 xl:text-[18px] 2xl:text-[22px] font-semibold text-foreground">
+                    {displayValue}
+                  </p>
                 </article>
               );
             })}
