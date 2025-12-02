@@ -89,6 +89,14 @@ const PAYMENT_LINE_COLOR = "#6c27d7";
 const JOURNEY_HIGHLIGHT_COLOR = "#5823b2";
 const JOURNEY_INACTIVE_COLOR = "#9D9FA3";
 const REVENUE_TOOLTIP_DATE = "01/NOV/2025";
+const LINE_RENDER_ORDER: Record<string, number> = {
+  reembolso: 0,
+  chargeback: 1,
+  ticket_medio: 2,
+  vendas: 3,
+  receita_liquida: 4,
+  faturamento: 5
+};
 
 const currencyMetricKeys = new Set(["faturamento", "receitaLiquida", "ticketMedio"]);
 
@@ -328,10 +336,12 @@ export default function Dashboard() {
 
   const linesToRender = useMemo(
     () =>
-      visualizationOptions.map(option => ({
-        ...option,
-        hidden: visibleLines[option.id] === false
-      })),
+      visualizationOptions
+        .map(option => ({
+          ...option,
+          hidden: visibleLines[option.id] === false
+        }))
+        .sort((a, b) => (LINE_RENDER_ORDER[a.id] ?? 0) - (LINE_RENDER_ORDER[b.id] ?? 0)),
     [visibleLines, visualizationOptions]
   );
 
