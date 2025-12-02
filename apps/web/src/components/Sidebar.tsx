@@ -275,14 +275,14 @@ export default function Sidebar() {
                 ) : Icon ? (
                   <Icon
                     className={`h-5 w-5 xl:h-3.5 xl:w-3.5 2xl:h-4 2xl:w-4 ${
-                      isActive ? "text-[#5823b2]" : "text-muted-foreground"
+                      isActive ? "text-primary" : "text-muted-foreground"
                     }`}
                   />
                 ) : null}
               </span>
               {isVisible && (
                 <span
-                  className={`text-sm xl:text-xs 2xl:text-sm font-semibold tracking-tight transition-colors duration-200 ${
+                  className={`text-sm xl:text-xs 2xl:text-sm font-semibold ${
                     isActive
                       ? "text-primary"
                       : "text-foreground group-hover:text-white"

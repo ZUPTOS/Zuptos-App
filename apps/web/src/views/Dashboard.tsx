@@ -107,9 +107,10 @@ const formatTooltipValue = (value: number, metricKey?: string) => {
 type ChartTooltipProps = TooltipProps<ValueType, NameType> & {
   chartType: ChartType;
   options: VisualizationOption[];
+  hideValues: boolean;
 };
 
-const ChartTooltip = ({ active, payload, options }: ChartTooltipProps) => {
+const ChartTooltip = ({ active, payload, options, hideValues }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   const header = REVENUE_TOOLTIP_DATE;
 
@@ -126,7 +127,7 @@ const ChartTooltip = ({ active, payload, options }: ChartTooltipProps) => {
           const metricKey = option?.key ?? (typeof item.dataKey === "string" ? item.dataKey : undefined);
           const numericValue =
             typeof item.value === "number" ? item.value : Number(item.value ?? Number.NaN);
-          const formattedValue = formatTooltipValue(numericValue, metricKey);
+          const formattedValue = hideValues ? "•••" : formatTooltipValue(numericValue, metricKey);
           const color = option?.color ?? item.color ?? "#ffffff";
           return (
             <div key={`${labelText}-${index}`} className="flex items-center gap-2 leading-tight xl:text-[12px] 2xl:text-[18px]">
@@ -156,9 +157,11 @@ export default function Dashboard() {
   const [isFilterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, boolean>>({});
   const [hideValues, setHideValues] = useState(false);
+  const [lineAnimationKey, setLineAnimationKey] = useState(0);
 
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const visualizationRef = useRef<HTMLDivElement>(null);
+  const prevHideValuesRef = useRef(hideValues);
   const { theme } = useTheme();
   const isLightMode = theme === "light";
 
@@ -229,9 +232,23 @@ export default function Dashboard() {
     });
   }, [visualizationOptions]);
 
+  useEffect(() => {
+    if (prevHideValuesRef.current && !hideValues) {
+      setLineAnimationKey(key => key + 1);
+    }
+    prevHideValuesRef.current = hideValues;
+  }, [hideValues]);
+
   const chartData = useMemo(() => {
+    const baseData =
+      chartType === "daily"
+        ? mockData.revenue.daily
+        : chartType === "monthly"
+          ? mockData.revenue.monthly
+          : mockData.revenue.yearly;
+
     if (hideValues) {
-      return (mockData.revenue.daily ?? []).map(point => ({
+      return baseData.map(point => ({
         ...point,
         faturamento: 0,
         receitaLiquida: 0,
@@ -241,14 +258,8 @@ export default function Dashboard() {
         reembolso: 0
       }));
     }
-    switch (chartType) {
-      case "daily":
-        return mockData.revenue.daily;
-      case "monthly":
-        return mockData.revenue.monthly;
-      case "yearly":
-        return mockData.revenue.yearly;
-    }
+
+    return baseData;
   }, [chartType, hideValues]);
 
   const axisColor = "var(--muted-foreground)";
@@ -617,12 +628,13 @@ export default function Dashboard() {
                         {...props}
                         chartType={chartType}
                         options={visualizationOptions}
+                        hideValues={hideValues}
                       />
                     )}
                   />
                   {linesToRender.map(option => (
                     <Line
-                      key={option.id}
+                      key={`${option.id}-${lineAnimationKey}`}
                       type="linear"
                       dataKey={option.key}
                       stroke={option.color}

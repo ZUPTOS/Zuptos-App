@@ -1,6 +1,6 @@
 'use client';
 
-import { Info, Landmark, Users } from "lucide-react";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { Transaction } from "@/types/transaction";
 
@@ -11,9 +11,9 @@ type TransactionDetailPanelProps = {
 };
 
 const tabs = [
-  { id: "financeiro", label: "Financeiro", Icon: Landmark },
-  { id: "participantes", label: "Participantes", Icon: Users },
-  { id: "info", label: "Informações", Icon: Info }
+  { id: "financeiro", label: "Financeiro", iconSrc: "/images/transactionDetailPannel/bank.svg" },
+  { id: "participantes", label: "Participantes", iconSrc: "/images/transactionDetailPannel/people.svg" },
+  { id: "info", label: "Informações", iconSrc: "/images/transactionDetailPannel/info.svg" }
 ] as const;
 
 const parseCurrency = (value: string) => {
@@ -139,7 +139,21 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
                   isActive ? "border-primary text-primary" : "border-foreground/20 text-muted-foreground"
                 }`}
               >
-                <tab.Icon className="h-6 w-6" />
+                <Image
+                  src={tab.iconSrc}
+                  alt={tab.label}
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 object-contain"
+                  style={
+                    isActive
+                      ? {
+                          filter:
+                            "brightness(0) saturate(100%) invert(25%) sepia(85%) saturate(2474%) hue-rotate(263deg) brightness(94%) contrast(94%)"
+                        }
+                      : undefined
+                  }
+                />
               </span>
               <span className="text-base font-semibold">{tab.label}</span>
             </button>
