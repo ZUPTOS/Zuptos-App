@@ -73,7 +73,7 @@ const filterStatusOptions = [
 const productCategoryOptions = ["Tecnologia", "Marketing", "Finanças"];
 
 const formInputClasses =
-  "w-full rounded-[10px] border border-muted bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
+  "w-full rounded-[10px] border border-muted bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
 
 const buildPaginationItems = (totalPages: number): (number | string)[] => {
   if (totalPages <= 6) {
@@ -570,7 +570,7 @@ export default function Products() {
                       onChange={() => toggleNewProductType(option.value)}
                       className="peer sr-only"
                     />
-                    <span className="flex h-[26px] w-[26px] items-center justify-center rounded border border-card bg-background transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                    <span className="flex h-[26px] w-[26px] items-center justify-center rounded border border-foreground/10 bg-card transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
                       <Check
                         className="h-4 w-4 text-white opacity-0 transition-opacity"
                         aria-hidden
