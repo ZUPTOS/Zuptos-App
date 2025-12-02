@@ -307,25 +307,22 @@ export default function Dashboard() {
 
   const handleToggleLine = (id: string) => {
     setVisibleLines(prev => {
-      const enabledCount = visualizationOptions.reduce(
-        (count, option) => (prev[option.id] !== false ? count + 1 : count),
-        0
-      );
       const isEnabled = prev[id] !== false;
-      if (isEnabled && enabledCount <= 1) {
-        return prev;
-      }
       return {
         ...prev,
-        [id]: !isEnabled
+        [id]: isEnabled ? false : true
       };
     });
   };
 
-  const linesToRender = useMemo(() => {
-    const active = visualizationOptions.filter(option => visibleLines[option.id] !== false);
-    return active.length ? active : visualizationOptions;
-  }, [visibleLines, visualizationOptions]);
+  const linesToRender = useMemo(
+    () =>
+      visualizationOptions.map(option => ({
+        ...option,
+        hidden: visibleLines[option.id] === false
+      })),
+    [visibleLines, visualizationOptions]
+  );
 
   const progressWidth = hideValues ? 0 : mockData.user.progress;
 
@@ -470,7 +467,9 @@ export default function Dashboard() {
                   className="rounded-[2px] flex-1 h-[10px] w-[111px]"
                   style={{
                     backgroundColor: color,
-                    height: color === HEALTH_FOCUS_COLOR ? "14px" : "10px"
+                    height: hideValues ? "10px" : color === HEALTH_FOCUS_COLOR ? "14px" : "10px",
+                    opacity: hideValues ? 0.6 : 1,
+                    filter: hideValues ? "brightness(0.7)" : undefined
                   }}
                 />
               ))}
@@ -482,7 +481,7 @@ export default function Dashboard() {
               </p>
               <span className="text-muted-foreground leading-tight xl:text-[12px] 2xl:text-[15px]">
                 A saúde da conta está{" "}
-                <span className="text-foreground font-semibold">boa</span>
+                <span className="text-foreground font-semibold">{hideValues ? "•••" : "boa"}</span>
               </span>
             </div>
 
@@ -491,6 +490,7 @@ export default function Dashboard() {
                 <span
                   key={detail.label}
                   className="inline-flex justify-center items-center gap-2 rounded-[8px] px-[6px] py-[6px] bg-foreground/10 text-muted-foreground 2xl:text-[12px] xl:text-[10px]"
+                  style={{ opacity: hideValues ? 0.55 : 1 }}
                 >
                   {detail.label} {hideValues ? "•••" : `${detail.percentage}%`}
                 </span>
@@ -630,6 +630,7 @@ export default function Dashboard() {
                       dot={false}
                       opacity={1}
                       isAnimationActive
+                      hide={option.hidden}
                     />
                   ))}
                 </LineChart>
@@ -663,15 +664,18 @@ export default function Dashboard() {
               <div
                 className="w-full h-3 rounded-full overflow-hidden border"
                 style={{
-                  borderColor: JOURNEY_HIGHLIGHT_COLOR,
-                  backgroundColor: "rgba(88, 35, 178, 0.15)"
+                  borderColor: hideValues ? "var(--border)" : JOURNEY_HIGHLIGHT_COLOR,
+                  backgroundColor: hideValues ? "var(--muted)" : "rgba(88, 35, 178, 0.15)"
                 }}
               >
                 <div
                   className="h-full rounded-full"
                   style={{
                     width: `${progressWidth}%`,
-                    background: `linear-gradient(90deg, ${JOURNEY_HIGHLIGHT_COLOR} 20%, #a768ff 70%, #dbc4ff 100%)`,
+                    background: hideValues
+                      ? "var(--muted-foreground)"
+                      : `linear-gradient(90deg, ${JOURNEY_HIGHLIGHT_COLOR} 20%, #a768ff 70%, #dbc4ff 100%)`,
+                    opacity: hideValues ? 0.35 : 1
                   }}
                 />
               </div>
@@ -679,21 +683,38 @@ export default function Dashboard() {
               {mockData.levels.map((level, index) => {
                 const isCurrentLevel = level.id === mockData.user.level;
                 const isActiveTier = index < 2;
+                const cardBorderColor = hideValues
+                  ? "var(--border)"
+                  : isActiveTier
+                    ? JOURNEY_HIGHLIGHT_COLOR
+                    : "var(--border)";
+                const cardBackground = hideValues
+                  ? "var(--card)"
+                  : isActiveTier
+                    ? "var(--muted)"
+                    : "var(--card)";
+                const cardShadow = !hideValues && isCurrentLevel ? `0 15px 40px rgba(0,0,0,0.15)` : undefined;
+                const iconOpacity = hideValues ? 0.4 : isActiveTier ? 1 : 0.35;
+                const levelNameColor = hideValues
+                  ? "var(--muted-foreground)"
+                  : isActiveTier
+                    ? JOURNEY_HIGHLIGHT_COLOR
+                    : JOURNEY_INACTIVE_COLOR;
                 return (
                   <div
                     key={level.id}
                     className={`${cardSurface} px-3 py-4 text-center transition`}
                     style={{
-                      borderColor: isActiveTier ? JOURNEY_HIGHLIGHT_COLOR : "var(--border)",
-                      boxShadow: isCurrentLevel ? `0 15px 40px rgba(0,0,0,0.15)` : undefined,
-                      backgroundColor: isActiveTier ? "var(--muted)" : "var(--card)"
+                      borderColor: cardBorderColor,
+                      boxShadow: cardShadow,
+                      backgroundColor: cardBackground
                     }}
                   >
                     <div
                       className={"mx-auto my-4 h-[106px] w-[72px] rounded-[12px] border " + (isActiveTier ? "border-primary" : "border-")}
                       style={{
                         backgroundColor: "var(--border)",
-                        opacity: isActiveTier ? 1 : 0.35,
+                        opacity: iconOpacity,
                         borderColor: "var(--border)"
                       }}
                     />
@@ -707,7 +728,7 @@ export default function Dashboard() {
                     <p
                       className="text-fs-section font-medium"
                       style={{
-                        color: isActiveTier ? JOURNEY_HIGHLIGHT_COLOR : JOURNEY_INACTIVE_COLOR
+                        color: levelNameColor
                       }}
                     >
                       {level.name}

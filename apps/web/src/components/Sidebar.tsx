@@ -39,6 +39,16 @@ export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(initialPinned);
   const { theme } = useTheme();
   const isLightMode = theme === "light";
+  const handleLogoClick = () => {
+    setIsExpanded(true);
+    setIsPinned(true);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsPinned(false);
+    setIsExpanded(false);
+  };
+
   const getIconStyle = (isActive: boolean) => {
     if (isActive) {
       return {
@@ -180,12 +190,19 @@ export default function Sidebar() {
       style={{
         width: isVisible ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)"
       }}
-      onMouseEnter={() => !isPinned && setIsExpanded(true)}
-      onMouseLeave={() => !isPinned && setIsExpanded(false)}
     >
       {/* Logo Section */}
       <div
-        className={`relative flex items-center justify-center ${isExpanded ? "px-6" : ""} p-3 xl:p-3 2xl:p-3`}
+        className={`relative flex items-center justify-center ${isExpanded ? "px-6" : ""} p-3 xl:p-3 2xl:p-3 cursor-pointer`}
+        onClick={handleLogoClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleLogoClick();
+          }
+        }}
       >
         {isExpanded ? (
           <Image
@@ -210,13 +227,14 @@ export default function Sidebar() {
           <button
             type="button"
             className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full bg-transparent p-2 transition hover:text-primary"
-            onClick={() => {
-              setIsPinned(prev => !prev);
-              if (!isPinned) setIsExpanded(true);
+            onClick={(event) => {
+              event.stopPropagation();
+              handleCloseSidebar();
             }}
-            title={isPinned ? "Desafixar barra lateral" : "Fixar barra lateral"}
+            title="Fechar barra lateral"
+            aria-label="Fechar barra lateral"
           >
-            <Image src="/images/sidebutton.svg" alt="Toggle sidebar" width={24} height={24} />
+            <Image src="/images/sidebutton.svg" alt="Fechar sidebar" width={24} height={24} />
           </button>
         )}
       </div>
@@ -257,7 +275,7 @@ export default function Sidebar() {
                 ) : Icon ? (
                   <Icon
                     className={`h-5 w-5 xl:h-3.5 xl:w-3.5 2xl:h-4 2xl:w-4 ${
-                      isActive ? "text-primary" : "text-muted-foreground"
+                      isActive ? "text-[#5823b2]" : "text-muted-foreground"
                     }`}
                   />
                 ) : null}
