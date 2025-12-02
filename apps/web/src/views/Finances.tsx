@@ -333,7 +333,6 @@ export default function Finances() {
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[146px]">
                 <div className="flex items-center justify-between">
                   <p className="text-fs-title font-semibold text-foreground">Comissões a receber</p>
-                  <Banknote className="h-5 w-5 text-muted-foreground" aria-hidden />
                 </div>
                 <p className="mt-2 text-fs-display font-semibold text-foreground">
                   {formatCurrency(balanceCards[3].value ?? 0)}
