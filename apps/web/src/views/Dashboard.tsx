@@ -530,26 +530,19 @@ export default function Dashboard() {
               <div className="relative flex items-center" ref={visualizationRef}>
                 <button
                   onClick={() => setVisualizationOpen(prev => !prev)}
-                  className="flex items-center justify-center rounded-[16px] text-muted-foreground"
-                  aria-label="Abrir opções de visualização"
+                  className="flex h-10 w-10 items-center justify-center rounded-[16px] text-muted-foreground hover:text-foreground transition"
+                  aria-label={isVisualizationOpen ? "Fechar opções de visualização" : "Abrir opções de visualização"}
                   type="button"
                 >
-                  <DetalhamentoIcon className="h-10 w-10" />
+                  {isVisualizationOpen ? <X className="h-6 w-6" /> : <DetalhamentoIcon className="h-10 w-10" />}
                 </button>
                 {isVisualizationOpen && (
                   <div
-                    className={`${cardSurface} absolute right-0 z-50 mt-3 w-[clamp(260px,22vw,340px)] max-h-[420px] overflow-y-auto p-5 space-y-4`}
-                    style={{ top: "calc(100% + 8px)" }}
+                    className={`${cardSurface} absolute z-50 w-[clamp(220px,20vw,280px)] max-h-[360px] overflow-y-auto p-4 space-y-3`}
+                    style={{ top: "60%", right: "calc(100% + 10px)", transform: "translateY(-10%)" }}
                   >
-                    <div className="flex items-center justify-between border-b border-foreground/10 pb-2">
+                    <div className="border-b border-foreground/10 pb-2">
                       <p className="text-fs-section font-semibold text-foreground">Visualização</p>
-                      <button
-                        onClick={() => setVisualizationOpen(false)}
-                        className="text-muted-foreground transition hover:text-foreground"
-                        aria-label="Fechar visualização"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
                     </div>
                     <div className="space-y-2">
                       {visualizationOptions.map(option => {
