@@ -345,7 +345,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex justify-end gap-2">
-            <div className="relative flex w-full max-w-[420px] items-center gap-3" ref={filterDropdownRef}>
+            <div className="relative flex w-full max-w-[400px] items-center gap-3" ref={filterDropdownRef}>
               <button
                 type="button"
                 onClick={() => setFilterDropdownOpen(prev => !prev)}
@@ -424,7 +424,7 @@ export default function Dashboard() {
         <section
           className="grid gap-3"
           style={{
-            gridTemplateColumns: `minmax(0, var(--dash-col-main)) minmax(0, var(--dash-col-mid)) minmax(0, var(--dash-col-mid)) minmax(0, var(--dash-col-side))`
+            gridTemplateColumns: `minmax(0, var(--dash-col-main)) minmax(0, 196px) minmax(0, 196px) minmax(0, 510px)`
           }}
         >
           <div className={`${cardSurface} p-6 flex flex-col justify-between`}>
@@ -442,9 +442,9 @@ export default function Dashboard() {
           {balanceCards.map(card => (
             <div
               key={card.label}
-              className={`${cardSurface} px-6 justify-center flex flex-col gap-4`}
+              className={`${cardSurface} xl:px-10 xl:py-10 2xl:px-6 2xl:py-6 justify-center flex flex-col gap-4`}
             >
-              <div className="flex w-[118.2px] h-[105.84px] flex-col gap-[12px_17px]">
+              <div className="flex w-full h-full flex-col gap-[12px_17px]">
               <div className="flex items-center gap-2">
                 <Image
                   src={card.iconSrc}
@@ -501,9 +501,9 @@ export default function Dashboard() {
 
         {/* Linha 3 - gráfico + jornada */}
         <section
-          className="grid gap-3"
+          className="grid gap-3 h-[calc(var(--dash-card-height) - 2rem)] overflow-hidden"
           style={{
-            gridTemplateColumns: `minmax(0, var(--dash-chart-left)) minmax(0, var(--dash-chart-right))`,
+            gridTemplateColumns: `minmax(0, 763px) minmax(0, 450px)`,
             height: "var(--dash-card-height)"
           }}
         >
