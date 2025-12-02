@@ -1,7 +1,7 @@
 'use client';
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
-import { Building2, Users2, Info } from "lucide-react";
 import type { Transaction } from "@/types/transaction";
 
 type TransactionDetailPanelProps = {
@@ -11,9 +11,9 @@ type TransactionDetailPanelProps = {
 };
 
 const tabs = [
-  { id: "financeiro", label: "Financeiro", icon: Building2 },
-  { id: "participantes", label: "Participantes", icon: Users2 },
-  { id: "info", label: "Informações", icon: Info }
+  { id: "financeiro", label: "Financeiro", iconSrc: "/images/transactionDetailPannel/bank.svg" },
+  { id: "participantes", label: "Participantes", iconSrc: "/images/transactionDetailPannel/people.svg" },
+  { id: "info", label: "Informações", iconSrc: "/images/transactionDetailPannel/info.svg" }
 ] as const;
 
 const parseCurrency = (value: string) => {
@@ -122,7 +122,6 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         {tabs.map(tab => {
-          const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -137,10 +136,16 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
             >
               <span
                 className={`mb-3 flex h-12 w-12 items-center justify-center rounded-[12px] border ${
-                  isActive ? "border-purple-600/60 bg-purple-600/10 text-purple-300" : "border-foreground/15 text-muted-foreground"
+                  isActive ? "border-purple-600/60 bg-purple-600/10" : "border-foreground/15"
                 }`}
               >
-                <Icon className="h-6 w-6" />
+                <Image
+                  src={tab.iconSrc}
+                  alt={tab.label}
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 object-contain"
+                />
               </span>
               <span className="text-base font-semibold">{tab.label}</span>
             </button>
@@ -272,14 +277,16 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
         )}
       </div>
 
-      <div className="mt-6 flex justify-end">
-        <button
-          type="button"
-          className="rounded-[10px] border border-foreground/10 bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
-        >
-          Estornar
-        </button>
-      </div>
+      {activeTab === "financeiro" && (
+        <div className="mt-6 flex justify-end">
+          <button
+            type="button"
+            className="rounded-[10px] border border-primary/20 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+          >
+            Estornar
+          </button>
+        </div>
+      )}
     </section>
   );
 }
