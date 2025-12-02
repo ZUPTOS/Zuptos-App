@@ -1,6 +1,6 @@
 'use client';
 
-import Image from "next/image";
+import { Info, Landmark, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Transaction } from "@/types/transaction";
 
@@ -11,9 +11,9 @@ type TransactionDetailPanelProps = {
 };
 
 const tabs = [
-  { id: "financeiro", label: "Financeiro", iconSrc: "/images/transactionDetailPannel/bank.svg" },
-  { id: "participantes", label: "Participantes", iconSrc: "/images/transactionDetailPannel/people.svg" },
-  { id: "info", label: "Informações", iconSrc: "/images/transactionDetailPannel/info.svg" }
+  { id: "financeiro", label: "Financeiro", Icon: Landmark },
+  { id: "participantes", label: "Participantes", Icon: Users },
+  { id: "info", label: "Informações", Icon: Info }
 ] as const;
 
 const parseCurrency = (value: string) => {
@@ -130,22 +130,16 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-col items-center justify-center rounded-[12px] border px-4 py-4 text-sm font-semibold transition ${
                 isActive
-                  ? "border-purple-600/60 bg-purple-600/10 text-purple-300"
-                  : "border-foreground/15 text-muted-foreground hover:text-foreground"
+                  ? "border-primary text-primary"
+                  : "border-foreground/15 text-muted-foreground hover:border-foreground/25 hover:text-foreground"
               }`}
             >
               <span
                 className={`mb-3 flex h-12 w-12 items-center justify-center rounded-[12px] border ${
-                  isActive ? "border-purple-600/60 bg-purple-600/10" : "border-foreground/15"
+                  isActive ? "border-primary text-primary" : "border-foreground/20 text-muted-foreground"
                 }`}
               >
-                <Image
-                  src={tab.iconSrc}
-                  alt={tab.label}
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 object-contain"
-                />
+                <tab.Icon className="h-6 w-6" />
               </span>
               <span className="text-base font-semibold">{tab.label}</span>
             </button>

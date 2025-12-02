@@ -337,7 +337,7 @@ export default function Dashboard() {
       userLocation={mockData.user.location}
       pageTitle="Dashboard"
     >
-      <div className="py-5 space-y-3 mx-auto 2xl:w-[1200px] xl:w-[900px]">
+      <div className="py-5 space-y-3 mx-auto 2xl:w-[1198px] xl:w-[900px]">
         {/* Linha 1 - Data + filtro */}
         <section className="grid grid-cols-[minmax(0,clamp(240px,20vw,320px))_1fr] items-start gap-2">
           <div className="w-full">
