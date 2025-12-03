@@ -91,17 +91,7 @@ const mockProducts: Product[] = [
 
 const infoIconClass = 'h-4 w-4 text-muted-foreground';
 
-function ProductCard({
-  product,
-  menuOpen,
-  onToggleMenu,
-  onMenuAction
-}: {
-  product: Product;
-  menuOpen: boolean;
-  onToggleMenu: () => void;
-  onMenuAction: (action: 'visualizar' | 'editar' | 'deletar') => void;
-}) {
+function ProductCard({ product }: { product: Product }) {
   return (
     <div className="w-full xl:max-w-[390px] 2xl:max-w-[417px] 2xl:max-h-[400px] xl:max-h-[350px] text-left rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b] p-6 transition hover:-translate-y-0.5 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
       <div className="flex items-start gap-4">
@@ -147,7 +137,6 @@ export default function AdminProdutos() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState(mockProducts);
   const [currentPage, setCurrentPage] = useState(3);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,15 +217,7 @@ export default function AdminProdutos() {
                     }
                   }}
                 >
-                  <ProductCard
-                    product={product}
-                    menuOpen={openMenuId === product.id}
-                    onToggleMenu={() => setOpenMenuId(product.id)}
-                    onMenuAction={action => {
-                      setOpenMenuId(product.id);
-                      console.log(`Product ID: ${product.id} - ${action}`);
-                    }}
-                  />
+                  <ProductCard product={product} />
                 </div>
               ))
             ) : (

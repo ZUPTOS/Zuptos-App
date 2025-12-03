@@ -6,8 +6,6 @@ type WithdrawalDetailPanelProps = {
   cardSurfaceClassName: string;
 };
 
-const STATUS_AUTHOR = "Sistema automático";
-
 const formatDocument = (id: string) => {
   const digits = id.replace(/\D/g, "").padEnd(11, "0").slice(0, 11);
   return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
