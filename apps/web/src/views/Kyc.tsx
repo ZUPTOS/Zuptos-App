@@ -24,6 +24,13 @@ type DocumentSlot = {
   title: string;
 };
 
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
 const documentSlots: DocumentSlot[] = [
   { id: "doc-front", title: "Frente do documento" },
   { id: "doc-back", title: "Verso do documento" },
@@ -66,23 +73,68 @@ const pfDocumentSlots: DocumentSlot[] = [
 export default function KycView() {
   const [currentStep, setCurrentStep] = useState<Step>("dados");
   const [accountType, setAccountType] = useState("pj");
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
 
   const fullWidthIdsForPJ = useMemo(
     () => new Set(["representante", "telefone", "cep", "rua", "estado", "link"]),
     []
   );
   const isPessoaFisica = accountType === "pf";
-  const responsiveFieldHeight = "h-[45px] sm:h-[47px] md:h-[49px]";
-  const limitedWidth = "max-w-full sm:max-w-[340px] md:max-w-[433px]";
+  const responsiveFieldHeight = "max-h-[60px]";
+  const limitedWidth = "2xl:w-[396px]";
   const formFields = useMemo(
     () => [...(isPessoaFisica ? [] : pjRemainingFields), ...infoFields],
     [isPessoaFisica]
   );
   const activeDocumentSlots = isPessoaFisica ? pfDocumentSlots : documentSlots;
-  const documentsGridClass = isPessoaFisica ? "grid gap-5 sm:grid-cols-2" : "grid gap-5 sm:grid-cols-2";
+  const documentsGridClass = isPessoaFisica ? "grid gap-4 sm:grid-cols-2" : "grid gap-5 sm:grid-cols-2";
 
   const handleNext = () => setCurrentStep("documentos");
   const handleBack = () => setCurrentStep("dados");
+  const formatDigits = (value: string) => value.replace(/\D/g, "");
+
+  const formatCPF = (value: string) => {
+    const digits = formatDigits(value).slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  };
+
+  const formatCNPJ = (value: string) => {
+    const digits = formatDigits(value).slice(0, 14);
+    return digits
+      .replace(/(\d{2})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,4})/, "$1/$2")
+      .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+  };
+
+  const formatCEP = (value: string) => {
+    const digits = formatDigits(value).slice(0, 8);
+    return digits.replace(/(\d{5})(\d{1,3})$/, "$1-$2");
+  };
+
+  const formatCurrencyBRL = (value: string) => {
+    const digits = formatDigits(value);
+    if (!digits) return "";
+    const number = Number(digits) / 100;
+    return currencyFormatter.format(number).replace(/\u00a0/g, " ");
+  };
+
+  const handleInputChange = (id: string, value: string) => {
+    let formatted = value;
+    if (id === "cpf" || id === "cpfRepresentante") {
+      formatted = formatCPF(value);
+    } else if (id === "cnpj") {
+      formatted = formatCNPJ(value);
+    } else if (id === "cep") {
+      formatted = formatCEP(value);
+    } else if (id === "faturamento" || id === "ticket") {
+      formatted = formatCurrencyBRL(value);
+    }
+    setFormValues(prev => ({ ...prev, [id]: formatted }));
+  };
 
   return (
     <DashboardLayout
@@ -90,26 +142,23 @@ export default function KycView() {
       userLocation={mockData.user.location}
       pageTitle=""
     >
-      <section className="px-4 pb-10 pt-6 md:px-6">
-        <div
-          className="mx-auto flex w-full flex-col gap-8"
-          style={{ maxWidth: "1360px" }}
-        >
+      <section className="px-4 pt-4">
+        <div className="mx-auto xl:max-w-[700px] 2xl:max-w-[850px] flex w-full flex-col gap-8">
           {currentStep === "dados" && (
-            <div className="space-y-4" style={{ width: "100%", maxWidth: "956px", marginLeft: "auto", marginRight: "auto" }}>
-              <h1 className="text-xl font-semibold text-foreground md:text-2xl">Completar cadastro</h1>
+            <div className="space-y-4">
+              <h1 className="text-2xl font-semibold text-foreground">Completar cadastro</h1>
               <Card
-                className="gap-0 border border-border/60 bg-[#0b0b0b] px-3 py-4 sm:px-4 sm:py-5 md:px-10 md:py-8 rounded-[8px]"
+                className="gap-0 border border-border/60 bg-[#0b0b0b] px-5 py-8 rounded-[8px]"
               >
-                <CardContent className="space-y-6 p-0">
+                <CardContent className="space-y-4 p-0">
                   {!isPessoaFisica && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2 md:col-span-2">
+                    <div className="grid gap-2 grid-cols-2">
+                      <div className="space-y-2 h-full">
                         <Label htmlFor="accountType" className="text-sm md:text-base">Tipo de conta</Label>
                         <Select value={accountType} onValueChange={value => setAccountType(value)}>
                           <SelectTrigger
                             className={cn(
-                              "w-full justify-between rounded-[8px] text-sm md:text-base px-3 items-center",
+                              "flex w-full items-center justify-between rounded-[8px] border border-border/60 bg-card px-3 text-sm md:text-base",
                               responsiveFieldHeight,
                               limitedWidth
                             )}
@@ -127,13 +176,13 @@ export default function KycView() {
                   )}
 
                   {isPessoaFisica && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
+                    <div className="grid gap-4 md:grid-cols-2 h-full w-full">
+                      <div className="space-y-2 h-full w-full">
                         <Label htmlFor="accountType" className="text-sm md:text-base">Tipo de conta</Label>
                         <Select value={accountType} onValueChange={value => setAccountType(value)}>
                           <SelectTrigger
                             className={cn(
-                              "w-full justify-between rounded-[8px] text-sm md:text-base px-3 items-center",
+                              "flex w-full items-center justify-between rounded-[8px] border border-border/60 bg-card px-3 text-sm md:text-base",
                               responsiveFieldHeight
                             )}
                           >
@@ -156,6 +205,8 @@ export default function KycView() {
                               "rounded-[8px] w-full text-sm md:text-base",
                               responsiveFieldHeight
                             )}
+                            value={formValues[pfSpecificFields[0].id] ?? ""}
+                            onChange={e => handleInputChange(pfSpecificFields[0].id, e.target.value)}
                           />
                       </div>
                     </div>
@@ -178,6 +229,8 @@ export default function KycView() {
                                   : "max-w-[433px]"
                                 : ""
                             )}
+                            value={formValues[field.id] ?? ""}
+                            onChange={e => handleInputChange(field.id, e.target.value)}
                           />
                         </div>
                       ))}
@@ -208,6 +261,8 @@ export default function KycView() {
                                   : "max-w-[433px]"
                                 : ""
                           )}
+                            value={formValues[field.id] ?? ""}
+                            onChange={e => handleInputChange(field.id, e.target.value)}
                         />
                       </div>
                     ))}
