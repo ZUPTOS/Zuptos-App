@@ -9,6 +9,7 @@ import {
   BarChart2,
   CalendarClock,
   CircleDollarSign,
+  Download,
   CreditCard,
   ExternalLink,
   FileText,
@@ -19,6 +20,7 @@ import {
   Tag,
   UserRound,
   Upload,
+  X,
   XCircle
 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -118,6 +120,14 @@ const stats: StatItem[] = [
 export default function AdminProdutoDetalhes() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('produtor');
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const historyItems = [
+    { name: 'Nome do arquivo', date: 'dd/mm/aaaa', time: '00h00' },
+    { name: 'Nome do arquivo', date: 'dd/mm/aaaa', time: '00h00' },
+    { name: 'Nome do arquivo', date: 'dd/mm/aaaa', time: '00h00' },
+    { name: 'Nome do arquivo', date: 'dd/mm/aaaa', time: '00h00' }
+  ];
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -382,6 +392,7 @@ export default function AdminProdutoDetalhes() {
                 </div>
                 <button
                   type="button"
+                  onClick={() => setIsHistoryOpen(true)}
                   className="inline-flex w-fit items-center rounded-[10px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:border-foreground/25 hover:bg-muted/20"
                 >
                   Ver histórico
@@ -391,6 +402,61 @@ export default function AdminProdutoDetalhes() {
           )}
         </div>
       </div>
+
+      {isHistoryOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/70"
+            role="button"
+            tabIndex={-1}
+            aria-label="Fechar histórico"
+            onClick={() => setIsHistoryOpen(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 pt-24 pb-10">
+            <div className="w-full max-w-[420px] rounded-[10px] border border-foreground/15 bg-card px-5 py-5 shadow-[0_20px_70px_rgba(0,0,0,0.55)]">
+              <div className="flex items-center justify-between border-b border-foreground/10 pb-3">
+                <p className="text-lg font-semibold text-foreground">Histórico</p>
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryOpen(false)}
+                  className="text-muted-foreground transition hover:text-foreground"
+                  aria-label="Fechar modal de histórico"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {historyItems.map((item, index) => (
+                  <div
+                    key={`${item.name}-${index}`}
+                    className="flex items-center justify-between rounded-[10px] px-1 py-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-foreground/10 text-foreground">
+                        <File className="h-4 w-4" aria-hidden />
+                      </span>
+                      <div className="leading-tight">
+                        <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.date} <span className="text-[11px] text-muted-foreground/70">{item.time}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded-[8px] p-2 text-muted-foreground transition hover:text-primary"
+                      aria-label={`Baixar ${item.name}`}
+                    >
+                      <Download className="h-5 w-5" aria-hidden />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

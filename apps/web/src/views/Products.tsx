@@ -99,7 +99,7 @@ const productCategoryOptions = [
 ];
 
 const formInputClasses =
-  "w-full rounded-[10px] border border-muted bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
+  "w-full rounded-[7px] border border-foreground/25 bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0";
 
 const buildPaginationItems = (totalPages: number): (number | string)[] => {
   if (totalPages <= 6) {
@@ -484,7 +484,7 @@ export default function Products() {
           <button
             type="button"
             onClick={() => setIsFilterOpen(false)}
-            className="h-[46px] w-full rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)]"
+            className="h-[46px] w-full rounded-[7px] bg-primary px-4 py-3 text-sm font-semibold text-white"
           >
             Adicionar filtro
           </button>
@@ -529,7 +529,7 @@ export default function Products() {
             <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
-        <div className="flex-1 space-y-6 overflow-y-auto py-6 custom-scrollbar">
+        <div className="flex-1 space-y-6 overflow-y-auto py-6 pr-1 custom-scrollbar">
           <div className="space-y-3">
             <p
               className="font-semibold text-foreground"
@@ -722,7 +722,7 @@ export default function Products() {
             <button
               type="button"
               onClick={handleProductSubmit}
-              className="flex-1 rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)] transition-transform hover:scale-[1.01]"
+              className="flex-1 rounded-[10px] bg-primary px-4 py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.01]"
             >
               Cadastrar produto
             </button>

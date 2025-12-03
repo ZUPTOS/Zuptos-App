@@ -103,7 +103,7 @@ function ProductCard({
   onMenuAction: (action: 'visualizar' | 'editar' | 'deletar') => void;
 }) {
   return (
-    <div className="w-full text-left rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b] p-6 transition hover:-translate-y-0.5 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
+    <div className="w-full xl:max-w-[390px] 2xl:max-w-[417px] 2xl:max-h-[400px] xl:max-h-[350px] text-left rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b] p-6 transition hover:-translate-y-0.5 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
       <div className="flex items-start gap-4">
         <div className="flex h-[70px] w-[70px] items-center justify-center rounded-[14px] border border-foreground/10 bg-foreground/70" />
         <div className="flex flex-col gap-1">
@@ -131,61 +131,13 @@ function ProductCard({
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t border-foreground/10 pt-4">
+      <div className="mt-6 flex items-center justify-between pt-2">
         <span className="text-sm font-semibold text-muted-foreground">Status</span>
         <span
           className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[product.status] ?? 'bg-muted/30 text-muted-foreground'}`}
         >
           {product.status}
         </span>
-      </div>
-
-      <div className="mt-3 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          aria-label="Abrir menu do produto"
-          onClick={e => {
-            e.stopPropagation();
-            onToggleMenu();
-          }}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-foreground/10 bg-card text-foreground/70 transition hover:border-foreground/30 hover:text-foreground"
-        >
-          ···
-        </button>
-        {menuOpen && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation();
-                onMenuAction('visualizar');
-              }}
-              className="rounded-[8px] border border-foreground/10 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/30"
-            >
-              Visualizar
-            </button>
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation();
-                onMenuAction('editar');
-              }}
-              className="rounded-[8px] border border-foreground/10 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/30"
-            >
-              Editar
-            </button>
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation();
-                onMenuAction('deletar');
-              }}
-              className="rounded-[8px] border border-foreground/10 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/30"
-            >
-              Deletar
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -228,15 +180,15 @@ export default function AdminProdutos() {
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
-        <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-8 px-4 py-8 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="mx-auto flex w-full 2xl:max-w-[1320px] xl:max-w-[1050px] flex-col gap-6 px-2 py-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="space-y-1">
               <p className="text-[24px] font-semibold text-foreground">Produtos</p>
               <span className="text-sm text-muted-foreground">Catálogo de produtos cadastrados</span>
             </div>
 
-            <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
-              <label className="flex h-[46px] w-full min-w-[240px] max-w-[340px] items-center gap-2 rounded-[12px] border border-foreground/10 bg-card px-3 text-sm text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0f0f0f]">
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+              <label className="flex xl:h-[36px] 2xl:h-[46px] w-full min-w-[240px] 2xl:max-w-[240px] items-center xl:max-w-[140px] gap-2 rounded-[12px] border border-foreground/10 bg-card px-3 text-sm text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0f0f0f]">
                 <Search className="h-4 w-4" aria-hidden />
                 <input
                   type="text"
@@ -248,20 +200,14 @@ export default function AdminProdutos() {
               </label>
               <button
                 type="button"
-                className="flex h-[46px] items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(127,90,240,0.25)] transition hover:bg-primary/90"
-              >
-                Novo Produto
-              </button>
-              <button
-                type="button"
-                className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/10 bg-card transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
+                className="flex xl:h-[36px] 2xl:h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/10 bg-card transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
                 aria-label="Filtrar"
               >
                 <Filter className="h-5 w-5 text-foreground" aria-hidden />
               </button>
               <button
                 type="button"
-                className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/10 bg-card transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
+                className="flex xl:h-[36px] 2xl:h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/10 bg-card transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
                 aria-label="Exportar"
               >
                 <Upload className="h-5 w-5 text-foreground" aria-hidden />
@@ -294,7 +240,7 @@ export default function AdminProdutos() {
                 </div>
               ))
             ) : (
-              <div className="col-span-full flex flex-col items-center justify-center rounded-[12px] border border-dashed border-foreground/15 bg-card/40 py-12 text-center text-muted-foreground">
+              <div className="col-span-full flex flex-col items-center justify-center rounded-[7px] border border-dashed border-foreground/15 bg-card/40 py-12 text-center text-muted-foreground">
                 Nenhum produto encontrado
               </div>
             )}

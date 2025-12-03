@@ -63,7 +63,6 @@ export default function WithdrawalDetailPanel({ withdrawal, statusStyles, cardSu
                 <span className={`inline-flex w-[130px] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[withdrawal.status]}`}>
                   {withdrawal.status}
                 </span>
-                <span className="text-xs text-muted-foreground">por {STATUS_AUTHOR}</span>
               </div>
             </div>
           </div>
@@ -93,6 +92,7 @@ export default function WithdrawalDetailPanel({ withdrawal, statusStyles, cardSu
             </div>
           </div>
         </article>
+
       </div>
     </section>
   );

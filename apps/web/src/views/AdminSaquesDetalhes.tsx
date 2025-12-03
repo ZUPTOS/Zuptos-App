@@ -41,6 +41,23 @@ export default function AdminSaquesDetalhes({ withdrawalId }: AdminSaquesDetalhe
           </div>
 
           <WithdrawalDetailPanel withdrawal={selectedWithdrawal} statusStyles={statusStyles} cardSurfaceClassName={cardSurface} />
+
+          {selectedWithdrawal?.status === "Pendente" && (
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                className="h-[40px] rounded-[7px] border border-foreground/20 bg-card px-5 text-sm font-semibold text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"
+              >
+                Reprovar
+              </button>
+              <button
+                type="button"
+                className="h-[40px] rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-5 text-sm font-semibold text-white transition hover:brightness-110"
+              >
+                Aprovar
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
