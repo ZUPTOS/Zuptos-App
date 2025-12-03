@@ -180,6 +180,29 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     }
   };
 
+  const formatDateDigits = (digits: string) => {
+    const clean = digits.slice(0, 8);
+    const day = clean.slice(0, 2);
+    const month = clean.slice(2, 4);
+    const year = clean.slice(4, 8);
+    let formatted = "";
+    if (day) formatted += day;
+    if (month) formatted += `${formatted ? "/" : ""}${month}`;
+    if (year) formatted += `${formatted ? "/" : ""}${year}`;
+    return formatted;
+  };
+
+  const formatRangeDigits = (digits: string) => {
+    const startDigits = digits.slice(0, 8);
+    const endDigits = digits.slice(8, 16);
+    const startFormatted = formatDateDigits(startDigits);
+    const endFormatted = formatDateDigits(endDigits);
+    if (endFormatted) {
+      return `${startFormatted} - ${endFormatted}`;
+    }
+    return startFormatted;
+  };
+
   return (
     <div className="relative" ref={containerRef}>
       <div
@@ -190,7 +213,10 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
         <input
           className="flex-1 bg-transparent text-foreground focus:outline-none"
           value={rangeInput}
-          onChange={e => setRangeInput(e.target.value)}
+          onChange={e => {
+            const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 16);
+            setRangeInput(formatRangeDigits(digitsOnly));
+          }}
           onFocus={() => setIsOpen(true)}
           onBlur={() => commitRangeInput(rangeInput)}
           onKeyDown={e => {
@@ -214,8 +240,8 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
 
       {isOpen && (
         <div
-          className="absolute left-0 z-40 rounded-[16px] border border-border/70 bg-card shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
-          style={{ top: "calc(100% + 12px)", width: "clamp(300px, 24vw, 360px)" }}
+          className="absolute left-0 z-40 w-full max-w-[320px] rounded-[16px] border border-border/70 bg-card shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
+          style={{ top: "calc(100% + 12px)" }}
         >
 
           <div className="p-5 space-y-4 xl:p-4 xl:space-y-3 2xl:p-4 2xl:space-y-3">

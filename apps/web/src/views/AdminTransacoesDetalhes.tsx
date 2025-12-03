@@ -21,7 +21,7 @@ type AdminTransacoesDetalhesProps = {
 
 export default function AdminTransacoesDetalhes({ transactionId }: AdminTransacoesDetalhesProps) {
   const router = useRouter();
-  const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
+  const cardSurface = "rounded-[7px] border border-foreground/10 bg-card/80";
   const selectedTransaction =
     transactionsData.transactions.find(transaction => transaction.id === transactionId) ??
     transactionsData.transactions[0] ??

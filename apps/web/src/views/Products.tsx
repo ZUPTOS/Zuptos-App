@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import productsData from "@/data/productsData.json";
 import {
   Check,
@@ -427,114 +428,69 @@ export default function Products() {
         </div>
       </div>
     </DashboardLayout>
-    {isFilterOpen && (
-      <>
-        <div
-          className="fixed inset-0 z-40 bg-black/60"
-          role="button"
-          tabIndex={0}
-          aria-label="Fechar filtros de produtos"
-          onClick={() => setIsFilterOpen(false)}
-          onKeyDown={event => handleOverlayKeyDown(event, () => setIsFilterOpen(false))}
-        />
-        <aside
-          className="fixed right-0 top-0 z-50 flex h-screen flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]"
-          style={{
-            width: "clamp(360px, 28vw, 500px)"
-          }}
-        >
-          <div className="flex items-center justify-between border-b border-muted pb-4">
-            <div>
-              <p
-                className="font-semibold text-foreground"
-                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(20px, 2vw, 28px)" }}
+    <FilterDrawer open={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtrar">
+      <div className="space-y-6 text-sm">
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-muted-foreground">Tipo</p>
+          <div className="space-y-3">
+            {filterTypeOptions.map(option => (
+              <label
+                key={option.value}
+                className="flex items-center gap-3 text-foreground"
+                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(12px, 1.2vw, 15px)" }}
               >
-                Filtrar
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsFilterOpen(false)}
-              className="text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              aria-label="Fechar filtros"
-            >
-              <X className="h-5 w-5" aria-hidden />
-            </button>
+                <span className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(option.value)}
+                    onChange={() => toggleType(option.value)}
+                    className="peer sr-only"
+                  />
+                  <span className="flex h-[24px] w-[24px] items-center justify-center rounded-[7px] border border-foreground/20 bg-transparent transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                    <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
+                  </span>
+                </span>
+                {option.label}
+              </label>
+            ))}
           </div>
-          <div className="flex-1 space-y-6 overflow-y-auto mt-10 py-6">
-            <div className="space-y-4 border-b border-muted pb-4">
-              <p
-                className="font-semibold text-muted-foreground"
-                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(13px, 1.4vw, 17px)" }}
+        </div>
+        <div className="space-y-3 border-t border-foreground/10 pt-4">
+          <p className="text-sm font-semibold text-muted-foreground">Status</p>
+          <div className="space-y-3">
+            {filterStatusOptions.map(option => (
+              <label
+                key={option.value}
+                className="flex items-center gap-3 text-foreground"
+                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(12px, 1.2vw, 15px)" }}
               >
-                Tipo
-              </p>
-              <div className="space-y-4">
-                {filterTypeOptions.map(option => (
-                  <label
-                    key={option.value}
-                    className="flex items-center gap-3 text-foreground/30"
-                    style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(12px, 1.2vw, 15px)" }}
-                  >
-                    <span className="relative flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedTypes.includes(option.value)}
-                        onChange={() => toggleType(option.value)}
-                        className="peer sr-only"
-                      />
-                      <span className="flex h-[30px] w-[30px] items-center justify-center rounded border border-card bg-background transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
-                        <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
-                      </span>
-                    </span>
-                    {option.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4 border-b border-muted pb-4">
-              <p
-                className="font-semibold text-muted-foreground"
-                style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(13px, 1.4vw, 17px)" }}
-              >
-                Status
-              </p>
-              <div className="space-y-4">
-                {filterStatusOptions.map(option => (
-                  <label
-                    key={option.value}
-                    className="flex items-center gap-3 text-foreground/30"
-                    style={{ fontFamily: "Sora, sans-serif", fontSize: "clamp(12px, 1.2vw, 15px)" }}
-                  >
-                    <span className="relative flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedStatuses.includes(option.value)}
-                        onChange={() => toggleStatus(option.value)}
-                        className="peer sr-only"
-                      />
-                      <span className="flex h-[30px] w-[30px] items-center justify-center rounded border border-card bg-background transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
-                        <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
-                      </span>
-                    </span>
-                    {option.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center">
-              <button
-                type="button"
-                onClick={() => setIsFilterOpen(false)}
-                className="h-[49px] w-[197px] rounded-[10px] bg-primary px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)]"
-              >
-                Adicionar filtro
-              </button>
-            </div>
+                <span className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedStatuses.includes(option.value)}
+                    onChange={() => toggleStatus(option.value)}
+                    className="peer sr-only"
+                  />
+                  <span className="flex h-[24px] w-[24px] items-center justify-center rounded-[7px] border border-foreground/20 bg-transparent transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                    <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
+                  </span>
+                </span>
+                {option.label}
+              </label>
+            ))}
           </div>
-        </aside>
-      </>
-    )}
+        </div>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setIsFilterOpen(false)}
+            className="h-[46px] w-full rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(110,46,220,0.35)]"
+          >
+            Adicionar filtro
+          </button>
+        </div>
+      </div>
+    </FilterDrawer>
     {isAddProductOpen && (
       <>
         <div

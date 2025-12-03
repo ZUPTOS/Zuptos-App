@@ -16,6 +16,8 @@ const tabs = [
   { id: "info", label: "Informações", iconSrc: "/images/transactionDetailPannel/info.svg" }
 ] as const;
 
+// UI guideline: keep corner radius between 6px and 7px.
+
 const parseCurrency = (value: string) => {
   const numeric = Number(value.replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", "."));
   return Number.isNaN(numeric) ? 0 : numeric;
@@ -59,11 +61,11 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
 
   if (!transaction) {
     return (
-      <section className={`${cardSurfaceClassName} rounded-[12px] p-6`}>
-        <p className="text-lg font-semibold text-foreground">Selecione uma transação para visualizar os detalhes</p>
-      </section>
-    );
-  }
+    <section className={`${cardSurfaceClassName} rounded-[7px] p-6`}>
+      <p className="text-lg font-semibold text-foreground">Selecione uma transação para visualizar os detalhes</p>
+    </section>
+  );
+}
 
   const detailEntries = [
     { label: "Valor total", value: transaction.value },
@@ -74,8 +76,17 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
     { label: "Adquirente", value: "Banco XPTO" }
   ];
 
+  const utmInfo = [
+    { label: "UTM SOURCE", value: "XXXXXXXXXX" },
+    { label: "UTM MEDIUM", value: "XXXXXXXXXX" },
+    { label: "UTM CAMPAIGN", value: "XXXXXXXXXX" },
+    { label: "UTM TERM", value: "XXXXXXXXXX" }
+  ];
+
+  const technicalInfo = [{ label: "Id externo", value: "XXXXXXXXXX" }];
+
   return (
-    <section className={`${cardSurfaceClassName} rounded-[12px] p-6`}>
+    <section className={`${cardSurfaceClassName} rounded-[7px] p-6`}>
       <div className="flex flex-col gap-1 border-b border-foreground/10 pb-4">
         <p className="text-lg font-semibold text-foreground">Dados da transação</p>
         <span className="text-sm text-muted-foreground">ID: {transaction.id}</span>
@@ -103,7 +114,7 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 rounded-[12px] border border-foreground/10 p-4 lg:grid-cols-2">
+      <div className="mt-6 grid gap-4 rounded-[7px] border border-foreground/10 p-4 lg:grid-cols-2">
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">Comprador</p>
           <p className="text-sm text-muted-foreground">Nome: {peopleInfo.buyer.name}</p>
@@ -128,14 +139,14 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center rounded-[12px] border px-4 py-4 text-sm font-semibold transition ${
+              className={`flex flex-col items-center justify-center rounded-[7px] border px-4 py-4 text-sm font-semibold transition ${
                 isActive
                   ? "border-primary text-primary"
                   : "border-foreground/15 text-muted-foreground hover:border-foreground/25 hover:text-foreground"
               }`}
             >
               <span
-                className={`mb-3 flex h-12 w-12 items-center justify-center rounded-[12px] border ${
+                className={`mb-3 flex h-12 w-12 items-center justify-center rounded-[7px] border ${
                   isActive ? "border-primary text-primary" : "border-foreground/20 text-muted-foreground"
                 }`}
               >
@@ -164,7 +175,7 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
       <div className="mt-6">
         {activeTab === "financeiro" && (
           <div className="space-y-4">
-            <div className="rounded-[12px] border border-foreground/10 bg-card/60 p-10">
+            <div className="rounded-[7px] border border-foreground/10 bg-card/60 p-10">
               <div className="grid gap-x-6 gap-y-5 md:grid-cols-3">
                 {detailEntries.map(entry => (
                   <div key={entry.label} className="space-y-2">
@@ -189,7 +200,7 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
                 ))}
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-[12px] border border-foreground/10 bg-card/80 p-10">
+            <div className="flex items-center justify-between rounded-[7px] border border-foreground/10 bg-card/80 p-10">
               <div className="space-y-2">
                 <p className="text-lg font-semibold text-foreground">Lucro da transação</p>
                 <p className="text-fs-meta text-muted-foreground">Lucro líquido da plataforma após taxas</p>
@@ -212,11 +223,11 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
             </div>
 
             <div>
-              <div className="rounded-[12px] p-5">
+              <div className="rounded-[7px] p-5">
                 <p className="text-xl font-semibold text-foreground mb-4">Vendedor principal</p>
-                <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-4 rounded-[7px] border border-foreground/10 bg-card/80 p-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex p-5 items-center gap-5">
-                    <div className="h-[70px] w-[70px] rounded-[12px] bg-foreground/40" />
+                    <div className="h-[70px] w-[70px] rounded-[7px] bg-foreground/40" />
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <p className="text-lg font-semibold text-foreground">Nome</p>
@@ -235,11 +246,11 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
                 </div>
               </div>
 
-              <div className="rounded-[12px] bg-card/70 p-5">
+              <div className="rounded-[7px] bg-card/70 p-5">
                 <p className="text-xl font-semibold text-foreground mb-4">Outros participantes</p>
-                <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-4 rounded-[7px] border border-foreground/10 bg-card/80 p-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex p-5 items-center gap-5">
-                    <div className="h-[70px] w-[70px] rounded-[12px] bg-foreground/40" />
+                    <div className="h-[70px] w-[70px] rounded-[7px] bg-foreground/40" />
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <p className="text-lg font-semibold text-foreground">Nome</p>
@@ -262,24 +273,39 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
         )}
 
         {activeTab === "info" && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-[12px] border border-foreground/10 bg-card/70 p-4">
-              <p className="text-xs uppercase text-muted-foreground">Tipo de transação</p>
-              <p className="text-base font-semibold text-foreground">{transaction.type}</p>
+          <div className="rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_14px_40px_rgba(0,0,0,0.45)]">
+            <div className="border-b border-foreground/10 px-6 py-4">
+              <p className="text-lg font-semibold text-foreground">Informações</p>
             </div>
-            <div className="rounded-[12px] border border-foreground/10 bg-card/70 p-4">
-              <p className="text-xs uppercase text-muted-foreground">Status</p>
-              <p className="text-base font-semibold text-foreground">{transaction.status}</p>
-            </div>
-            <div className="rounded-[12px] border border-foreground/10 bg-card/70 p-4">
-              <p className="text-xs uppercase text-muted-foreground">Criada em</p>
-              <p className="text-base font-semibold text-foreground">
-                {transaction.date} <span className="text-xs text-muted-foreground">{transaction.time}</span>
-              </p>
-            </div>
-            <div className="rounded-[12px] border border-foreground/10 bg-card/70 p-4">
-              <p className="text-xs uppercase text-muted-foreground">Última atualização</p>
-              <p className="text-base font-semibold text-foreground">{transaction.date}</p>
+
+            <div className="grid gap-6 px-6 py-6 md:grid-cols-2">
+              <div className="space-y-4">
+                <p className="text-xl font-semibold text-foreground">Informações de UTM</p>
+                <div className="rounded-[7px] border border-foreground/15 bg-card/70 px-5 py-4">
+                  <div className="flex flex-col gap-4">
+                    {utmInfo.map(item => (
+                      <div key={item.label} className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-foreground">{item.label}</span>
+                        <span className="text-sm font-semibold text-foreground">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-xl font-semibold text-foreground">Informações técnicas</p>
+                <div className="rounded-[7px] border border-foreground/15 bg-card/70 px-5 py-4">
+                  <div className="flex flex-col gap-4">
+                    {technicalInfo.map(item => (
+                      <div key={item.label} className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-foreground">{item.label}</span>
+                        <span className="text-sm font-semibold text-foreground">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -289,7 +315,7 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
         <div className="mt-6 flex justify-end">
           <button
             type="button"
-            className="rounded-[10px] border border-primary/20 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+            className="rounded-[7px] border border-primary/20 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
             Estornar
           </button>

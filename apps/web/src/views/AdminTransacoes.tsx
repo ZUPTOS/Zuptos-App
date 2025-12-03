@@ -4,8 +4,11 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Filter, Search, Upload } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
+import { FilterDrawer } from "@/components/FilterDrawer";
+import DateFilter from "@/components/DateFilter";
 import transactionsData from "@/data/admin-transacoes.json";
 import type { Transaction } from "@/types/transaction";
+import { useMemo, useState } from "react";
 
 const metricCards = [
   { id: "total", title: "Transações totais", value: "00" },
@@ -68,9 +71,65 @@ const columns: Column<Transaction>[] = [
 
 export default function AdminTransacoes() {
   const router = useRouter();
-  const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const cardSurface = "rounded-[7px] border border-foreground/10 bg-card/80";
   const handleRowClick = (row: Transaction) => {
     router.push(`/admin/transacoes/detalhes?id=${encodeURIComponent(row.id)}`);
+  };
+
+  const checkboxClass =
+    "relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white";
+
+  const parseDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split("/").map(Number);
+    if (!day || !month || !year) return null;
+    return new Date(year, month - 1, day);
+  };
+
+  const transactionDirection = (tx: Transaction) => (["Reembolsado", "Chargeback"].includes(tx.status) ? "Saída" : "Entrada");
+
+  const matchesCategory = (tx: Transaction, category: string) => {
+    switch (category) {
+      case "Venda":
+        return tx.type.toLowerCase().includes("venda");
+      case "Chargeback":
+        return tx.status === "Chargeback";
+      case "Reembolso":
+        return tx.status === "Reembolsado";
+      default:
+        return true;
+    }
+  };
+
+  const filteredTransactions = useMemo(() => {
+    return transactionsData.transactions.filter(tx => {
+      const txDate = parseDate(tx.date);
+      if (dateRange.start && dateRange.end && txDate) {
+        if (txDate < dateRange.start || txDate > dateRange.end) return false;
+      }
+
+      if (selectedCategories.length && !selectedCategories.some(cat => matchesCategory(tx, cat))) {
+        return false;
+      }
+
+      if (selectedTypes.length && !selectedTypes.includes(transactionDirection(tx))) {
+        return false;
+      }
+
+      if (selectedStatuses.length && !selectedStatuses.includes(tx.status)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [dateRange.end, dateRange.start, selectedCategories, selectedStatuses, selectedTypes]);
+
+  const toggleSelection = (value: string, list: string[], setter: (val: string[]) => void) => {
+    setter(list.includes(value) ? list.filter(item => item !== value) : [...list, value]);
   };
 
   return (
@@ -103,6 +162,7 @@ export default function AdminTransacoes() {
                 type="button"
                 className="flex h-[48px] w-[48px] items-center justify-center rounded-[8px] border border-foreground/10 bg-card hover:bg-card/80 transition"
                 aria-label="Filtrar"
+                onClick={() => setIsFilterOpen(true)}
               >
                 <Filter className="h-5 w-5" />
               </button>
@@ -140,18 +200,94 @@ export default function AdminTransacoes() {
           </div>
 
           <PaginatedTable
-            data={transactionsData.transactions}
+            data={filteredTransactions}
             columns={columns}
             rowKey={row => row.id}
             rowsPerPage={5}
-            initialPage={3}
+            initialPage={1}
             emptyMessage="Nenhuma transação encontrada"
-            tableContainerClassName={`${cardSurface} rounded-[8px]`}
+            tableContainerClassName={`${cardSurface} rounded-[7px]`}
             paginationContainerClassName="px-2"
             onRowClick={handleRowClick}
           />
         </div>
       </div>
+      <FilterDrawer open={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtrar">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground">Data</p>
+            <DateFilter
+              onDateChange={(start, end) => {
+                setDateRange({ start, end });
+              }}
+            />
+          </div>
+
+          <div className="space-y-3 border-t border-foreground/10 pt-4">
+            <p className="text-sm font-semibold text-foreground">Categoria</p>
+            <div className="grid grid-cols-2 gap-3 text-foreground">
+              {["Venda", "Chargeback", "Reembolso"].map(option => (
+                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(option)}
+                    onChange={() => toggleSelection(option, selectedCategories, setSelectedCategories)}
+                    className={checkboxClass}
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 border-t border-foreground/10 pt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">Tipo de transação</p>
+              <span className="text-xs text-muted-foreground">▼</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-foreground">
+              {["Entrada", "Saída"].map(option => (
+                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(option)}
+                    onChange={() => toggleSelection(option, selectedTypes, setSelectedTypes)}
+                    className={checkboxClass}
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 border-t border-foreground/10 pt-4">
+            <p className="text-sm font-semibold text-foreground">Status</p>
+            <div className="grid grid-cols-2 gap-3 text-foreground">
+              {["Aprovado", "Pendente", "Reembolsado", "Chargeback"].map(option => (
+                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={selectedStatuses.includes(option)}
+                    onChange={() => toggleSelection(option, selectedStatuses, setSelectedStatuses)}
+                    className={checkboxClass}
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white transition hover:brightness-110"
+              onClick={() => setIsFilterOpen(false)}
+            >
+              Adicionar filtro
+            </button>
+          </div>
+        </div>
+      </FilterDrawer>
     </DashboardLayout>
   );
 }

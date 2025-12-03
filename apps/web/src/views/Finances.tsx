@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import DateFilter from "@/components/DateFilter";
 import {
   ArrowDown,
@@ -429,88 +430,76 @@ export default function Finances() {
           )}
         </div>
       </div>
-      {isFilterOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/60"
-            role="button"
-            tabIndex={0}
-            aria-label="Fechar modal de filtro (overlay)"
-            onClick={() => setIsFilterOpen(false)}
-            onKeyDown={event => handleOverlayKeyDown(event, () => setIsFilterOpen(false))}
-          />
-          <div className="fixed right-0 top-0 z-50 h-screen w-[443px] border-l border-muted bg-card px-6 pb-10 pt-8 shadow-2xl">
-            <div className="mb-6 flex items-start justify-between">
-              <h2 className="text-fs-title font-semibold text-foreground">Filtrar</h2>
-              <button
-                type="button"
-                onClick={() => setIsFilterOpen(false)}
-                className="text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                aria-label="Fechar modal de filtro"
-              >
-                <X className="h-5 w-5" aria-hidden />
-              </button>
-            </div>
+      <FilterDrawer open={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtrar">
+        <div className="space-y-6 text-sm">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground">Data</p>
+            <DateFilter
+              onDateChange={(start, end) => {
+                setDateRange({ start, end });
+              }}
+            />
+          </div>
 
-            <div className="space-y-6 text-fs-body text-foreground">
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Data</p>
-                <DateFilter
-                  onDateChange={(start, end) => {
-                    setDateRange({ start, end });
-                  }}
-                />
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Categoria</p>
-                <div className="grid grid-cols-2 gap-3 text-muted-foreground">
-                  {["Venda", "Comissão", "Saque", "Chargeback"].map(option => (
-                    <label
-                      key={option}
-                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-fs-body"
-                    >
-                      <input
-                        type="checkbox"
-                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-fs-caption [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3 border-t border-muted/60 pt-4">
-                <p className="text-sm font-semibold text-foreground">Tipo de transação</p>
-                <div className="grid grid-cols-2 gap-3 text-muted-foreground">
-                  {["Entrada", "Saída"].map(option => (
-                    <label
-                      key={option}
-                      className="flex h-11 items-center gap-3 rounded-[10px] px-1 text-fs-body"
-                    >
-                      <input
-                        type="checkbox"
-                        className="relative h-[26px] w-[26px] appearance-none rounded border border-muted bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-fs-caption [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-start">
-                <button
-                  type="button"
-                  className="inline-flex h-[43px] w-[175px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white transition-colors hover:brightness-110"
-                  onClick={() => setIsFilterOpen(false)}
-                >
-                  Adicionar filtro
-                </button>
-              </div>
+          <div className="space-y-3 border-t border-foreground/10 pt-4">
+            <p className="text-sm font-semibold text-foreground">Categoria</p>
+            <div className="grid grid-cols-2 gap-3 text-foreground">
+              {["Venda", "Chargeback", "Reembolso"].map(option => (
+                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
             </div>
           </div>
-        </>
-      )}
+
+          <div className="space-y-3 border-t border-foreground/10 pt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">Tipo de transação</p>
+              <span className="text-xs text-muted-foreground">▼</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-foreground">
+              {["Entrada", "Saída"].map(option => (
+                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 border-t border-foreground/10 pt-4">
+            <p className="text-sm font-semibold text-foreground">Status</p>
+            <div className="grid grid-cols-2 gap-3 text-foreground">
+              {["Aprovado", "Pendente", "Reprovado"].map(option => (
+                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white transition hover:brightness-110"
+              onClick={() => setIsFilterOpen(false)}
+            >
+              Adicionar filtro
+            </button>
+          </div>
+        </div>
+      </FilterDrawer>
       {selectedTransaction && (
         <>
           <div
