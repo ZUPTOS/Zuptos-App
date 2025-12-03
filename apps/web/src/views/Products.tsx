@@ -70,7 +70,32 @@ const filterStatusOptions = [
   { label: "Inativo", value: "inativo" }
 ];
 
-const productCategoryOptions = ["Tecnologia", "Marketing", "Finanças"];
+const productCategoryOptions = [
+  "Animais e Plantas",
+  "Apps & Software",
+  "Casa e Construção",
+  "Culinária e Gastronomia",
+  "Desenvolvimento Pessoal",
+  "Direito",
+  "Ecologia e Meio Ambiente",
+  "Educacional",
+  "Empreendedorismo Digital",
+  "Entretenimento",
+  "Espiritualidade",
+  "Finanças e Investimentos",
+  "Hobbies",
+  "Idiomas",
+  "Internet",
+  "Literatura",
+  "Moda e Beleza",
+  "Música e Artes",
+  "Negócios e Carreira",
+  "Relacionamentos",
+  "Saúde e Esportes",
+  "Sexualidade",
+  "Tecnologia da Informação",
+  "Outros"
+];
 
 const formInputClasses =
   "w-full rounded-[10px] border border-muted bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
@@ -681,13 +706,13 @@ export default function Products() {
                   type="button"
                   onClick={() => setHasLoginAccess(prev => !prev)}
                   aria-pressed={hasLoginAccess}
-                  className="group relative inline-flex items-center"
+                  className="group relative inline-flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   <span
-                    className={`flex h-[31px] w-[75px] items-center justify-between gap-1 rounded-full border border-card px-2 text-[11px] font-semibold transition-colors ${
+                    className={`flex h-[31px] w-[80px] items-center justify-between gap-1 rounded-full border px-2 text-[11px] font-semibold transition-colors ${
                       hasLoginAccess
-                        ? "bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-white border-primary/60"
-                        : "bg-card text-muted-foreground"
+                        ? "bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-white border-primary/60 shadow-sm"
+                        : "bg-card text-foreground border-muted shadow-sm"
                     }`}
                   >
                     <span
@@ -705,26 +730,28 @@ export default function Products() {
                   </span>
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <p className="text-[16px] font-semibold text-foreground">Login</p>
-                  <input
-                    type="text"
-                    value={productLogin}
-                    onChange={event => setProductLogin(event.target.value)}
-                    className={formInputClasses}
-                  />
+              {hasLoginAccess && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <p className="text-[16px] font-semibold text-foreground">Login</p>
+                    <input
+                      type="text"
+                      value={productLogin}
+                      onChange={event => setProductLogin(event.target.value)}
+                      className={formInputClasses}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[16px] font-semibold text-foreground">Senha</p>
+                    <input
+                      type="text"
+                      value={productPassword}
+                      onChange={event => setProductPassword(event.target.value)}
+                      className={formInputClasses}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-[16px] font-semibold text-foreground">Senha</p>
-                  <input
-                    type="text"
-                    value={productPassword}
-                    onChange={event => setProductPassword(event.target.value)}
-                    className={formInputClasses}
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

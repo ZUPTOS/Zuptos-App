@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { ArrowLeft, Ban, ExternalLink, KeySquare, LogIn, Phone } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 
@@ -21,19 +22,18 @@ const permissionSections = [
     title: 'Alterar permissões',
     items: [
       { title: 'Usuários', manage: true, view: true },
-      { title: 'Taxas', manage: false, view: false },
+      { title: 'Taxas', manage: true, view: true },
       { title: 'Permissões', manage: true, view: true },
       { title: 'Financeiro', manage: true, view: true },
       { title: 'Indicação', manage: true, view: true },
-      { title: 'Ações', manage: true, view: false }
+      { title: 'Ações', manage: true, view: true }
     ]
   },
   {
     id: 'transactions',
-    title: '',
+    title: 'Transações',
     items: [
-      { title: 'Transações', manage: false, view: false },
-      { title: 'Financeiro', manage: false, view: true },
+      { title: 'Financeiro', manage: true, view: true },
       { title: 'Participantes', manage: false, view: true },
       { title: 'Informações', manage: false, view: true }
     ]
@@ -41,93 +41,54 @@ const permissionSections = [
   {
     id: 'saques',
     title: '',
-    items: [
-      { title: 'Saques', manage: true, view: true }
-    ]
+    items: [{ title: 'Saques', manage: true, view: true }]
   },
   {
-    id: 'financeiro',
+    id: 'financeiro-extra',
     title: '',
-    items: [
-      { title: 'Financeiro', manage: false, view: true }
-    ]
+    items: [{ title: 'Financeiro', manage: true, view: true }]
   },
   {
     id: 'produtos',
     title: '',
-    items: [
-      { title: 'Produtos', manage: true, view: true }
-    ]
+    items: [{ title: 'Produtos', manage: true, view: true }]
   },
   {
     id: 'documentos',
     title: '',
-    items: [
-      { title: 'Documentos', manage: true, view: true }
-    ]
+    items: [{ title: 'Documentos', manage: true, view: true }]
   },
   {
     id: 'config',
     title: '',
-    items: [
-      { title: 'Configurações', manage: true, view: true }
-    ]
+    items: [{ title: 'Configurações', manage: true, view: true }]
   }
 ] as const;
 
-function PermissionRow({
-  title,
-  manage,
-  view,
-}: {
-  title: string;
-  manage: boolean;
-  view: boolean;
-}) {
-  const checkboxBase =
-    'flex h-5 w-5 items-center justify-center rounded border border-foreground/15 bg-transparent';
-  const labelBase = 'text-sm text-muted-foreground';
-
-  return (
-    <div className="grid grid-cols-[1fr,1fr,1fr] items-center gap-4 py-3">
-      <span className="text-base font-semibold text-foreground">{title}</span>
-      {manage ? (
-        <div className="flex items-center gap-2">
-          <span className={checkboxBase} aria-hidden />
-          <span className={labelBase}>Gerenciar</span>
-        </div>
-      ) : (
-        <span className="text-sm text-muted-foreground" />
-      )}
-      {view ? (
-        <div className="flex items-center gap-2">
-          <span className={checkboxBase} aria-hidden />
-          <span className={labelBase}>Ver dados</span>
-        </div>
-      ) : (
-        <span className="text-sm text-muted-foreground" />
-      )}
-    </div>
-  );
-}
-
-function PermissionBlock({ section }: { section: (typeof permissionSections)[number] }) {
-  return (
-    <div className="rounded-[12px] border border-foreground/10 bg-card/80 p-6 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
-      {section.title && <p className="pb-4 text-sm font-semibold text-muted-foreground">{section.title}</p>}
-      <div className="divide-y divide-foreground/10">
-        {section.items.map(item => (
-          <PermissionRow key={`${section.id}-${item.title}`} title={item.title} manage={item.manage} view={item.view} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function AdminColaboradorDetalhes() {
-  const actionButtonClass =
-    'flex items-center gap-2 rounded-[8px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary';
   const router = useRouter();
+  const [permissionsState, setPermissionsState] = useState<Record<string, { manage: boolean; view: boolean }>>(() => {
+    const initial: Record<string, { manage: boolean; view: boolean }> = {};
+    permissionSections.forEach(section => {
+      section.items.forEach(item => {
+        const key = `${section.id}-${item.title}`;
+        initial[key] = { manage: false, view: false };
+      });
+    });
+    return initial;
+  });
+
+  const togglePermission = (key: string, field: 'manage' | 'view') => {
+    setPermissionsState(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: !prev[key][field] }
+    }));
+  };
+
+  const checkboxClass =
+    'h-[18px] w-[18px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
+  const actionButtonClass =
+    'flex items-center gap-2 rounded-[7px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary';
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -191,17 +152,77 @@ export default function AdminColaboradorDetalhes() {
             </button>
           </div>
 
-          {permissionSections.map(section => (
-            <PermissionBlock key={section.id} section={section} />
-          ))}
+          <div className="rounded-[7px] border border-foreground/15 bg-card/70 p-4 shadow-[0_14px_40px_rgba(0,0,0,0.45)] dark:border-white/10 md:p-6">
+            {permissionSections.map(section => (
+              <div key={section.id} className="mb-4 rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_12px_36px_rgba(0,0,0,0.45)] last:mb-0 dark:border-white/10">
+                {section.title && (
+                  <div className="px-6 pt-4 pb-2">
+                    <p className="text-sm font-semibold text-muted-foreground">{section.title}</p>
+                  </div>
+                )}
+                <div className="flex flex-col gap-3 px-6 py-4">
+                  {section.items.map(item => {
+                    const key = `${section.id}-${item.title}`;
+                    const state = permissionsState[key] ?? { manage: false, view: false };
 
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="rounded-[8px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[0_12px_30px_rgba(108,39,215,0.4)] transition hover:brightness-110"
-            >
-              Atualizar
-            </button>
+                    const manageControl = (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {item.manage ? (
+                          <>
+                            <input
+                              type="checkbox"
+                              checked={state.manage}
+                              onChange={() => togglePermission(key, 'manage')}
+                              className={checkboxClass}
+                              aria-label={`Gerenciar ${item.title}`}
+                            />
+                            <span className="select-none">Gerenciar</span>
+                          </>
+                        ) : (
+                          <span className="select-none text-transparent">Gerenciar</span>
+                        )}
+                      </div>
+                    );
+
+                    const viewControl = (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {item.view ? (
+                          <>
+                            <input
+                              type="checkbox"
+                              checked={state.view}
+                              onChange={() => togglePermission(key, 'view')}
+                              className={checkboxClass}
+                              aria-label={`Ver dados de ${item.title}`}
+                            />
+                            <span className="select-none">Ver dados</span>
+                          </>
+                        ) : (
+                          <span className="select-none text-transparent">Ver dados</span>
+                        )}
+                      </div>
+                    );
+
+                    return (
+                      <div key={key} className="grid grid-cols-[minmax(180px,240px)_140px_140px] items-center gap-4">
+                        <span className="text-base font-semibold text-foreground">{item.title}</span>
+                        {manageControl}
+                        {viewControl}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                className="rounded-[7px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[0_12px_30px_rgba(108,39,215,0.4)] transition hover:brightness-110"
+              >
+                Atualizar
+              </button>
+            </div>
           </div>
         </div>
       </div>

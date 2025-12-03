@@ -363,7 +363,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex justify-end gap-2">
-            <div className="relative flex w-full max-w-[400px] items-center gap-3" ref={filterDropdownRef}>
+            <div className="relative flex w-full max-w-[394px] items-center gap-3" ref={filterDropdownRef}>
               <button
                 type="button"
                 onClick={() => setFilterDropdownOpen(prev => !prev)}
