@@ -52,7 +52,7 @@ export default function AdminSaquesDetalhes({ withdrawalId }: AdminSaquesDetalhe
               </button>
               <button
                 type="button"
-                className="h-[40px] rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-5 text-sm font-semibold text-white transition hover:brightness-110"
+                className="h-[40px] rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-5 text-sm font-semibold text-white transition hover:brightness-110"
               >
                 Aprovar
               </button>
