@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const authTabs = [
   { id: "sign-in", label: "Entrar", ctaLabel: "Entrar" },
@@ -309,6 +310,14 @@ function AuthTabsSwitcher({ activeTab, onTabChange }: TabsSwitcherProps) {
 }
 
 export default function LoginView() {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isLightTheme = mounted && theme === "light";
   const { signIn, signUp, isLoading, error, clearError } = useAuth();
 
   // Sign In Fields
@@ -422,11 +431,11 @@ export default function LoginView() {
       <div className="relative mx-auto flex min-h-screen flex-col items-center justify-center gap-5 bg-background px-6 py-8 xl:w-[420px] xl:max-w-[420px] 2xl:w-[520px] 2xl:max-w-[520px]">
         <div className="flex flex-col items-center gap-4">
           <Image
-            src="/images/expanded.svg"
+            src={isLightTheme ? "/images/expandedDark.svg" : "/images/expanded.svg"}
             alt="Zuptos"
             width={150}
             height={48}
-            className="self-center"
+            className={cn("self-center w-auto", isLightTheme ? "h-12" : "h-12")}
             priority
           />
         </div>
