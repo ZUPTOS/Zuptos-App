@@ -285,7 +285,7 @@ export default function Sidebar() {
                   className={`text-sm xl:text-xs 2xl:text-sm font-semibold ${
                     isActive
                       ? "text-primary"
-                      : "text-foreground group-hover:text-primary"
+                      : "text-foreground group-hover:text-foreground/90"
                   }`}
                 >
                   {item.label}
