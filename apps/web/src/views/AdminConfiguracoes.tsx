@@ -8,7 +8,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 type Tab = 'taxas' | 'ajustes';
 
 const inputBase =
-  'w-full rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none';
+  'w-full rounded-[8px] border border-foreground/10 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none';
 
 function LabeledInput({ label, placeholder, className }: { label: string; placeholder: string; className?: string }) {
   return (
@@ -27,7 +27,7 @@ type PaymentMethod = {
   iconSrc: string;
 };
 
-const paymentMethods: PaymentMethod[] = [
+const initialPaymentMethods: PaymentMethod[] = [
   {
     id: 'pix',
     title: 'Pix',
@@ -51,7 +51,7 @@ const paymentMethods: PaymentMethod[] = [
   }
 ];
 
-function PaymentCard({ method }: { method: PaymentMethod }) {
+function PaymentCard({ method, onToggle }: { method: PaymentMethod; onToggle: () => void }) {
   const badgeClass = method.active
     ? 'bg-primary text-primary-foreground'
     : 'bg-foreground/15 text-muted-foreground';
@@ -61,7 +61,7 @@ function PaymentCard({ method }: { method: PaymentMethod }) {
   const knobClass = method.active ? 'right-[2px]' : 'left-[2px]';
 
   return (
-    <div className="relative flex h-full flex-col justify-between rounded-[10px] border border-foreground/10 bg-card/80 p-4">
+    <div className="relative flex h-full flex-col justify-between rounded-[8px] border border-foreground/10 bg-card/80 p-4">
       <span className={`absolute right-3 top-3 rounded-full px-3 py-[3px] text-[11px] font-semibold ${badgeClass}`}>
         {method.active ? 'Ativo' : 'Inativo'}
       </span>
@@ -78,6 +78,7 @@ function PaymentCard({ method }: { method: PaymentMethod }) {
           type="button"
           className={`relative h-5 w-9 rounded-full transition ${toggleClass}`}
           aria-label={`Alternar ${method.title}`}
+          onClick={onToggle}
         >
           <span className={`absolute top-[2px] h-4 w-4 rounded-full bg-primary-foreground ${knobClass}`} />
         </button>
@@ -88,6 +89,13 @@ function PaymentCard({ method }: { method: PaymentMethod }) {
 
 export default function AdminConfiguracoes() {
   const [activeTab, setActiveTab] = useState<Tab>('taxas');
+  const [paymentMethods, setPaymentMethods] = useState(initialPaymentMethods);
+
+  const handleToggleMethod = (id: string) => {
+    setPaymentMethods(prev =>
+      prev.map(method => (method.id === id ? { ...method, active: !method.active } : method))
+    );
+  };
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -97,7 +105,7 @@ export default function AdminConfiguracoes() {
             <button
               type="button"
               onClick={() => setActiveTab('taxas')}
-              className={`flex h-[86px] w-[190px] flex-col items-center justify-center gap-2 rounded-[10px] border px-3 transition ${
+              className={`flex h-[86px] w-[190px] flex-col items-center justify-center gap-2 rounded-[8px] border px-3 transition ${
                 activeTab === 'taxas'
                   ? 'border-primary bg-primary/10 text-primary shadow-[0_10px_30px_rgba(108,39,215,0.35)]'
                   : 'border-foreground/10 bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground'
@@ -109,7 +117,7 @@ export default function AdminConfiguracoes() {
             <button
               type="button"
               onClick={() => setActiveTab('ajustes')}
-              className={`flex h-[86px] w-[190px] flex-col items-center justify-center gap-2 rounded-[10px] border px-3 transition ${
+              className={`flex h-[86px] w-[190px] flex-col items-center justify-center gap-2 rounded-[8px] border px-3 transition ${
                 activeTab === 'ajustes'
                   ? 'border-primary bg-primary/10 text-primary shadow-[0_10px_30px_rgba(108,39,215,0.35)]'
                   : 'border-foreground/10 bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground'
@@ -121,7 +129,7 @@ export default function AdminConfiguracoes() {
           </div>
 
           {activeTab === 'taxas' ? (
-            <div className="rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
+            <div className="rounded-[8px] border border-foreground/10 bg-card/80 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold text-foreground">Alterar taxas</h2>
                 <p className="text-sm text-muted-foreground">Essa é a taxa final que a empresa irá pagar</p>
@@ -135,7 +143,7 @@ export default function AdminConfiguracoes() {
               </div>
 
               <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                <div className="rounded-[12px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
+                <div className="rounded-[8px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
                   <h3 className="text-lg font-semibold text-foreground">Pix</h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <LabeledInput label="Taxa fixa" placeholder="R$0,00" />
@@ -145,7 +153,7 @@ export default function AdminConfiguracoes() {
                   </div>
                 </div>
 
-                <div className="rounded-[12px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
+                <div className="rounded-[8px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
                   <h3 className="text-lg font-semibold text-foreground">Boleto</h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <LabeledInput label="Taxa fixa" placeholder="R$0,00" />
@@ -156,7 +164,7 @@ export default function AdminConfiguracoes() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-[12px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
+              <div className="mt-4 rounded-[8px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
                 <h3 className="text-lg font-semibold text-foreground">Cartão de crédito</h3>
                 <div className="mt-4 flex flex-col gap-4 md:flex-row">
                   <LabeledInput className="flex-1" label="Taxa fixa" placeholder="R$0,00" />
@@ -194,18 +202,18 @@ export default function AdminConfiguracoes() {
               </div>
             </div>
           ) : (
-            <div className="rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
+            <div className="rounded-[8px] border border-foreground/10 bg-card/80 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
               <h2 className="text-lg font-semibold text-foreground">Ajustes gerais</h2>
 
               <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                <div className="rounded-[12px] border border-foreground/10 bg-card p-5">
+                <div className="rounded-[8px] border border-foreground/10 bg-card p-5">
                   <h3 className="text-lg font-semibold text-foreground">Produtos</h3>
                   <div className="mt-4 grid gap-3">
                     <LabeledInput label="Ticket mínimo" placeholder="R$0,00" />
                     <LabeledInput label="Ticket máximo" placeholder="R$0,00" />
                   </div>
                 </div>
-                <div className="rounded-[12px] border border-foreground/10 bg-card p-5">
+                <div className="rounded-[8px] border border-foreground/10 bg-card p-5">
                   <h3 className="text-lg font-semibold text-foreground">Saque</h3>
                   <div className="mt-4 grid gap-3">
                     <LabeledInput label="Valor mínimo" placeholder="R$0,00" />
@@ -214,11 +222,11 @@ export default function AdminConfiguracoes() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[12px] border border-foreground/10 bg-card p-5">
+              <div className="mt-6 rounded-[8px] border border-foreground/10 bg-card p-5">
                 <h3 className="text-lg font-semibold text-foreground">Meios de pagamento</h3>
-                <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                  <div className="mt-4 grid gap-4 lg:grid-cols-3">
                   {paymentMethods.map(method => (
-                    <PaymentCard key={method.id} method={method} />
+                    <PaymentCard key={method.id} method={method} onToggle={() => handleToggleMethod(method.id)} />
                   ))}
                 </div>
               </div>
