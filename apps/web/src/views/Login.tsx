@@ -231,7 +231,7 @@ function SignInFields(props: SignInFieldsProps) {
           value={email}
           onChange={onEmailChange}
           disabled={disabled}
-          className="h-11 rounded-[8px] bg-card text-white placeholder:text-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed xl:h-10 2xl:h-10"
+          className="h-11 rounded-[8px] bg-card text-foreground placeholder:text-foreground/40 disabled:opacity-50 disabled:cursor-not-allowed xl:h-10 2xl:h-10"
         />
       </div>
       <PasswordField
@@ -296,7 +296,7 @@ function AuthTabsSwitcher({ activeTab, onTabChange }: TabsSwitcherProps) {
             onClick={() => onTabChange(tab.id)}
             className={cn(
               "flex-1 rounded-[7px] px-3 py-2 font-sora text-sm transition-all sm:text-base xl:py-1.5 2xl:py-1.5",
-              isActive ? "bg-foreground/10 text-foreground " : "bg-transparent text-foreground hover:text-white"
+              isActive ? "bg-foreground/10 text-foreground " : "bg-transparent text-foreground hover:text-primary"
             )}
             aria-pressed={isActive}
           >
@@ -432,7 +432,7 @@ export default function LoginView() {
         </div>
         <AuthTabsSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="self-center text-center">
-          <h1 className="text-white text-base xl:text-base 2xl:text-[20px]">
+          <h1 className="text-foreground xl:text-base 2xl:text-[20px]">
             {isSignUp ? "Crie sua conta" : "Acesse a sua conta"}
           </h1>
         </div>
@@ -507,7 +507,7 @@ export default function LoginView() {
           ) : (
             <Link
               href="/recuperar-senha"
-              className="self-center text-sm font-semibold text-white/70 transition hover:text-white"
+              className="self-center text-sm font-semibold text-foreground transition hover:text-primary"
             >
               Recuperar senha
             </Link>

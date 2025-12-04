@@ -28,7 +28,7 @@ export default function RecoverPasswordView() {
 
         <form
           onSubmit={handleSubmit}
-          className="mt-12 flex w-full max-w-[727px] h-[418px] flex-col items-center gap-6 rounded-[4px] bg-[#0E0E0E]/90 px-10 py-12 text-center shadow-[0px_20px_80px_rgba(0,0,0,0.45)]"
+          className="mt-12 flex w-full max-w-[727px] h-[418px] flex-col items-center gap-6 rounded-[4px] bg-card px-10 py-12 text-center"
         >
           <div className="space-y-3">
             <h1 className="text-[32px] font-sora text-foreground/90 font-semibold">Nova senha</h1>
@@ -43,7 +43,7 @@ export default function RecoverPasswordView() {
             type="email"
             inputMode="email"
             placeholder="Seu endereço de e-mail"
-            className="h-12 w-full px-[18px] align-middle py-[28px] rounded-[8px] bg-[#131313] text-[19px] font-sora text-white placeholder:text-white/30"
+            className="h-12 w-full px-[18px] align-middle py-[28px] rounded-[8px] bg-card text-[19px] font-sora text-foreground placeholder:text-foreground/40"
             value={email}
             onChange={event => setEmail(event.target.value)}
             required
@@ -58,7 +58,7 @@ export default function RecoverPasswordView() {
             </Button>
             <Link
               href="/"
-              className="w-[556px] text-[19px] font-sora font-semibold text-white/60 transition hover:text-white"
+              className="w-[556px] text-[19px] font-sora font-semibold text-foreground/40 transition hover:text-primary"
             >
               Cancelar
             </Link>

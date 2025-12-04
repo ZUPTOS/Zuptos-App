@@ -26,12 +26,22 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-function Field({ label, placeholder, className }: { label: string; placeholder: string; className?: string }) {
+type FieldProps = {
+  label: string;
+  placeholder: string;
+  className?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+};
+
+function Field({ label, placeholder, className, value, onChange }: FieldProps) {
   return (
     <label className={cn("flex flex-col gap-2 text-sm", className)}>
       <span className="text-[13px] text-muted-foreground">{label}</span>
       <Input
         placeholder={placeholder}
+        value={value ?? ""}
+        onChange={event => onChange?.(event.target.value)}
         className="h-[46px] rounded-[8px] border border-foreground/15 bg-card/40 text-sm text-foreground placeholder:text-muted-foreground"
       />
     </label>
@@ -56,10 +66,34 @@ function InfoCard({ title, value, className }: { title: string; value: string; c
   );
 }
 
-function CheckOption({ label }: { label: string }) {
+function CheckOption({
+  label,
+  checked,
+  onChange
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
   return (
-    <label className="flex items-center gap-3 text-base font-semibold text-muted-foreground">
-      <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[6px] border border-foreground/20 bg-card/30" />
+    <label className="flex cursor-pointer items-center gap-3 text-base font-semibold text-muted-foreground select-none">
+      <span
+        className={`flex h-[22px] w-[22px] items-center justify-center rounded-[6px] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+          checked ? "border-primary bg-primary text-white" : "border-foreground/10 text-transparent"
+        }`}
+        role="checkbox"
+        aria-checked={checked}
+        tabIndex={0}
+        onClick={onChange}
+        onKeyDown={event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onChange();
+          }
+        }}
+      >
+        ✓
+      </span>
       {label}
     </label>
   );
@@ -69,6 +103,37 @@ export default function AdminUsuarioDetalhes() {
   const [activeTab, setActiveTab] = useState<TabId>("taxas");
   const [showManageBalance, setShowManageBalance] = useState(false);
   const [showConfirmBalance, setShowConfirmBalance] = useState(false);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [permissionToggles, setPermissionToggles] = useState({
+    cardCredit: false,
+    pix: false,
+    boleto: false,
+    transferEnabled: false
+  });
+  const formatCurrency = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (!digits) return "";
+    const number = Number(digits) / 100;
+    return number
+      .toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })
+      .replace(/\u00a0/g, " ");
+  };
+  const formatPercent = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (!digits) return "";
+    const number = Number(digits) / 100;
+    return `${number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+  };
+  const handleFieldChange = (key: string, rawValue: string, type?: "currency" | "percent") => {
+    let formatted = rawValue;
+    if (type === "currency") {
+      formatted = formatCurrency(rawValue);
+    } else if (type === "percent") {
+      formatted = formatPercent(rawValue);
+    }
+    setFieldValues(prev => ({ ...prev, [key]: formatted }));
+  };
+  const getFieldValue = (key: string) => fieldValues[key] ?? "";
 
   const surface = "rounded-[10px] border border-foreground/10 bg-card/70";
   const installmentLabels = useMemo(
@@ -113,37 +178,101 @@ export default function AdminUsuarioDetalhes() {
             <div className="grid gap-4 lg:grid-cols-2">
               <TaxCard title="Pix">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Taxa fixa" placeholder="R$0,00" />
-                  <Field label="Taxa variável" placeholder="R$0,00" />
+                  <Field
+                    label="Taxa fixa"
+                    placeholder="R$0,00"
+                    value={getFieldValue("pixTaxaFixa")}
+                    onChange={value => handleFieldChange("pixTaxaFixa", value, "currency")}
+                  />
+                  <Field
+                    label="Taxa variável"
+                    placeholder="R$0,00"
+                    value={getFieldValue("pixTaxaVariavel")}
+                    onChange={value => handleFieldChange("pixTaxaVariavel", value, "currency")}
+                  />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Adquirente" placeholder="Adquirente" />
-                  <Field label="Tempo de liberação" placeholder="D+0" />
+                  <Field
+                    label="Adquirente"
+                    placeholder="Adquirente"
+                    value={getFieldValue("pixAdquirente")}
+                    onChange={value => handleFieldChange("pixAdquirente", value)}
+                  />
+                  <Field
+                    label="Tempo de liberação"
+                    placeholder="D+0"
+                    value={getFieldValue("pixTempo")}
+                    onChange={value => handleFieldChange("pixTempo", value)}
+                  />
                 </div>
               </TaxCard>
 
               <TaxCard title="Boleto">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Taxa fixa" placeholder="R$0,00" />
-                  <Field label="Taxa variável" placeholder="R$0,00" />
+                  <Field
+                    label="Taxa fixa"
+                    placeholder="R$0,00"
+                    value={getFieldValue("boletoTaxaFixa")}
+                    onChange={value => handleFieldChange("boletoTaxaFixa", value, "currency")}
+                  />
+                  <Field
+                    label="Taxa variável"
+                    placeholder="R$0,00"
+                    value={getFieldValue("boletoTaxaVariavel")}
+                    onChange={value => handleFieldChange("boletoTaxaVariavel", value, "currency")}
+                  />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Adquirente" placeholder="Adquirente" />
-                  <Field label="Tempo de liberação" placeholder="D+0" />
+                  <Field
+                    label="Adquirente"
+                    placeholder="Adquirente"
+                    value={getFieldValue("boletoAdquirente")}
+                    onChange={value => handleFieldChange("boletoAdquirente", value)}
+                  />
+                  <Field
+                    label="Tempo de liberação"
+                    placeholder="D+0"
+                    value={getFieldValue("boletoTempo")}
+                    onChange={value => handleFieldChange("boletoTempo", value)}
+                  />
                 </div>
               </TaxCard>
             </div>
 
             <TaxCard title="Cartão de crédito">
               <div className="grid gap-3 md:grid-cols-3">
-                <Field label="Taxa fixa" placeholder="R$0,00" />
-                <Field label="Adquirente" placeholder="Adquirente" />
-                <Field label="Tempo de liberação" placeholder="D+0" />
+                <Field
+                  label="Taxa fixa"
+                  placeholder="R$0,00"
+                  value={getFieldValue("creditoTaxaFixa")}
+                  onChange={value => handleFieldChange("creditoTaxaFixa", value, "currency")}
+                />
+                <Field
+                  label="Adquirente"
+                  placeholder="Adquirente"
+                  value={getFieldValue("creditoAdquirente")}
+                  onChange={value => handleFieldChange("creditoAdquirente", value)}
+                />
+                <Field
+                  label="Tempo de liberação"
+                  placeholder="D+0"
+                  value={getFieldValue("creditoTempo")}
+                  onChange={value => handleFieldChange("creditoTempo", value)}
+                />
               </div>
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-                {installmentLabels.map(label => (
-                  <Field key={label} label={label} placeholder="0,00%" />
-                ))}
+                {installmentLabels.map(label => {
+                  const key = `credito-${label.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}`;
+                  return (
+                    <Field
+                      key={label}
+                      label={label}
+                      placeholder="0,00%"
+                      value={getFieldValue(key)}
+                      onChange={value => handleFieldChange(key, value, "percent")}
+                    />
+                  );
+                })}
               </div>
             </TaxCard>
 
@@ -169,16 +298,40 @@ export default function AdminUsuarioDetalhes() {
               <div className="space-y-3">
                 <p className="text-2xl font-semibold text-foreground">Meio de pagamentos</p>
                 <div className="flex flex-wrap gap-4 sm:gap-6">
-                  <CheckOption label="Cartão de crédito" />
-                  <CheckOption label="Pix" />
-                  <CheckOption label="Boleto" />
+                  <CheckOption
+                    label="Cartão de crédito"
+                    checked={permissionToggles.cardCredit}
+                    onChange={() =>
+                      setPermissionToggles(prev => ({ ...prev, cardCredit: !prev.cardCredit }))
+                    }
+                  />
+                  <CheckOption
+                    label="Pix"
+                    checked={permissionToggles.pix}
+                    onChange={() =>
+                      setPermissionToggles(prev => ({ ...prev, pix: !prev.pix }))
+                    }
+                  />
+                  <CheckOption
+                    label="Boleto"
+                    checked={permissionToggles.boleto}
+                    onChange={() =>
+                      setPermissionToggles(prev => ({ ...prev, boleto: !prev.boleto }))
+                    }
+                  />
                 </div>
               </div>
 
               <div className="space-y-3">
                 <p className="text-2xl font-semibold text-foreground">Regras de transferência</p>
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                  <CheckOption label="Transferência habilitada" />
+                  <CheckOption
+                    label="Transferência habilitada"
+                    checked={permissionToggles.transferEnabled}
+                    onChange={() =>
+                      setPermissionToggles(prev => ({ ...prev, transferEnabled: !prev.transferEnabled }))
+                    }
+                  />
                   <button
                     type="button"
                     className="flex h-[46px] items-center gap-2 rounded-[8px] border border-foreground/15 bg-card/40 px-3 text-sm text-muted-foreground"
@@ -190,12 +343,32 @@ export default function AdminUsuarioDetalhes() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Taxa fixa" placeholder="R$0,00" />
-                <Field label="Taxa variável" placeholder="0,00%" />
+                <Field
+                  label="Taxa fixa"
+                  placeholder="R$0,00"
+                  value={getFieldValue("transferTaxaFixa")}
+                  onChange={value => handleFieldChange("transferTaxaFixa", value, "currency")}
+                />
+                <Field
+                  label="Taxa variável"
+                  placeholder="0,00%"
+                  value={getFieldValue("transferTaxaVariavel")}
+                  onChange={value => handleFieldChange("transferTaxaVariavel", value, "percent")}
+                />
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Valor máximo por transferência" placeholder="R$0,00" />
-                <Field label="Limite diário de transferência" placeholder="R$0,00" />
+                <Field
+                  label="Valor máximo por transferência"
+                  placeholder="R$0,00"
+                  value={getFieldValue("transferValorMaximo")}
+                  onChange={value => handleFieldChange("transferValorMaximo", value, "currency")}
+                />
+                <Field
+                  label="Limite diário de transferência"
+                  placeholder="R$0,00"
+                  value={getFieldValue("transferLimiteDiario")}
+                  onChange={value => handleFieldChange("transferLimiteDiario", value, "currency")}
+                />
               </div>
             </div>
           </div>
