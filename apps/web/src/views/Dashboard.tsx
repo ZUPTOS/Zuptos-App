@@ -669,7 +669,7 @@ export default function Dashboard() {
                 <span>
                   Você é{" "}
                   <span
-                    className="text-fs-meta font-bold"
+                    className="text-sora font-bold"
                     style={{ color: JOURNEY_INACTIVE_COLOR }}
                   >
                     {hideValues ? "•••" : "expert"}
@@ -677,7 +677,7 @@ export default function Dashboard() {
                 </span>
                 <span>
                   Próximo nível é{" "}
-                  <span className="text-fs-meta font-semibold text-foreground/80">
+                  <span className="text-sora font-semibold text-foreground/80">
                     {hideValues ? "•••" : mockData.user.nextLevel}
                   </span>
                 </span>
