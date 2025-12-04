@@ -484,7 +484,7 @@ export default function Products() {
           <button
             type="button"
             onClick={() => setIsFilterOpen(false)}
-            className="h-[46px] w-full rounded-[7px] bg-primary px-4 py-3 text-sm font-semibold text-white"
+            className="h-[46px] w-full rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white"
           >
             Adicionar filtro
           </button>
@@ -722,7 +722,7 @@ export default function Products() {
             <button
               type="button"
               onClick={handleProductSubmit}
-              className="flex-1 rounded-[10px] bg-primary px-4 py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.01]"
+              className="flex-1 rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.01]"
             >
               Cadastrar produto
             </button>

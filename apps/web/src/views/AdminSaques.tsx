@@ -189,7 +189,7 @@ export default function AdminSaques() {
           <div className="pt-2">
             <button
               type="button"
-              className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white transition hover:brightness-110"
+              className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] text-sm font-semibold text-white transition hover:brightness-110"
               onClick={() => setIsFilterOpen(false)}
             >
               Adicionar filtro

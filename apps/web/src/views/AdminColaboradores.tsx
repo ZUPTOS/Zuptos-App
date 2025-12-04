@@ -339,7 +339,7 @@ export default function AdminColaboradores() {
               <button
                 type="button"
                 onClick={handleConfirmNewRole}
-                className="w-full rounded-[8px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(108,39,215,0.5)] transition hover:brightness-110"
+                className="w-full rounded-[8px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(108,39,215,0.5)] transition hover:brightness-110"
               >
                 Confirmar
               </button>
@@ -413,7 +413,7 @@ export default function AdminColaboradores() {
                 </button>
                 <button
                   type="button"
-                  className="h-10 flex-1 rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:brightness-110"
+                  className="h-10 flex-1 rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] text-sm font-semibold text-white shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:brightness-110"
                   onClick={() => setIsAddOpen(false)}
                 >
                   Adicionar colaborador

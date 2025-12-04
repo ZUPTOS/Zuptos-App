@@ -392,7 +392,7 @@ export default function SalesFilterPanel({
         <button
           type="button"
           onClick={() => onApply?.()}
-          className="ml-auto w-[158px] rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          className="ml-auto w-[158px] rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
         >
           Adicionar filtro
         </button>

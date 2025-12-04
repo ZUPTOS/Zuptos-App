@@ -492,7 +492,7 @@ export default function Finances() {
           <div className="pt-2">
             <button
               type="button"
-              className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white transition hover:brightness-110"
+              className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] text-sm font-semibold text-white transition hover:brightness-110"
               onClick={() => setIsFilterOpen(false)}
             >
               Adicionar filtro
@@ -677,7 +677,7 @@ export default function Finances() {
               </div>
               <button
                 type="button"
-                className="mt-2 inline-flex h-[44px] w-full max-w-[360px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-sm font-semibold text-white"
+                className="mt-2 inline-flex h-[44px] w-full max-w-[360px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] text-sm font-semibold text-white"
               >
                 Solicitar
               </button>
@@ -756,7 +756,7 @@ export default function Finances() {
                     setHasBankAccount(true);
                     setShowAccountForm(false);
                   }}
-                  className="h-[35px] w-full max-w-[140px] rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-[12px] font-semibold text-white"
+                  className="h-[35px] w-full max-w-[140px] rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] text-[12px] font-semibold text-white"
                 >
                   Adicionar conta
                 </button>
