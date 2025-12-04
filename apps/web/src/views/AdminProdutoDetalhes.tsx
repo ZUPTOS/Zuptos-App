@@ -142,7 +142,7 @@ export default function AdminProdutoDetalhes() {
             Produtos
           </button>
 
-          <div className="rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b]">
+          <div className="rounded-[8px] bg-card">
             <div className="flex items-center justify-between border-b border-foreground/10 px-6 py-4">
               <p className="text-sm font-semibold text-muted-foreground">Dados do produto</p>
               <span className="text-xs font-medium text-muted-foreground">
@@ -150,13 +150,13 @@ export default function AdminProdutoDetalhes() {
               </span>
             </div>
 
-            <div className="space-y-6 px-6 py-6">
-              <div className="grid gap-6 border-b border-foreground/10 pb-6 md:grid-cols-3">
-                <div className="space-y-2">
+            <div className="space-y-4 px-6 py-4 rounded-[10px]">
+              <div className="grid gap-6 border-foreground/10 pb-3 md:grid-cols-3">
+                <div className="space-y-3">
                   <span className="text-sm text-muted-foreground">Nome do produto</span>
                   <p className="text-xl font-semibold text-foreground">{productDetail.name}</p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <span className="text-sm text-muted-foreground">Produtor</span>
                   <div className="flex flex-col">
                     <p className="text-lg font-semibold text-foreground">{productDetail.producer}</p>
@@ -171,7 +171,7 @@ export default function AdminProdutoDetalhes() {
                     </span>
                     <button
                       type="button"
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-foreground/15 bg-muted/20 text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-foreground/15 bg-muted/20 text-muted-foreground transition hover:border-primary/40 hover:text-primary"
                       aria-label="Editar status"
                     >
                       <ExternalLink className="h-4 w-4" aria-hidden />
@@ -191,7 +191,7 @@ export default function AdminProdutoDetalhes() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 divide-x divide-foreground/10 border-t border-foreground/10 md:grid-cols-4">
+            <div className="grid gap-2 h-[130px] grid-cols-2 bg-background md:grid-cols-4">
               {tabs.map(tab => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -200,16 +200,16 @@ export default function AdminProdutoDetalhes() {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex h-[88px] w-full flex-col items-center justify-center gap-3 px-3 text-sm font-semibold transition ${
+                    className={`flex rounded-[10px] h-[135px] w-full flex-col bg-card mt-2 items-center justify-center gap-3 px-3 text-sm font-semibold transition ${
                       isActive
-                        ? 'border-l border-r border-primary/50 bg-primary/10 text-primary first:border-l-0 last:border-r-0'
-                        : 'bg-card text-muted-foreground hover:bg-muted/20'
+                        ? 'border border-primary/50 text-primary'
+                        : 'text-muted-foreground hover:text-primary'
                     }`}
                   >
                     <span
-                      className={`flex h-11 w-11 items-center justify-center rounded-full border ${
+                      className={`flex h-11 w-11 items-center justify-center rounded-[10px] border ${
                         isActive
-                          ? 'border-primary/60 bg-primary/10 text-primary'
+                          ? 'border-primary/60 text-primary'
                           : 'border-foreground/15 bg-foreground/5 text-muted-foreground'
                       }`}
                     >
@@ -223,7 +223,7 @@ export default function AdminProdutoDetalhes() {
           </div>
 
           {activeTab === 'produtor' && (
-            <div className="rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b]">
+            <div className="rounded-[7px]  bg-card">
               <div className="flex items-center justify-between border-b border-foreground/10 px-6 py-4">
                 <p className="text-lg font-semibold text-foreground">Produtor</p>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -232,7 +232,7 @@ export default function AdminProdutoDetalhes() {
               </div>
 
               <div className="space-y-8 px-6 py-8">
-                <div className="grid gap-6 border-b border-foreground/10 pb-8 md:grid-cols-3">
+                <div className="grid gap-6 pb-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <span className="text-sm text-muted-foreground">Nome do produtor</span>
                     <p className="text-2xl font-semibold text-foreground">{producerDetail.name}</p>
@@ -271,7 +271,7 @@ export default function AdminProdutoDetalhes() {
           )}
 
           {activeTab === 'ofertas' && (
-            <div className="rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b]">
+            <div className="rounded-[7px] border border-foreground/10 bg-card">
               <div className="border-b border-foreground/10 px-6 py-4">
                 <p className="text-lg font-semibold text-foreground">Ofertas</p>
               </div>
@@ -393,7 +393,7 @@ export default function AdminProdutoDetalhes() {
                 <button
                   type="button"
                   onClick={() => setIsHistoryOpen(true)}
-                  className="inline-flex w-fit items-center rounded-[10px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:border-foreground/25 hover:bg-muted/20"
+                  className="inline-flex w-fit items-center rounded-[7px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:border-foreground/25 hover:bg-muted/20"
                 >
                   Ver histórico
                 </button>
@@ -412,7 +412,7 @@ export default function AdminProdutoDetalhes() {
             aria-label="Fechar histórico"
             onClick={() => setIsHistoryOpen(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 pt-24 pb-10">
+          <div className="fixed inset-0 z-50 flex items-start justify-start overflow-y-auto px-4 pt-24 pb-10">
             <div className="w-full max-w-[420px] rounded-[10px] border border-foreground/15 bg-card px-5 py-5 shadow-[0_20px_70px_rgba(0,0,0,0.55)]">
               <div className="flex items-center justify-between border-b border-foreground/10 pb-3">
                 <p className="text-lg font-semibold text-foreground">Histórico</p>
