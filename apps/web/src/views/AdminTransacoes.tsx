@@ -1,11 +1,12 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Filter, Search, Upload, X } from "lucide-react";
+import { ArrowLeft, Filter, Search, Upload } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import DateFilter from "@/components/DateFilter";
+import ConfirmModal from "@/components/ConfirmModal";
 import transactionsData from "@/data/admin-transacoes.json";
 import type { Transaction } from "@/types/transaction";
 import { useMemo, useState } from "react";
@@ -290,41 +291,17 @@ export default function AdminTransacoes() {
           </div>
         </div>
       </FilterDrawer>
-      {isExportModalOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/70"
-            role="button"
-            tabIndex={-1}
-            aria-label="Fechar modal de exportação"
-            onClick={() => setIsExportModalOpen(false)}
-          />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-foreground/15 bg-card px-6 py-6 text-sm text-muted-foreground shadow-[0_20px_70px_rgba(0,0,0,0.55)]">
-            <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <p className="text-lg font-semibold text-foreground">Exportar relatório</p>
-              <button
-                type="button"
-                onClick={() => setIsExportModalOpen(false)}
-                className="text-muted-foreground transition hover:text-foreground"
-                aria-label="Fechar modal de exportação"
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Ao clicar em Confirmar, enviaremos o relatório para <span className="text-foreground">con****@gmail.com</span>. O envio
-              pode levar alguns minutos.
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsExportModalOpen(false)}
-              className="mt-6 w-full rounded-[8px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110"
-            >
-              Confirmar
-            </button>
-          </div>
-        </>
-      )}
+      <ConfirmModal
+        open={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Exportar relatório"
+        description={
+          <span>
+            Ao clicar em Confirmar, enviaremos o relatório para <span className="text-foreground">con****@gmail.com</span>. O envio pode
+            levar alguns minutos.
+          </span>
+        }
+      />
     </DashboardLayout>
   );
 }

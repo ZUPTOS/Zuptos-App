@@ -82,7 +82,7 @@ export default function AdminUsuarios() {
                 <input
                   type="text"
                   placeholder="Buscar usuário"
-                  className="w-full bg-transparent text-sm uppercase text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
               <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Filtrar">

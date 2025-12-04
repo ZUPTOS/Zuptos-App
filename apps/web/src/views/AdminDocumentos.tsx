@@ -1,8 +1,12 @@
 'use client';
 
+import { useState } from "react";
 import { Filter, Search, Upload } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
+import { FilterDrawer } from "@/components/FilterDrawer";
+import DateFilter from "@/components/DateFilter";
+import ConfirmModal from "@/components/ConfirmModal";
 import { useRouter } from "next/navigation";
 
 type DocumentRow = {
@@ -100,6 +104,10 @@ const columns: Column<DocumentRow>[] = [
 export default function AdminDocumentos() {
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
   const router = useRouter();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -120,10 +128,20 @@ export default function AdminDocumentos() {
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
-              <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Filtrar">
+              <button
+                type="button"
+                className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition"
+                aria-label="Filtrar"
+                onClick={() => setIsFilterOpen(true)}
+              >
                 <Filter className="h-5 w-5" aria-hidden />
               </button>
-              <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Exportar">
+              <button
+                type="button"
+                className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition"
+                aria-label="Exportar"
+                onClick={() => setIsExportModalOpen(true)}
+              >
                 <Upload className="h-5 w-5" aria-hidden />
               </button>
             </div>
@@ -149,6 +167,58 @@ export default function AdminDocumentos() {
           />
         </div>
       </div>
+      <FilterDrawer open={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtrar">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground">Data</p>
+            <DateFilter
+              onDateChange={(start, end) => {
+                setDateRange({ start, end });
+              }}
+            />
+          </div>
+          <div className="space-y-3 border-t border-foreground/10 pt-4">
+            <p className="text-sm font-semibold text-foreground">Status</p>
+            <div className="grid grid-cols-2 gap-3 text-foreground">
+              {["Aprovado", "Reprovado", "Pendente"].map(option => (
+                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={selectedStatuses.includes(option)}
+                    onChange={() =>
+                      setSelectedStatuses(prev =>
+                        prev.includes(option) ? prev.filter(item => item !== option) : [...prev, option]
+                      )
+                    }
+                    className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="pt-2">
+            <button
+              type="button"
+              className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] text-sm font-semibold text-white transition hover:brightness-110"
+              onClick={() => setIsFilterOpen(false)}
+            >
+              Adicionar filtro
+            </button>
+          </div>
+        </div>
+      </FilterDrawer>
+      <ConfirmModal
+        open={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Exportar relatório"
+        description={
+          <span>
+            Ao clicar em Confirmar, enviaremos o relatório para <span className="text-foreground">con****@gmail.com</span>. O envio pode
+            levar alguns minutos.
+          </span>
+        }
+      />
     </DashboardLayout>
   );
 }

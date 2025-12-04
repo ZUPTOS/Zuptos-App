@@ -103,6 +103,7 @@ export default function AdminUsuarioDetalhes() {
   const [activeTab, setActiveTab] = useState<TabId>("taxas");
   const [showManageBalance, setShowManageBalance] = useState(false);
   const [showConfirmBalance, setShowConfirmBalance] = useState(false);
+  const [newBalanceValue, setNewBalanceValue] = useState("R$0,00");
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [permissionToggles, setPermissionToggles] = useState({
     cardCredit: false,
@@ -412,7 +413,7 @@ export default function AdminUsuarioDetalhes() {
                   <button
                     type="button"
                     onClick={() => setShowManageBalance(true)}
-                    className="inline-flex h-[46px] items-center justify-center rounded-[8px] bg-gradient-to-r from-purple-500 to-violet-600 px-4 text-sm font-semibold text-white shadow"
+                    className="inline-flex h-[46px] items-center justify-center rounded-[8px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 text-sm font-semibold text-white shadow"
                   >
                     Gerenciar saldo
                   </button>
@@ -436,6 +437,8 @@ export default function AdminUsuarioDetalhes() {
                           <span className="text-sm text-muted-foreground">Novo saldo</span>
                           <Input
                             placeholder="R$0,00"
+                            value={newBalanceValue}
+                            onChange={event => setNewBalanceValue(formatCurrency(event.target.value))}
                             className="h-[46px] rounded-[8px] border border-foreground/15 bg-card/40 text-sm text-foreground placeholder:text-muted-foreground"
                           />
                         </div>
@@ -454,7 +457,7 @@ export default function AdminUsuarioDetalhes() {
                               setShowManageBalance(false);
                               setShowConfirmBalance(true);
                             }}
-                            className="flex-1 rounded-[8px] bg-gradient-to-r from-purple-500 to-violet-600 px-3 py-2 text-sm font-semibold text-white"
+                            className="flex-1 rounded-[8px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-3 py-2 text-sm font-semibold text-white"
                           >
                             Alterar saldo
                           </button>
@@ -502,7 +505,7 @@ export default function AdminUsuarioDetalhes() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmBalance(false)}
-                    className="flex-1 rounded-[8px] bg-gradient-to-r from-purple-500 to-violet-600 px-3 py-2 text-sm font-semibold text-white"
+                    className="flex-1 rounded-[8px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-3 py-2 text-sm font-semibold text-white"
                   >
                     Confirmar
                   </button>

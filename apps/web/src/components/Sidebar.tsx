@@ -186,14 +186,14 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 z-40 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[6px] transition-[width] duration-300 xl:max-w-[220px] 2xl:max-w-[240px]"
+      className="fixed left-0 top-0 z-40 h-screen bg-background text-sidebar-foreground border-r border-sidebar-border backdrop-blur-[8px] transition-[width] duration-300 xl:max-w-[220px] 2xl:max-w-[240px]"
       style={{
         width: isVisible ? "var(--sidebar-expanded)" : "var(--sidebar-collapsed)"
       }}
     >
       {/* Logo Section */}
       <div
-        className={`relative flex items-center justify-center ${isExpanded ? "px-6" : ""} p-3 xl:p-3 2xl:p-3 cursor-pointer`}
+        className={`relative flex items-center justify-center ${isExpanded ? "px-6" : ""} p-3 xl:p-3 2xl:p-4 cursor-pointer`}
         onClick={handleLogoClick}
         role="button"
         tabIndex={0}
@@ -206,12 +206,12 @@ export default function Sidebar() {
       >
         {isExpanded ? (
           <Image
-            src="/images/expanded.svg"
+            src={isLightMode ? "/images/expandedDark.svg" : "/images/expanded.svg"}
             alt="Zuptos logo"
-            width={180}
-            height={56}
+            width={isLightMode ? 180 : 180}
+            height={isLightMode ? 56 : 56}
             priority
-            className="h-14 w-auto"
+            className={isLightMode ? "h-8 w-auto" : "h-8 w-auto"}
           />
         ) : (
           <Image
@@ -220,7 +220,7 @@ export default function Sidebar() {
             width={32}
             height={32}
             priority
-            className="h-9 w-auto"
+            className="h-8 w-auto"
           />
         )}
         {isVisible && (
@@ -285,7 +285,7 @@ export default function Sidebar() {
                   className={`text-sm xl:text-xs 2xl:text-sm font-semibold ${
                     isActive
                       ? "text-primary"
-                      : "text-foreground group-hover:text-white"
+                      : "text-foreground group-hover:text-primary"
                   }`}
                 >
                   {item.label}
