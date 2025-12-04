@@ -311,11 +311,11 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
         )}
       </div>
 
-      {activeTab === "financeiro" && (
+      {activeTab === "financeiro" && transaction.status === "Aprovado" && (
         <div className="mt-6 flex justify-end">
           <button
             type="button"
-            className="rounded-[7px] border border-primary/20 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+            className="rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110"
           >
             Estornar
           </button>

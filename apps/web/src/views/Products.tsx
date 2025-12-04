@@ -667,8 +667,8 @@ export default function Products() {
                   <span
                     className={`flex h-[31px] w-[80px] items-center justify-between gap-1 rounded-full border px-2 text-[11px] font-semibold transition-colors ${
                       hasLoginAccess
-                        ? "bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-white border-primary/60 shadow-sm"
-                        : "bg-card text-foreground border-muted shadow-sm"
+                        ? "bg-gradient-to-r from-[#6c27d7] to-[#421E8B] text-white border-primary/60 shadow-sm"
+                        : "bg-card text-foreground border-foreground/20 shadow-sm"
                     }`}
                   >
                     <span
@@ -680,7 +680,7 @@ export default function Products() {
                     </span>
                     <span
                       className={`h-[25px] w-[25px] rounded-full bg-white shadow-sm transition-all ${
-                        hasLoginAccess ? "order-2 translate-x-[2px]" : "order-1 -translate-x-[2px]"
+                        hasLoginAccess ? "order-2 translate-x-[5px]" : "order-1 -translate-x-[5px]"
                       }`}
                     />
                   </span>
@@ -722,7 +722,7 @@ export default function Products() {
             <button
               type="button"
               onClick={handleProductSubmit}
-              className="flex-1 rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.01]"
+              className="flex-1 rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.01]"
             >
               Cadastrar produto
             </button>
