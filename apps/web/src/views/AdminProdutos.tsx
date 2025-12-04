@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Filter, LifeBuoy, Mail, Phone, Search, Upload, User } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { FilterDrawer } from '@/components/FilterDrawer';
+import DateFilter from '@/components/DateFilter';
 
 type ProductStatus = 'Aprovado' | 'Em produção' | 'Reprovado' | 'Pendente' | 'Em atualização';
 
@@ -137,7 +139,14 @@ export default function AdminProdutos() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState(mockProducts);
   const [currentPage, setCurrentPage] = useState(3);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const router = useRouter();
+
+  const toggleSelection = (value: string, list: string[], setter: (val: string[]) => void) => {
+    setter(list.includes(value) ? list.filter(item => item !== value) : [...list, value]);
+  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value.toLowerCase();
@@ -167,6 +176,7 @@ export default function AdminProdutos() {
   const pages = [1, 2, 3, '...', 99, 100, 101] as const;
 
   return (
+    <>
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full 2xl:max-w-[1320px] xl:max-w-[1050px] flex-col gap-6 px-2 py-6">
@@ -191,6 +201,7 @@ export default function AdminProdutos() {
                 type="button"
                 className="flex xl:h-[36px] 2xl:h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/10 bg-card transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
                 aria-label="Filtrar"
+                onClick={() => setIsFilterOpen(true)}
               >
                 <Filter className="h-5 w-5 text-foreground" aria-hidden />
               </button>
@@ -266,5 +277,58 @@ export default function AdminProdutos() {
         </div>
       </div>
     </DashboardLayout>
+    <FilterDrawer open={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtrar">
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-foreground">Data</p>
+          <DateFilter />
+        </div>
+
+        <div className="space-y-3 border-t border-foreground/10 pt-4">
+          <p className="text-sm font-semibold text-foreground">Status</p>
+          <div className="grid grid-cols-1 gap-3 text-foreground">
+            {['Aprovado', 'Reprovado', 'Pendente', 'Em produção', 'Excluído', 'Em atualização'].map(option => (
+              <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={selectedStatuses.includes(option)}
+                  onChange={() => toggleSelection(option, selectedStatuses, setSelectedStatuses)}
+                  className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-foreground/10 pt-4">
+          <p className="text-sm font-semibold text-foreground">Serviço</p>
+          <div className="grid grid-cols-1 gap-3 text-foreground">
+            {['Curso', 'Serviço', 'E-book'].map(option => (
+              <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={selectedServices.includes(option)}
+                  onChange={() => toggleSelection(option, selectedServices, setSelectedServices)}
+                  className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            className="h-[46px] w-full rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white"
+            onClick={() => setIsFilterOpen(false)}
+          >
+            Adicionar filtro
+          </button>
+        </div>
+      </div>
+    </FilterDrawer>
+    </>
   );
 }
