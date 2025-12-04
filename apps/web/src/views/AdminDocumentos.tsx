@@ -49,12 +49,6 @@ const rows: DocumentRow[] = [
   }
 ] as const;
 
-const statusBadge = {
-  Pendente: "bg-yellow-500/15 text-yellow-400",
-  Aprovado: "bg-emerald-500/15 text-emerald-400",
-  Reprovado: "bg-rose-500/15 text-rose-400"
-} as const;
-
 const columns: Column<DocumentRow>[] = [
   {
     id: "info",
@@ -77,13 +71,9 @@ const columns: Column<DocumentRow>[] = [
     headerClassName: "text-center",
     cellClassName: "text-center",
     render: row => (
-      <span
-        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-          statusBadge[row.status] ?? "bg-muted/30 text-muted-foreground"
-        }`}
-      >
-        {row.status}
-      </span>
+      <div className="flex flex-col items-center text-sm text-foreground">
+        <span className="font-semibold">{row.status}</span>
+      </div>
     )
   },
   {
@@ -127,7 +117,7 @@ export default function AdminDocumentos() {
                 <input
                   type="text"
                   placeholder="Filtrar por usuário"
-                  className="w-full bg-transparent text-sm uppercase text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
               <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Filtrar">
@@ -151,7 +141,11 @@ export default function AdminDocumentos() {
             headerRowClassName="text-[12px] uppercase tracking-[0.02em]"
             tableClassName="text-left"
             getRowClassName={() => "text-[14px]"}
-            onRowClick={() => router.push("/admin/documentos/detalhes")}
+            onRowClick={row =>
+              router.push(
+                `/admin/documentos/detalhes?id=${encodeURIComponent(row.id)}&status=${encodeURIComponent(row.status)}`
+              )
+            }
           />
         </div>
       </div>

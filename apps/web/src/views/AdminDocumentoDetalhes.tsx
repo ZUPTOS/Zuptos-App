@@ -1,9 +1,11 @@
 'use client';
 
-import { Image as ImageIcon, Phone } from "lucide-react";
+import { X, Image as ImageIcon, Phone } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 const userData = {
   nome: "Nome",
@@ -44,6 +46,11 @@ function DocCard({ label }: { label: string }) {
 
 export default function AdminDocumentoDetalhes() {
   const surface = "rounded-[10px] border border-foreground/10 bg-card/80";
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get("status");
+  const currentStatus = (statusParam ?? userData.status) as typeof userData.status;
+  const actionType = currentStatus === "Pendente" ? "aprovar" : currentStatus === "Reprovado" ? "responder" : null;
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -66,8 +73,8 @@ export default function AdminDocumentoDetalhes() {
               </div>
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Status</span>
-                <p className="text-sm font-semibold text-rose-400">
-                  {userData.status}: <span className="text-muted-foreground font-normal">{userData.statusDesc}</span>
+                <p className="text-sm font-semibold text-foreground">
+                  {currentStatus}: <span className="text-muted-foreground font-normal">{userData.statusDesc}</span>
                 </p>
               </div>
               <div className="space-y-1">
@@ -139,16 +146,63 @@ export default function AdminDocumentoDetalhes() {
             </div>
 
             <div className="flex justify-end px-5 pb-5">
-              <button
-                type="button"
-                className="rounded-[8px] bg-gradient-to-r from-purple-500 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow"
-              >
-                Aprovar
-              </button>
+              {actionType && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (actionType === "aprovar") {
+                      setApprovalModalOpen(true);
+                    }
+                  }}
+                  className="rounded-[8px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-5 py-3 text-sm font-semibold text-white shadow"
+                >
+                  {actionType === "aprovar" ? "Aprovar" : "Responder solicitação"}
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
+      {approvalModalOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/70"
+            role="button"
+            tabIndex={-1}
+            aria-label="Fechar modal de aprovação"
+            onClick={() => setApprovalModalOpen(false)}
+          />
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[12px] border border-foreground/15 bg-card px-6 py-6 text-foreground shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-semibold text-foreground">Tem certeza que deseja aprovar a documentação?</p>
+              <button
+                type="button"
+                onClick={() => setApprovalModalOpen(false)}
+                className="text-muted-foreground transition hover:text-foreground"
+                aria-label="Fechar modal"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setApprovalModalOpen(false)}
+                className="flex-1 rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-[8px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+                onClick={() => setApprovalModalOpen(false)}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

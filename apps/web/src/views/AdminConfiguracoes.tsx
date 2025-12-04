@@ -107,7 +107,7 @@ export default function AdminConfiguracoes() {
               onClick={() => setActiveTab('taxas')}
               className={`flex h-[86px] w-[190px] flex-col items-center justify-center gap-2 rounded-[8px] border px-3 transition ${
                 activeTab === 'taxas'
-                  ? 'border-primary bg-primary/10 text-primary shadow-[0_10px_30px_rgba(108,39,215,0.35)]'
+                  ? 'border-primary bg-primary/10 text-primary'
                   : 'border-foreground/10 bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground'
               }`}
             >
@@ -119,7 +119,7 @@ export default function AdminConfiguracoes() {
               onClick={() => setActiveTab('ajustes')}
               className={`flex h-[86px] w-[190px] flex-col items-center justify-center gap-2 rounded-[8px] border px-3 transition ${
                 activeTab === 'ajustes'
-                  ? 'border-primary bg-primary/10 text-primary shadow-[0_10px_30px_rgba(108,39,215,0.35)]'
+                  ? 'border-primary bg-primary/10 text-primary'
                   : 'border-foreground/10 bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground'
               }`}
             >
@@ -195,7 +195,7 @@ export default function AdminConfiguracoes() {
               <div className="mt-4 flex justify-end">
                 <button
                   type="button"
-                  className="rounded-[8px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[0_12px_30px_rgba(108,39,215,0.4)] transition hover:brightness-110"
+                  className="rounded-[8px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
                 >
                   Atualizar taxas
                 </button>
@@ -234,7 +234,7 @@ export default function AdminConfiguracoes() {
               <div className="mt-4 flex justify-end">
                 <button
                   type="button"
-                  className="rounded-[8px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[0_12px_30px_rgba(108,39,215,0.4)] transition hover:brightness-110"
+                  className="rounded-[8px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
                 >
                   Salvar
                 </button>
