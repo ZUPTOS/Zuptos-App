@@ -184,7 +184,7 @@ export default function AdminProdutos() {
                   placeholder="Buscar produto"
                   value={searchQuery}
                   onChange={handleSearch}
-                  className="w-full bg-transparent text-sm uppercase text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
               <button
