@@ -127,8 +127,10 @@ export default function AdminColaboradorDetalhes() {
               </div>
               <div className="space-y-2">
                 <span className="text-sm text-muted-foreground">Data de adesão</span>
-                <p className="text-xl font-semibold text-foreground">{collaborator.joinDate}</p>
-                <span className="text-[11px] uppercase text-muted-foreground">{collaborator.joinTime}</span>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-semibold text-foreground">{collaborator.joinDate}</p>
+                  <span className="text-[11px] uppercase text-muted-foreground">{collaborator.joinTime}</span>
+                </div>
               </div>
             </div>
           </div>
