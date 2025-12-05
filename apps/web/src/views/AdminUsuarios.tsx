@@ -1,11 +1,14 @@
 'use client';
 
 import { Filter, Search, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import adminUsersData from "@/data/admin-usuarios.json";
 import { useRouter } from "next/navigation";
+import { FilterDrawer } from "@/components/FilterDrawer";
+import DateFilter from "@/components/DateFilter";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const metricCards = [
   { id: "ativos", title: "Número de usuários ativos", value: "00" },
@@ -49,6 +52,10 @@ const columns: Column<UserRow>[] = [
 export default function AdminUsuarios() {
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
   const [rowsPerPage, setRowsPerPage] = useState(6);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -66,8 +73,21 @@ export default function AdminUsuarios() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const checkboxClass =
+    "relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white";
+
+  const toggleStatus = (status: string) => {
+    setSelectedStatuses(prev => (prev.includes(status) ? prev.filter(item => item !== status) : [...prev, status]));
+  };
+
+  const filteredUsers = useMemo(() => {
+    if (!selectedStatuses.length) return usersData.users;
+    return usersData.users.filter(user => selectedStatuses.includes(user.status));
+  }, [selectedStatuses]);
+
   return (
-    <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
+    <>
+      <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-6 px-4 py-6 lg:px-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -85,10 +105,20 @@ export default function AdminUsuarios() {
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
-              <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Filtrar">
+              <button
+                type="button"
+                className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition"
+                aria-label="Filtrar"
+                onClick={() => setIsFilterOpen(true)}
+              >
                 <Filter className="h-5 w-5" aria-hidden />
               </button>
-              <button type="button" className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition" aria-label="Exportar">
+              <button
+                type="button"
+                className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/15 bg-card/50 hover:bg-card/80 transition"
+                aria-label="Exportar"
+                onClick={() => setIsExportModalOpen(true)}
+              >
                 <Upload className="h-5 w-5" aria-hidden />
               </button>
             </div>
@@ -104,7 +134,7 @@ export default function AdminUsuarios() {
           </div>
 
           <PaginatedTable
-            data={usersData.users}
+            data={filteredUsers}
             columns={columns}
             rowKey={row => row.id}
             rowsPerPage={rowsPerPage}
@@ -119,6 +149,57 @@ export default function AdminUsuarios() {
           />
         </div>
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+      <FilterDrawer open={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtrar">
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-foreground">Data</p>
+          <DateFilter
+            onDateChange={(start, end) => {
+              setDateRange({ start, end });
+            }}
+          />
+        </div>
+
+        <div className="space-y-3 border-t border-foreground/10 pt-4">
+          <p className="text-sm font-semibold text-foreground">Status</p>
+          <div className="grid grid-cols-2 gap-4 text-foreground">
+            {["Aprovado", "Reprovado", "Pendente", "Falha", "Processando"].map(option => (
+              <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={selectedStatuses.includes(option)}
+                  onChange={() => toggleStatus(option)}
+                  className={checkboxClass}
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            className="inline-flex h-[46px] w-full items-center justify-center rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] text-sm font-semibold text-white transition hover:brightness-110"
+            onClick={() => setIsFilterOpen(false)}
+          >
+            Adicionar filtro
+          </button>
+        </div>
+      </div>
+      </FilterDrawer>
+      <ConfirmModal
+        open={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Exportar relatório"
+      description={
+        <span>
+          Ao clicar em Confirmar, enviaremos o relatório para <span className="text-foreground">con****@gmail.com</span>. O envio pode levar
+          alguns minutos.
+        </span>
+      }
+    />
+    </>
   );
 }
