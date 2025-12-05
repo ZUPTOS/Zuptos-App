@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Filter, Search, Upload } from "lucide-react";
+import { Filter, Search, Upload } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import { FilterDrawer } from "@/components/FilterDrawer";

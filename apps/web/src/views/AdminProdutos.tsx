@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Filter, LifeBuoy, Mail, Phone, Search, Uploa
 import DashboardLayout from '@/components/DashboardLayout';
 import { FilterDrawer } from '@/components/FilterDrawer';
 import DateFilter from '@/components/DateFilter';
+import ConfirmModal from '@/components/ConfirmModal';
 
 type ProductStatus = 'Aprovado' | 'Em produção' | 'Reprovado' | 'Pendente' | 'Em atualização';
 
@@ -140,6 +141,7 @@ export default function AdminProdutos() {
   const [filteredProducts, setFilteredProducts] = useState(mockProducts);
   const [currentPage, setCurrentPage] = useState(3);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const router = useRouter();
@@ -209,6 +211,7 @@ export default function AdminProdutos() {
                 type="button"
                 className="flex xl:h-[36px] 2xl:h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-foreground/10 bg-card transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
                 aria-label="Exportar"
+                onClick={() => setIsExportModalOpen(true)}
               >
                 <Upload className="h-5 w-5 text-foreground" aria-hidden />
               </button>
@@ -329,6 +332,17 @@ export default function AdminProdutos() {
         </div>
       </div>
     </FilterDrawer>
+    <ConfirmModal
+      open={isExportModalOpen}
+      onClose={() => setIsExportModalOpen(false)}
+      title="Exportar relatório"
+      description={
+        <span>
+          Ao clicar em Confirmar, enviaremos o relatório para <span className="text-foreground">con****@gmail.com</span>. O envio pode levar
+          alguns minutos.
+        </span>
+      }
+    />
     </>
   );
 }
