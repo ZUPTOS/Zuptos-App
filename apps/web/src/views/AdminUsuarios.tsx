@@ -54,7 +54,6 @@ export default function AdminUsuarios() {
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const router = useRouter();
 
@@ -154,11 +153,7 @@ export default function AdminUsuarios() {
       <div className="space-y-6">
         <div className="space-y-2">
           <p className="text-sm font-semibold text-foreground">Data</p>
-          <DateFilter
-            onDateChange={(start, end) => {
-              setDateRange({ start, end });
-            }}
-          />
+          <DateFilter />
         </div>
 
         <div className="space-y-3 border-t border-foreground/10 pt-4">
