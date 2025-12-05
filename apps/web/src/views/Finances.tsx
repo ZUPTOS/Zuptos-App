@@ -5,10 +5,12 @@ import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import DateFilter from "@/components/DateFilter";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
   ArrowDown,
   ArrowUp,
   Eye,
+  EyeOff,
   Filter,
   Search,
   Tag,
@@ -111,6 +113,10 @@ export default function Finances() {
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [rowsPerPage, setRowsPerPage] = useState(4);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [hideSensitive, setHideSensitive] = useState(false);
+  const displayCurrency = (value?: number, prefix = "") =>
+    hideSensitive ? "..." : `${prefix}${formatCurrency(value ?? 0)}`;
 
   useEffect(() => {
     const updateRows = () => {
@@ -186,7 +192,7 @@ export default function Finances() {
         width: "14%",
         headerClassName: "text-center",
         cellClassName: "px-3 py-3 text-center text-fs-body font-semibold text-foreground whitespace-nowrap",
-        render: transaction => formatCurrency(transaction.value)
+        render: transaction => displayCurrency(transaction.value)
       },
       {
         id: "data",
@@ -209,7 +215,7 @@ export default function Finances() {
         cellClassName: "px-3 py-3 text-fs-body text-foreground",
         render: transaction => (
           <div className="flex items-center justify-center gap-2 leading-tight">
-            <span className="font-semibold">{formatCurrency(transaction.balanceAfter)}</span>
+            <span className="font-semibold">{displayCurrency(transaction.balanceAfter)}</span>
             {transaction.type === "entrada" ? (
               <ArrowDown className="h-4 w-4 shrink-0 text-emerald-400" aria-label="Entrada" />
             ) : (
@@ -241,7 +247,7 @@ export default function Finances() {
         )
       }
     ],
-    []
+    [hideSensitive]
   );
 
   return (
@@ -276,7 +282,7 @@ export default function Finances() {
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 2xl:h-[245px]">
                 <p className="text-fs-title font-semibold text-primary">Saldo Disponível</p>
                 <p className="mt-2 text-fs-display font-semibold text-foreground">
-                  {formatCurrency(balanceCards[0].value ?? 0)}
+                  {displayCurrency(balanceCards[0].value)}
                 </p>
                 <p className="mt-3 text-fs-stat text-muted-foreground">
                   {balanceCards[0].description}
@@ -329,7 +335,7 @@ export default function Finances() {
               <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[146px]">
                 <p className="text-fs-title font-semibold text-foreground">Saldo pendente</p>
                 <p className="mt-2 text-fs-display font-semibold text-foreground">
-                  {formatCurrency(balanceCards[1].value ?? 0)}
+                  {displayCurrency(balanceCards[1].value)}
                 </p>
               </div>
 
@@ -338,7 +344,7 @@ export default function Finances() {
                   <p className="text-fs-title font-semibold text-foreground">Comissões a receber</p>
                 </div>
                 <p className="mt-2 text-fs-display font-semibold text-foreground">
-                  {formatCurrency(balanceCards[3].value ?? 0)}
+                  {displayCurrency(balanceCards[3].value)}
                 </p>
               </div>
             </div>
@@ -391,14 +397,21 @@ export default function Finances() {
                   </button>
                   <button
                     type="button"
-                    aria-label="Visualizar"
-                    className="flex h-[54px] w-[49px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    aria-label={hideSensitive ? "Mostrar valores" : "Ocultar valores"}
+                    aria-pressed={hideSensitive}
+                    onClick={() => setHideSensitive(prev => !prev)}
+                    className={`flex h-[54px] w-[49px] items-center justify-center rounded-[10px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                      hideSensitive
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-muted bg-card/70 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                    }`}
                   >
-                    <Eye className="h-4 w-4" aria-hidden />
+                    {hideSensitive ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
                   </button>
                   <button
                     type="button"
-                    aria-label="Upload de transações"
+                    aria-label="Exportar relatório"
+                    onClick={() => setIsExportModalOpen(true)}
                     className="flex h-[54px] w-[49px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Upload className="h-4 w-4" aria-hidden />
@@ -500,6 +513,17 @@ export default function Finances() {
           </div>
         </div>
       </FilterDrawer>
+      <ConfirmModal
+        open={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Exportar relatório"
+        description={
+          <span>
+            Ao clicar em Confirmar, enviaremos o relatório para <span className="text-foreground">con****@gmail.com</span>. O envio pode levar
+            alguns minutos.
+          </span>
+        }
+      />
       {selectedTransaction && (
         <>
           <div
@@ -591,21 +615,21 @@ export default function Finances() {
                   </span>
 
                   <span className="text-muted-foreground">Valor</span>
-                  <span className="font-semibold text-left">{formatCurrency(selectedTransaction.value)}</span>
+                  <span className="font-semibold text-left">{displayCurrency(selectedTransaction.value)}</span>
 
                   <span className="text-muted-foreground">Taxas (4.9% + R$ 0,75)</span>
                   <span className="font-semibold text-left text-red-200">
-                    -{formatCurrency(selectedTransaction.value * 0.049 + 0.75)}
+                    {displayCurrency(selectedTransaction.value * 0.049 + 0.75, "-")}
                   </span>
 
                   <span className="text-muted-foreground">Comissão do coprodutor</span>
                   <span className="font-semibold text-left text-red-200">
-                    -{formatCurrency(selectedTransaction.value * 0.07)}
+                    {displayCurrency(selectedTransaction.value * 0.07, "-")}
                   </span>
 
                   <span className="text-muted-foreground">Minha comissão</span>
                   <span className="font-semibold text-left text-emerald-200">
-                    {formatCurrency(
+                    {displayCurrency(
                       selectedTransaction.value -
                         (selectedTransaction.value * 0.049 + 0.75) -
                         selectedTransaction.value * 0.07
@@ -655,7 +679,7 @@ export default function Finances() {
                 }}
               >
                 <span className="text-muted-foreground">Saldo disponível:</span>
-                <span>{formatCurrency(balanceCards[0].value ?? 0)}</span>
+                <span>{displayCurrency(balanceCards[0].value)}</span>
               </div>
               <div className="w-full max-w-[410px] space-y-3 text-fs-stat text-muted-foreground">
                 <div className="flex items-center justify-between">
