@@ -10,11 +10,28 @@ type Tab = 'taxas' | 'ajustes';
 const inputBase =
   'w-full rounded-[8px] border border-foreground/10 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none';
 
-function LabeledInput({ label, placeholder, className }: { label: string; placeholder: string; className?: string }) {
+function LabeledInput({
+  label,
+  placeholder,
+  className,
+  value,
+  onChange
+}: {
+  label: string;
+  placeholder: string;
+  className?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   return (
     <label className={`flex flex-col gap-2 text-sm text-muted-foreground ${className ?? ''}`}>
       <span className="text-foreground">{label}</span>
-      <input className={inputBase} placeholder={placeholder} disabled />
+      <input
+        className={inputBase}
+        placeholder={placeholder}
+        value={value ?? ''}
+        onChange={event => onChange?.(event.target.value)}
+      />
     </label>
   );
 }
@@ -90,6 +107,35 @@ function PaymentCard({ method, onToggle }: { method: PaymentMethod; onToggle: ()
 export default function AdminConfiguracoes() {
   const [activeTab, setActiveTab] = useState<Tab>('taxas');
   const [paymentMethods, setPaymentMethods] = useState(initialPaymentMethods);
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
+
+  const formatCurrencyValue = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return '';
+    const number = Number(digits) / 100;
+    return number
+      .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })
+      .replace(/\u00a0/g, ' ');
+  };
+
+  const formatPercentValue = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return '';
+    const number = Number(digits) / 100;
+    return `${number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+  };
+
+  const handleInputChange = (key: string, rawValue: string, type?: 'currency' | 'percent') => {
+    let formatted = rawValue;
+    if (type === 'currency') {
+      formatted = formatCurrencyValue(rawValue);
+    } else if (type === 'percent') {
+      formatted = formatPercentValue(rawValue);
+    }
+    setFormValues(prev => ({ ...prev, [key]: formatted }));
+  };
+
+  const getValue = (key: string) => formValues[key] ?? '';
 
   const handleToggleMethod = (id: string) => {
     setPaymentMethods(prev =>
@@ -146,20 +192,60 @@ export default function AdminConfiguracoes() {
                 <div className="rounded-[8px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
                   <h3 className="text-lg font-semibold text-foreground">Pix</h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <LabeledInput label="Taxa fixa" placeholder="R$0,00" />
-                    <LabeledInput label="Taxa variável" placeholder="R$0,00" />
-                    <LabeledInput label="Adquirente" placeholder="Adquirente" />
-                    <LabeledInput label="Tempo de liberação" placeholder="D+0" />
+                    <LabeledInput
+                      label="Taxa fixa"
+                      placeholder="R$0,00"
+                      value={getValue('pixTaxaFixa')}
+                      onChange={value => handleInputChange('pixTaxaFixa', value, 'currency')}
+                    />
+                    <LabeledInput
+                      label="Taxa variável"
+                      placeholder="R$0,00"
+                      value={getValue('pixTaxaVariavel')}
+                      onChange={value => handleInputChange('pixTaxaVariavel', value, 'currency')}
+                    />
+                    <LabeledInput
+                      label="Adquirente"
+                      placeholder="Adquirente"
+                      value={getValue('pixAdquirente')}
+                      onChange={value => handleInputChange('pixAdquirente', value)}
+                    />
+                    <LabeledInput
+                      label="Tempo de liberação"
+                      placeholder="D+0"
+                      value={getValue('pixTempo')}
+                      onChange={value => handleInputChange('pixTempo', value)}
+                    />
                   </div>
                 </div>
 
                 <div className="rounded-[8px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
                   <h3 className="text-lg font-semibold text-foreground">Boleto</h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <LabeledInput label="Taxa fixa" placeholder="R$0,00" />
-                    <LabeledInput label="Taxa variável" placeholder="R$0,00" />
-                    <LabeledInput label="Adquirente" placeholder="Adquirente" />
-                    <LabeledInput label="Tempo de liberação" placeholder="D+0" />
+                    <LabeledInput
+                      label="Taxa fixa"
+                      placeholder="R$0,00"
+                      value={getValue('boletoTaxaFixa')}
+                      onChange={value => handleInputChange('boletoTaxaFixa', value, 'currency')}
+                    />
+                    <LabeledInput
+                      label="Taxa variável"
+                      placeholder="R$0,00"
+                      value={getValue('boletoTaxaVariavel')}
+                      onChange={value => handleInputChange('boletoTaxaVariavel', value, 'currency')}
+                    />
+                    <LabeledInput
+                      label="Adquirente"
+                      placeholder="Adquirente"
+                      value={getValue('boletoAdquirente')}
+                      onChange={value => handleInputChange('boletoAdquirente', value)}
+                    />
+                    <LabeledInput
+                      label="Tempo de liberação"
+                      placeholder="D+0"
+                      value={getValue('boletoTempo')}
+                      onChange={value => handleInputChange('boletoTempo', value)}
+                    />
                   </div>
                 </div>
               </div>
@@ -167,9 +253,27 @@ export default function AdminConfiguracoes() {
               <div className="mt-4 rounded-[8px] border border-foreground/10 bg-card p-5 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
                 <h3 className="text-lg font-semibold text-foreground">Cartão de crédito</h3>
                 <div className="mt-4 flex flex-col gap-4 md:flex-row">
-                  <LabeledInput className="flex-1" label="Taxa fixa" placeholder="R$0,00" />
-                  <LabeledInput className="flex-1" label="Adquirente" placeholder="Adquirente" />
-                  <LabeledInput className="flex-1" label="Tempo de liberação" placeholder="D+0" />
+                  <LabeledInput
+                    className="flex-1"
+                    label="Taxa fixa"
+                    placeholder="R$0,00"
+                    value={getValue('cartaoTaxaFixa')}
+                    onChange={value => handleInputChange('cartaoTaxaFixa', value, 'currency')}
+                  />
+                  <LabeledInput
+                    className="flex-1"
+                    label="Adquirente"
+                    placeholder="Adquirente"
+                    value={getValue('cartaoAdquirente')}
+                    onChange={value => handleInputChange('cartaoAdquirente', value)}
+                  />
+                  <LabeledInput
+                    className="flex-1"
+                    label="Tempo de liberação"
+                    placeholder="D+0"
+                    value={getValue('cartaoTempo')}
+                    onChange={value => handleInputChange('cartaoTempo', value)}
+                  />
                 </div>
 
                 <div className="mt-6 grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -186,8 +290,14 @@ export default function AdminConfiguracoes() {
                     'Cartão (10x)',
                     'Cartão (11x)',
                     'Cartão (12x)'
-                  ].map(label => (
-                    <LabeledInput key={label} label={label} placeholder="0,00%" />
+                  ].map((label, index) => (
+                    <LabeledInput
+                      key={label}
+                      label={label}
+                      placeholder="0,00%"
+                      value={getValue(`cartaoParcela${index + 1}`)}
+                      onChange={value => handleInputChange(`cartaoParcela${index + 1}`, value, 'percent')}
+                    />
                   ))}
                 </div>
               </div>
@@ -209,15 +319,35 @@ export default function AdminConfiguracoes() {
                 <div className="rounded-[8px] border border-foreground/10 bg-card p-5">
                   <h3 className="text-lg font-semibold text-foreground">Produtos</h3>
                   <div className="mt-4 grid gap-3">
-                    <LabeledInput label="Ticket mínimo" placeholder="R$0,00" />
-                    <LabeledInput label="Ticket máximo" placeholder="R$0,00" />
+                    <LabeledInput
+                      label="Ticket mínimo"
+                      placeholder="R$0,00"
+                      value={getValue('produtoTicketMin')}
+                      onChange={value => handleInputChange('produtoTicketMin', value, 'currency')}
+                    />
+                    <LabeledInput
+                      label="Ticket máximo"
+                      placeholder="R$0,00"
+                      value={getValue('produtoTicketMax')}
+                      onChange={value => handleInputChange('produtoTicketMax', value, 'currency')}
+                    />
                   </div>
                 </div>
                 <div className="rounded-[8px] border border-foreground/10 bg-card p-5">
                   <h3 className="text-lg font-semibold text-foreground">Saque</h3>
                   <div className="mt-4 grid gap-3">
-                    <LabeledInput label="Valor mínimo" placeholder="R$0,00" />
-                    <LabeledInput label="Valor máximo" placeholder="R$0,00" />
+                    <LabeledInput
+                      label="Valor mínimo"
+                      placeholder="R$0,00"
+                      value={getValue('saqueValorMin')}
+                      onChange={value => handleInputChange('saqueValorMin', value, 'currency')}
+                    />
+                    <LabeledInput
+                      label="Valor máximo"
+                      placeholder="R$0,00"
+                      value={getValue('saqueValorMax')}
+                      onChange={value => handleInputChange('saqueValorMax', value, 'currency')}
+                    />
                   </div>
                 </div>
               </div>

@@ -2,7 +2,9 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import ConfirmModal from "@/components/ConfirmModal";
 import withdrawalsData from "@/data/admin-saques.json";
 import type { Withdrawal } from "@/types/withdrawal";
 import WithdrawalDetailPanel from "@/views/components/WithdrawalDetailPanel";
@@ -21,6 +23,9 @@ export default function AdminSaquesDetalhes({ withdrawalId }: AdminSaquesDetalhe
   const router = useRouter();
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
   const selectedWithdrawal = withdrawalsData.withdrawals.find(withdrawal => withdrawal.id === withdrawalId) ?? withdrawalsData.withdrawals[0] ?? null;
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -47,12 +52,14 @@ export default function AdminSaquesDetalhes({ withdrawalId }: AdminSaquesDetalhe
               <button
                 type="button"
                 className="h-[40px] rounded-[7px] border border-foreground/20 bg-card px-5 text-sm font-semibold text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"
+                onClick={() => setIsRejectModalOpen(true)}
               >
                 Reprovar
               </button>
               <button
                 type="button"
                 className="h-[40px] rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-5 text-sm font-semibold text-white transition hover:brightness-110"
+                onClick={() => setIsApproveModalOpen(true)}
               >
                 Aprovar
               </button>
@@ -60,6 +67,32 @@ export default function AdminSaquesDetalhes({ withdrawalId }: AdminSaquesDetalhe
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={isApproveModalOpen}
+        onClose={() => setIsApproveModalOpen(false)}
+        onConfirm={() => setIsApproveModalOpen(false)}
+        title="Tem certeza que deseja aprovar o saque?"
+        showCancelButton
+      />
+      <ConfirmModal
+        open={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={() => setRejectReason("")}
+        title="Motivo da recusa"
+        showCancelButton
+        description={
+          <div className="mt-4 border-t border-foreground/10 pt-4">
+            <textarea
+              className="w-full rounded-[7px] border border-foreground/15 bg-card/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none"
+              rows={4}
+              placeholder="Informar motivo"
+              value={rejectReason}
+              onChange={event => setRejectReason(event.target.value)}
+            />
+          </div>
+        }
+      />
     </DashboardLayout>
   );
 }
