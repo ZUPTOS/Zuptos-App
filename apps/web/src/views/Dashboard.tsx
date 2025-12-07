@@ -660,7 +660,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className={`${cardSurface} w-full py-6 px-5 flex flex-col gap-5`}>
+          <div className={`${cardSurface} w-full py-5 px-5 flex flex-col gap-5`}>
             <div>
               <p className="text-fs-lead font-sora font-bold text-foreground tracking-wide">
                 Sua jornada ZUPTOS
@@ -684,7 +684,7 @@ export default function Dashboard() {
               </div>
             </div>
               <div
-                className="w-full h-3 rounded-full overflow-hidden border"
+                className="w-full h-4 rounded-full overflow-hidden border"
                 style={{
                   borderColor: hideValues ? "var(--border)" : JOURNEY_HIGHLIGHT_COLOR,
                   backgroundColor: hideValues ? "var(--muted)" : "rgba(88, 35, 178, 0.15)"
