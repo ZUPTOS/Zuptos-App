@@ -62,7 +62,7 @@ const referredPartners = [
 
 export default function Indique() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["id"]>("dashboard");
-  const [commissionPeriod, setCommissionPeriod] = useState<string>("");
+  const [, setCommissionPeriod] = useState<string>("");
 
   const chartData = useMemo(() => rawData, []);
 
