@@ -179,9 +179,11 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   const setDigitsFromRange = useCallback((range: { start: Date; end: Date }) => {
     const combined = `${digitsFromDate(range.start)}${digitsFromDate(range.end)}`;
     const filled = Array.from({ length: 16 }, (_, i) => combined[i] ?? "");
-    if (digits.every((val, idx) => val === filled[idx])) return;
-    setDigits(filled);
-  }, [digits]);
+    setDigits(prev => {
+      if (prev.every((val, idx) => val === filled[idx])) return prev;
+      return filled;
+    });
+  }, []);
 
   useEffect(() => {
     setDigitsFromRange(activeRange);

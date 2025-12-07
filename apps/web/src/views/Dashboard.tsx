@@ -381,7 +381,7 @@ export default function Dashboard() {
               {isFilterDropdownOpen && (
                 <div
                   className="absolute left-0 top-[calc(100%+10px)] z-40 rounded-[16px] border border-muted/70 bg-card shadow-none dark:shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
-                  style={{ width: "clamp(340px, 28vw, 460px)", maxHeight: "420px" }}
+                  style={{ width: "clamp(340px, 28vw, 395px)", maxHeight: "420px" }}
                 >
                   <div className="flex items-center justify-between border-b border-muted/60 px-5 py-4">
                     <p className="text-fs-body font-semibold text-foreground">Filtrar por...</p>
@@ -552,18 +552,26 @@ export default function Dashboard() {
                 <button
                   onClick={() => setVisualizationOpen(prev => !prev)}
                   className="flex h-9 w-9 items-center justify-center rounded-[12px] text-muted-foreground hover:text-foreground transition"
-                  aria-label={isVisualizationOpen ? "Fechar opções de visualização" : "Abrir opções de visualização"}
+                  aria-label="Abrir opções de visualização"
                   type="button"
                 >
-                  {isVisualizationOpen ? <X className="h-5 w-5" /> : <DetalhamentoIcon className="h-8 w-8" />}
+                  <DetalhamentoIcon className="h-8 w-8" />
                 </button>
                 {isVisualizationOpen && (
                   <div
                     className={`${cardSurface} absolute z-50 w-[clamp(180px,18vw,240px)] max-h-[300px] overflow-y-auto rounded-[10px] p-3 space-y-2 xl:text-[11px] 2xl:text-[13px]`}
-                    style={{ top: "60%", right: "calc(100% + 8px)", transform: "translateY(-10%)" }}
+                    style={{ top: "-6px", right: "-4px" }}
                   >
-                    <div className="border-b border-foreground/10 pb-2">
+                    <div className="flex items-center justify-between border-b border-foreground/10 pb-2">
                       <p className="text-sm font-semibold text-foreground xl:text-[12px] 2xl:text-[13px]">Visualização</p>
+                      <button
+                        type="button"
+                        onClick={() => setVisualizationOpen(false)}
+                        className="rounded p-1 text-muted-foreground transition hover:text-foreground"
+                        aria-label="Fechar opções de visualização"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                     <div className="space-y-1.5">
                       {visualizationOptions.map(option => {
