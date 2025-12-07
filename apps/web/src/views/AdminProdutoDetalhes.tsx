@@ -121,6 +121,11 @@ export default function AdminProdutoDetalhes() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('produtor');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [productStatus, setProductStatus] = useState<ProductStatus>(productDetail.status);
+  const [pendingStatus, setPendingStatus] = useState<ProductStatus>(productDetail.status);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
 
   const historyItems = [
     { name: 'Nome do arquivo', date: 'dd/mm/aaaa', time: '00h00' },
@@ -167,14 +172,19 @@ export default function AdminProdutoDetalhes() {
                     <span className="text-sm font-semibold text-muted-foreground">Status</span>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 text-[12px] font-semibold ${statusStyles[productDetail.status]}`}
+                        className={`inline-flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 text-[12px] font-semibold ${statusStyles[productStatus]}`}
                       >
-                        {productDetail.status}
+                        {productStatus}
                       </span>
                       <button
                         type="button"
                         className="inline-flex h-8 w-8 items-center justify-center rounded-[7px] border border-foreground/15 bg-muted/20 text-muted-foreground transition hover:border-primary/40 hover:text-primary"
                         aria-label="Editar status"
+                        onClick={() => {
+                          setPendingStatus(productStatus);
+                          if (productStatus !== 'Reprovado') setRejectionReason('');
+                          setIsStatusModalOpen(true);
+                        }}
                       >
                         <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                       </button>
@@ -414,7 +424,7 @@ export default function AdminProdutoDetalhes() {
             aria-label="Fechar histórico"
             onClick={() => setIsHistoryOpen(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-start justify-start overflow-y-auto px-4 pt-24 pb-10">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 py-10">
             <div className="w-full max-w-[420px] rounded-[10px] border border-foreground/15 bg-card px-5 py-5 shadow-[0_20px_70px_rgba(0,0,0,0.55)]">
               <div className="flex items-center justify-between border-b border-foreground/10 pb-3">
                 <p className="text-lg font-semibold text-foreground">Histórico</p>
@@ -454,6 +464,98 @@ export default function AdminProdutoDetalhes() {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {isStatusModalOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/70"
+            role="button"
+            tabIndex={-1}
+            aria-label="Fechar modal de status"
+            onClick={() => setIsStatusModalOpen(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="w-full max-w-[480px] rounded-[12px] border border-foreground/15 bg-card px-6 py-6 shadow-[0_24px_70px_rgba(0,0,0,0.6)]">
+              <div className="flex items-center justify-between pb-4">
+                <p className="text-xl font-semibold text-foreground">Alterar status do produto</p>
+                <button
+                  type="button"
+                  onClick={() => setIsStatusModalOpen(false)}
+                  className="rounded-full p-1 text-muted-foreground transition hover:text-foreground"
+                  aria-label="Fechar modal de status"
+                >
+                  <X className="h-5 w-5" aria-hidden />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusSelectOpen(prev => !prev)}
+                    className="flex w-full items-center justify-between rounded-[10px] border border-foreground/15 bg-card px-3 py-3 text-sm text-foreground transition focus:border-primary/50 focus:outline-none"
+                  >
+                    <span>{pendingStatus}</span>
+                    <span className="text-muted-foreground">▼</span>
+                  </button>
+                  {isStatusSelectOpen && (
+                    <div className="absolute left-0 right-0 z-50 mt-2 rounded-[10px] border border-foreground/15 bg-card shadow-lg">
+                      {Object.keys(statusStyles).map(status => (
+                        <button
+                          key={status}
+                          type="button"
+                          className={`flex w-full items-center justify-between px-3 py-2 text-sm transition hover:bg-muted/20 ${
+                            pendingStatus === status ? 'text-primary' : 'text-foreground'
+                          }`}
+                          onClick={() => {
+                            const next = status as ProductStatus;
+                            setPendingStatus(next);
+                            if (next !== 'Reprovado') setRejectionReason('');
+                            setIsStatusSelectOpen(false);
+                          }}
+                        >
+                          <span>{status}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {pendingStatus === 'Reprovado' && (
+                  <label className="block text-sm text-muted-foreground">
+                    <span className="sr-only">Motivo da recusa</span>
+                    <textarea
+                      value={rejectionReason}
+                      onChange={event => setRejectionReason(event.target.value)}
+                      placeholder="Inserir motivo da recusa"
+                      className="mt-1 w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-3 text-sm text-foreground focus:border-primary/50 focus:outline-none"
+                      rows={3}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="mt-6 flex justify-center gap-3">
+                <button
+                  type="button"
+                  className="w-full rounded-[10px] border border-foreground/20 bg-card px-5 py-3 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                  onClick={() => setIsStatusModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="w-full rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110"
+                  onClick={() => {
+                    if (pendingStatus === 'Reprovado' && !rejectionReason.trim()) return;
+                    setProductStatus(pendingStatus);
+                    setIsStatusModalOpen(false);
+                  }}
+                >
+                  Confirmar
+                </button>
               </div>
             </div>
           </div>

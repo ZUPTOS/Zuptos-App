@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Calendar } from "lucide-react";
+import DateFilter from "@/components/DateFilter";
 import {
   Line,
   LineChart,
@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { format } from "date-fns";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard" },
@@ -61,7 +62,7 @@ const referredPartners = [
 
 export default function Indique() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["id"]>("dashboard");
-  const commissionPeriod = "07/08/2025 - 07/08/2025";
+  const [commissionPeriod, setCommissionPeriod] = useState<string>("");
 
   const chartData = useMemo(() => rawData, []);
 
@@ -121,9 +122,12 @@ export default function Indique() {
               <div>
                 <p className="text-lg font-semibold text-foreground">Comissão recebida</p>
               </div>
-              <div className="flex items-center gap-2 rounded-[10px] border border-muted bg-card px-3 py-1.5 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" aria-hidden />
-                <span>{commissionPeriod}</span>
+              <div className="w-full max-w-[320px]">
+                <DateFilter
+                  onDateChange={(start, end) =>
+                    setCommissionPeriod(`${format(start, "dd/MM/yyyy")} - ${format(end, "dd/MM/yyyy")}`)
+                  }
+                />
               </div>
             </div>
             <div className="mt-6 h-[401px] w-full">
