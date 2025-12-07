@@ -81,7 +81,7 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
 
   return (
     <aside className="absolute inset-0 z-50 flex items-start justify-end bg-black/30" onClick={handleBackdropClick}>
-      <div className="relative mr-2 w-[480px] h-full bg-card shadow-2xl custom-scrollbar overflow-y-auto" onClick={event => event.stopPropagation()}>
+      <div className="relative mr-2 w-[420px] h-full bg-card shadow-2xl custom-scrollbar overflow-y-auto" onClick={event => event.stopPropagation()}>
         <header className="flex items-center justify-between border-b border-muted px-5 py-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
             <span>ID da transação: #{sale.id}</span>
@@ -103,26 +103,32 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
           <h2 className="text-xs font-semibold uppercase text-muted-foreground">Produto</h2>
           <div className="mt-3 space-y-3">
             {detailData.orderBumps.map((item, index) => (
-              <div
-                key={`${item.title}-${index}`}
-                className="flex items-center justify-between rounded-[12px] border border-muted bg-card/70 px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <Image
-                    src="/images/logoSide.svg"
-                    alt={item.title}
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 rounded-[10px] border border-muted bg-card object-cover"
-                  />
-                  <div>
-                    <p className="font-semibold text-card-foreground">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.type}</p>
+              <div key={`${item.title}-${index}`} className="space-y-3">
+                <div className="flex items-center justify-between rounded-[12px] border border-muted bg-card/70 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src="/images/logoSide.svg"
+                      alt={item.title}
+                      width={48}
+                      height={48}
+                      className="h-12 w-12 rounded-[10px] border border-muted bg-card object-cover"
+                    />
+                    <div>
+                      <p className="font-semibold text-card-foreground">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">{item.type}</p>
+                    </div>
                   </div>
+                  <span className="text-sm font-semibold text-card-foreground">
+                    {item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
                 </div>
-                <span className="text-sm font-semibold text-card-foreground">
-                  {item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </span>
+                {index === 0 && detailData.orderBumps.length > 1 ? (
+                  <div className="flex items-center gap-2 px-1 text-base font-semibold text-foreground">
+                    <Image src="/images/order-bump.svg" alt="Order bump" width={18} height={18} className="h-[18px] w-[18px]" />
+                    <span>Order Bumps</span>
+                    <span className="rounded-[6px] bg-foreground/20 px-2 py-[2px] text-xs font-semibold text-foreground">1</span>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
