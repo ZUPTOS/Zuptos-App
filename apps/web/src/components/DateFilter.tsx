@@ -25,6 +25,12 @@ interface DateFilterProps {
   onDateChange?: (startDate: Date, endDate: Date) => void;
 }
 
+type DigitArray = string[];
+
+const MASK_TEMPLATE = "dd/mm/aaaa - dd/mm/aaaa";
+const DIGIT_POSITIONS = [0, 1, 3, 4, 6, 7, 8, 9, 13, 14, 16, 17, 19, 20, 21, 22];
+const MAX_YEAR = 2999;
+
 const filterOptions = [
   "Hoje",
   "Ontem",
@@ -69,18 +75,20 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [rangeAnchor, setRangeAnchor] = useState<Date | null>(null);
+  const [digits, setDigits] = useState<DigitArray>(() => Array(16).fill(""));
+  const [activeSlot, setActiveSlot] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const today = new Date();
-  const activeRange = selectedRange ?? { start: today, end: today };
+  const todayRef = useRef(new Date());
+  const defaultRange = useMemo(() => ({ start: todayRef.current, end: todayRef.current }), []);
+  const activeRange = selectedRange ?? defaultRange;
 
   const dateRange = useMemo(
     () =>
       `${format(activeRange.start, "dd/MM/yyyy", { locale: ptBR })} - ${format(activeRange.end, "dd/MM/yyyy", { locale: ptBR })}`,
     [activeRange.end, activeRange.start]
   );
-
-  const [rangeInput, setRangeInput] = useState(dateRange);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -159,48 +167,172 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     setIsOpen(false);
   };
 
-  useEffect(() => {
-    setRangeInput(dateRange);
-  }, [dateRange]);
+  const applyMask = (currentDigits: DigitArray) => {
+    const chars = MASK_TEMPLATE.split("");
+    currentDigits.forEach((digit, idx) => {
+      const pos = DIGIT_POSITIONS[idx];
+      chars[pos] = digit || MASK_TEMPLATE[pos];
+    });
+    return chars.join("");
+  };
 
-  const commitRangeInput = (value: string) => {
-    const [startStr, endStr] = value.split("-").map(part => part.trim());
-    if (!startStr || !endStr) {
-      setRangeInput(dateRange);
+  const digitsFromDate = (date: Date) => format(date, "ddMMyyyy");
+
+  const setDigitsFromRange = (range: { start: Date; end: Date }) => {
+    const combined = `${digitsFromDate(range.start)}${digitsFromDate(range.end)}`;
+    const filled = Array.from({ length: 16 }, (_, i) => combined[i] ?? "");
+    if (digits.every((val, idx) => val === filled[idx])) return;
+    setDigits(filled);
+  };
+
+  useEffect(() => {
+    setDigitsFromRange(activeRange);
+  }, [activeRange]);
+
+  const commitDigits = (updatedDigits: DigitArray) => {
+    const startStr = updatedDigits.slice(0, 8).join("");
+    const endStr = updatedDigits.slice(8).join("");
+    if (startStr.length === 8 && endStr.length === 8) {
+      const parsedStart = parse(startStr, "ddMMyyyy", todayRef.current);
+      const parsedEnd = parse(endStr, "ddMMyyyy", todayRef.current);
+      if (isValid(parsedStart) && isValid(parsedEnd)) {
+        const startDate = parsedStart > parsedEnd ? parsedEnd : parsedStart;
+        const endDate = parsedStart > parsedEnd ? parsedStart : parsedEnd;
+        if (parsedStart > parsedEnd) {
+          setDigitsFromRange({ start: startDate, end: endDate });
+        }
+        setSelectedRange({ start: startDate, end: endDate });
+        setSelectedPreset(null);
+        onDateChange?.(startDate, endDate);
+      }
+    }
+  };
+
+  const maskValue = applyMask(digits);
+  const isComplete = useMemo(() => digits.every(Boolean), [digits]);
+
+  const findSlotFromPos = (pos: number) => {
+    let closest = 0;
+    let minDiff = Number.MAX_SAFE_INTEGER;
+    DIGIT_POSITIONS.forEach((slotPos, idx) => {
+      const diff = Math.abs(slotPos - pos);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = idx;
+      }
+    });
+    return closest;
+  };
+
+  const focusSlot = (slotIndex: number) => {
+    const clamped = Math.max(0, Math.min(slotIndex, DIGIT_POSITIONS.length - 1));
+    setActiveSlot(clamped);
+    const pos = DIGIT_POSITIONS[clamped];
+    requestAnimationFrame(() => {
+      inputRef.current?.setSelectionRange(pos, pos + 1);
+    });
+  };
+
+  useEffect(() => {
+    focusSlot(activeSlot);
+  }, [maskValue]); // re-sync caret when value changes
+
+  const validateSegment = (next: DigitArray, slot: number) => {
+    const getSegment = (offset: number) => next.slice(offset, offset + 8);
+    const checkDay = (seg: DigitArray) => {
+      const [d1, d2] = seg;
+      if (!d1) return true;
+      if (Number(d1) > 3) return false;
+      if (d1 === "3" && d2 && Number(d2) > 1) return false;
+      if (d2) {
+        const val = Number(`${d1}${d2}`);
+        return val >= 1 && val <= 31;
+      }
+      return true;
+    };
+    const checkMonth = (seg: DigitArray) => {
+      const [m1, m2] = seg;
+      if (!m1) return true;
+      if (Number(m1) > 1) return false;
+      if (m1 === "1" && m2 && Number(m2) > 2) return false;
+      if (m2) {
+        const val = Number(`${m1}${m2}`);
+        return val >= 1 && val <= 12;
+      }
+      return true;
+    };
+    const checkYear = (seg: DigitArray) => {
+      const [y1, y2, y3, y4] = seg;
+      if (!y1) return true;
+      if (Number(y1) > 2) return false;
+      const filled = [y1, y2, y3, y4].filter(Boolean).length;
+      if (filled === 4) {
+        const val = Number(`${y1}${y2}${y3}${y4}`);
+        return val <= MAX_YEAR;
+      }
+      return true;
+    };
+
+    const isStart = slot < 8;
+    const base = isStart ? 0 : 8;
+    const seg = getSegment(base);
+    const dayOk = checkDay(seg.slice(0, 2));
+    const monthOk = checkMonth(seg.slice(2, 4));
+    const yearOk = checkYear(seg.slice(4, 8));
+    return dayOk && monthOk && yearOk;
+  };
+
+  const handleDigitInput = (digit: string) => {
+    const nextDigits = [...digits];
+    nextDigits[activeSlot] = digit;
+    if (!validateSegment(nextDigits, activeSlot)) return;
+    setDigits(nextDigits);
+    const nextSlot = Math.min(activeSlot + 1, DIGIT_POSITIONS.length - 1);
+    focusSlot(nextSlot);
+    commitDigits(nextDigits);
+  };
+
+  const handleBackspace = () => {
+    const nextDigits = [...digits];
+    if (nextDigits[activeSlot]) {
+      nextDigits[activeSlot] = "";
+      setDigits(nextDigits);
+      commitDigits(nextDigits);
+      focusSlot(activeSlot);
       return;
     }
-    const parsedStart = parse(startStr, "dd/MM/yyyy", today);
-    const parsedEnd = parse(endStr, "dd/MM/yyyy", today);
-    if (isValid(parsedStart) && isValid(parsedEnd)) {
-      setSelectedRange({ start: parsedStart, end: parsedEnd });
-      setSelectedPreset(null);
-      onDateChange?.(parsedStart, parsedEnd);
-    } else {
-      setRangeInput(dateRange);
-    }
+    const prevSlot = Math.max(0, activeSlot - 1);
+    nextDigits[prevSlot] = "";
+    setDigits(nextDigits);
+    commitDigits(nextDigits);
+    focusSlot(prevSlot);
   };
 
-  const formatDateDigits = (digits: string) => {
-    const clean = digits.slice(0, 8);
-    const day = clean.slice(0, 2);
-    const month = clean.slice(2, 4);
-    const year = clean.slice(4, 8);
-    let formatted = "";
-    if (day) formatted += day;
-    if (month) formatted += `${formatted ? "/" : ""}${month}`;
-    if (year) formatted += `${formatted ? "/" : ""}${year}`;
-    return formatted;
+  const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const text = event.clipboardData.getData("text") || "";
+    const pastedDigits = text.replace(/\D/g, "").slice(0, 16);
+    if (!pastedDigits) return;
+    const nextDigits = [...digits];
+    let slot = activeSlot;
+    for (const ch of pastedDigits) {
+      nextDigits[slot] = ch;
+      if (!validateSegment(nextDigits, slot)) {
+        nextDigits[slot] = "";
+        break;
+      }
+      slot = Math.min(slot + 1, DIGIT_POSITIONS.length - 1);
+    }
+    setDigits(nextDigits);
+    commitDigits(nextDigits);
+    focusSlot(slot);
   };
 
-  const formatRangeDigits = (digits: string) => {
-    const startDigits = digits.slice(0, 8);
-    const endDigits = digits.slice(8, 16);
-    const startFormatted = formatDateDigits(startDigits);
-    const endFormatted = formatDateDigits(endDigits);
-    if (endFormatted) {
-      return `${startFormatted} - ${endFormatted}`;
-    }
-    return startFormatted;
+  const handleClickPosition = (event: React.MouseEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement;
+    const pos = target.selectionStart ?? 0;
+    const slot = findSlotFromPos(pos);
+    focusSlot(slot);
   };
 
   return (
@@ -211,21 +343,47 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
       >
         <Calendar className="h-4 w-4 text-foreground" />
         <input
-          className="flex-1 bg-transparent text-foreground focus:outline-none"
-          value={rangeInput}
-          onChange={e => {
-            const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 16);
-            setRangeInput(formatRangeDigits(digitsOnly));
+          ref={inputRef}
+          className={`flex-1 bg-transparent ${isComplete ? "text-foreground" : "text-muted-foreground"} focus:outline-none selection:bg-primary selection:text-primary-foreground`}
+          value={maskValue}
+          onFocus={() => {
+            setIsOpen(true);
+            const firstEmpty = digits.findIndex(d => !d);
+            focusSlot(firstEmpty >= 0 ? firstEmpty : DIGIT_POSITIONS.length - 1);
           }}
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => commitRangeInput(rangeInput)}
+          onClick={handleClickPosition}
           onKeyDown={e => {
+            if (e.key === "Backspace") {
+              e.preventDefault();
+              handleBackspace();
+              return;
+            }
+            if (e.key === "ArrowRight") {
+              e.preventDefault();
+              focusSlot(Math.min(activeSlot + 1, DIGIT_POSITIONS.length - 1));
+              return;
+            }
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              focusSlot(Math.max(activeSlot - 1, 0));
+              return;
+            }
+            if (/^\d$/.test(e.key)) {
+              e.preventDefault();
+              handleDigitInput(e.key);
+              return;
+            }
             if (e.key === "Enter") {
               e.preventDefault();
-              commitRangeInput(rangeInput);
               setIsOpen(false);
+              return;
             }
           }}
+          onPaste={handlePaste}
+          onChange={() => {
+            /* controlled by mask handlers */
+          }}
+          readOnly={false}
           aria-label="Intervalo de datas"
         />
         <button
