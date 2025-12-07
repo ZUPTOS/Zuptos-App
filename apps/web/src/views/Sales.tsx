@@ -471,7 +471,7 @@ export default function Sales() {
           </p>
           <button
             type="button"
-            className="mt-6 w-full rounded-[10px] bg-gradient-to-r from-[#9f5cff] to-[#c14eff] px-4 py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90"
+            className="mt-6 w-full rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white shadow-lg hover:brightness-110"
             onClick={() => setExportModalOpen(false)}
           >
             Confirmar

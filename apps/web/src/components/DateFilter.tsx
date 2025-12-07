@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   ChevronDown,
@@ -157,9 +157,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     const range = getPresetRange(option);
     if (range) {
       setSelectedRange(range);
-      setRangeInput(
-        `${format(range.start, "dd/MM/yyyy", { locale: ptBR })} - ${format(range.end, "dd/MM/yyyy", { locale: ptBR })}`
-      );
+      setDigitsFromRange(range);
       onDateChange?.(range.start, range.end);
     }
     setSelectedPreset(option);
@@ -178,16 +176,16 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
 
   const digitsFromDate = (date: Date) => format(date, "ddMMyyyy");
 
-  const setDigitsFromRange = (range: { start: Date; end: Date }) => {
+  const setDigitsFromRange = useCallback((range: { start: Date; end: Date }) => {
     const combined = `${digitsFromDate(range.start)}${digitsFromDate(range.end)}`;
     const filled = Array.from({ length: 16 }, (_, i) => combined[i] ?? "");
     if (digits.every((val, idx) => val === filled[idx])) return;
     setDigits(filled);
-  };
+  }, [digits]);
 
   useEffect(() => {
     setDigitsFromRange(activeRange);
-  }, [activeRange]);
+  }, [activeRange, setDigitsFromRange]);
 
   const commitDigits = (updatedDigits: DigitArray) => {
     const startStr = updatedDigits.slice(0, 8).join("");

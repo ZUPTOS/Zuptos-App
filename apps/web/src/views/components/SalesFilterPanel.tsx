@@ -1,7 +1,7 @@
 'use client';
 
-import { Calendar, Search, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
+import DateFilter from "@/components/DateFilter";
 
 export type OfferFilter = "assinatura" | "preco_unico";
 
@@ -119,62 +119,6 @@ export default function SalesFilterPanel({
   onFiltersChange,
   onApply
 }: SalesFilterPanelProps) {
-  const [rangeInputValue, setRangeInputValue] = useState("");
-  const [startInput, setStartInput] = useState("");
-  const [endInput, setEndInput] = useState("");
-  const [isDatePickerOpen, setDatePickerOpen] = useState(false);
-  const datePickerRef = useRef<HTMLDivElement>(null);
-
-  const formatDateDisplay = (value?: string) =>
-    value
-      ? new Date(value).toLocaleDateString("pt-BR", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric"
-        })
-      : "";
-
-  useEffect(() => {
-    if (filters.dateFrom || filters.dateTo) {
-      const startFormatted = formatDateDisplay(filters.dateFrom);
-      const endFormatted = formatDateDisplay(filters.dateTo);
-      setRangeInputValue(
-        `${startFormatted}${filters.dateTo ? ` - ${endFormatted}` : ""}`
-      );
-      setStartInput(startFormatted);
-      setEndInput(endFormatted);
-    } else {
-      setRangeInputValue("");
-      setStartInput("");
-      setEndInput("");
-    }
-  }, [filters.dateFrom, filters.dateTo]);
-
-  const convertToISOFromPT = (value: string) => {
-    const cleaned = value.trim();
-    if (!cleaned) return "";
-    const normalized = cleaned.replace(/\./g, "/");
-    const parts = normalized.split("/");
-    if (parts.length !== 3) return "";
-    const [day, month, year] = parts;
-    if (year.length !== 4) return "";
-    const iso = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return "";
-    return iso;
-  };
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (datePickerRef.current && !datePickerRef.current.contains(target)) {
-        setDatePickerOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const handleArrayToggle = (
     key: keyof Pick<SalesFilters, "offers" | "statuses" | "tipos" | "vendedor">,
     value: string
@@ -216,80 +160,16 @@ export default function SalesFilterPanel({
         </button>
       </div>
       <div className="flex flex-col gap-4 px-5 py-5 text-sm">
-      <div className="flex flex-col gap-3">
-        <p className="text-sm font-semibold text-card-foreground">Data</p>
-        <div className="relative" ref={datePickerRef}>
-          <button
-            type="button"
-            onClick={() => setDatePickerOpen(prev => !prev)}
-            className="flex w-full items-center gap-3 rounded-[10px] border border-muted bg-card/60 px-4 py-3 text-left text-sm text-card-foreground"
-          >
-              <Calendar className="h-4 w-4" />
-              {rangeInputValue || "DD/MM/AAAA - DD/MM/AAAA"}
-            </button>
-            {isDatePickerOpen && (
-              <div className="absolute top-full z-20 mt-3 w-full rounded-[10px] border border-muted bg-background p-4 shadow-xl">
-                <label className="flex flex-col gap-2 text-xs text-muted-foreground">
-                  Início
-                  <input
-                    type="text"
-                    value={startInput}
-                    onChange={event => {
-                      const nextValue = event.target.value;
-                      setStartInput(nextValue);
-                      onFiltersChange({
-                        dateFrom: convertToISOFromPT(nextValue)
-                      });
-                    }}
-                    placeholder="DD/MM/AAAA"
-                    className="rounded-[8px] border border-muted bg-transparent px-3 py-2 text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </label>
-                <label className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">
-                  Fim
-                  <input
-                    type="text"
-                    value={endInput}
-                    onChange={event => {
-                      const nextValue = event.target.value;
-                      setEndInput(nextValue);
-                      onFiltersChange({
-                        dateTo: convertToISOFromPT(nextValue)
-                      });
-                    }}
-                    placeholder="DD/MM/AAAA"
-                    className="rounded-[8px] border border-muted bg-transparent px-3 py-2 text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const start = filters.dateFrom
-                      ? new Date(filters.dateFrom).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric"
-                        })
-                      : "";
-                    const end = filters.dateTo
-                      ? new Date(filters.dateTo).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric"
-                        })
-                      : "";
-                    setRangeInputValue(
-                      start && end ? `${start} - ${end}` : start || end
-                    );
-                    setDatePickerOpen(false);
-                  }}
-                  className="mt-4 w-full rounded-[8px] bg-primary/80 py-3 text-sm font-semibold text-primary-foreground"
-                >
-                  Definir período
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-semibold text-card-foreground">Data</p>
+          <DateFilter
+            onDateChange={(start, end) =>
+              onFiltersChange({
+                dateFrom: start.toISOString().slice(0, 10),
+                dateTo: end.toISOString().slice(0, 10)
+              })
+            }
+          />
         </div>
 
         <InputField

@@ -73,6 +73,55 @@ const transactionTabs = [
   { id: "saida", label: "Saídas" }
 ];
 
+const withdrawalHistory = [
+  {
+    id: "#5GVD5K558",
+    description: "Saque",
+    pixKey: "Chave pix: xxxxxxxxxxxxx",
+    date: "05/06/2025",
+    time: "às 18:45",
+    value: 497,
+    status: "Aprovado"
+  },
+  {
+    id: "#5GVD5K558",
+    description: "Saque",
+    pixKey: "Chave pix: xxxxxxxxxxxxx",
+    date: "05/06/2025",
+    time: "às 18:45",
+    value: 497,
+    status: "Reprovado"
+  }
+];
+
+const feeCards = [
+  {
+    id: "boleto",
+    title: "Boletos",
+    description: "Os boletos emitidos não são cobrados, apenas os pagos",
+    fee: "2,99% + 1,99/ boleto",
+    release: "Prazo de liberação:",
+    icon: "/images/boleto.svg"
+  },
+  {
+    id: "pix",
+    title: "Pix",
+    description: "PIX é o novo meio de pagamento instantâneo da plataforma",
+    fee: "2,99% + 1,99/ transação",
+    release: "Prazo de liberação:",
+    icon: "/images/pix.svg"
+  },
+  {
+    id: "credito",
+    title: "Cartão de crédito",
+    description: "Para ver as taxas por parcela, clique aqui.",
+    fee: "2,99% + 1,99/ transação",
+    release: "Prazo de liberação:",
+    icon: "/images/card.svg",
+    highlight: true
+  }
+] as const;
+
 const baseTransactions: Omit<Transaction, "id" | "date" | "time">[] = [
   { title: "Produto 1", subtitle: "Curso", value: 497, balanceAfter: 497, category: "Venda", type: "entrada" },
   { title: "Produto 1", subtitle: "Curso", value: 497, balanceAfter: 0, category: "Estorno", type: "saida" },
@@ -161,7 +210,7 @@ export default function Finances() {
     }
   };
 
-  const transactionColumns: Column<Transaction>[] = useMemo(
+const transactionColumns: Column<Transaction>[] = useMemo(
     () => [
       {
         id: "id",
@@ -247,7 +296,7 @@ export default function Finances() {
         )
       }
     ],
-    [hideSensitive, displayCurrency]
+    [displayCurrency]
   );
 
   return (
@@ -310,7 +359,7 @@ export default function Finances() {
                       <button
                         type="button"
                         onClick={() => setIsWithdrawOpen(true)}
-                        className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-white"
+                        className="inline-flex h-[49px] w-[231px] items-center justify-center gap-3 rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 text-sm font-semibold text-white hover:brightness-110"
                       >
                         Solicitar saque
                       </button>
@@ -324,7 +373,7 @@ export default function Finances() {
                     <button
                       type="button"
                       onClick={() => setShowAccountForm(true)}
-                      className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#a855f7] to-[#7c3aed] px-4 text-sm font-semibold text-white"
+                      className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 text-sm font-semibold text-white hover:brightness-110"
                     >
                       Adicionar conta bancária
                     </button>
@@ -435,10 +484,132 @@ export default function Finances() {
             </div>
           )}
 
-          {activeTab !== "saldos" && activeTab !== "transacoes" && (
-            <div className="rounded-[16px] border border-dashed border-muted/60 bg-card/40 p-6 text-center text-muted-foreground">
-              <p className="text-base font-semibold text-card-foreground">Em breve</p>
-              <p className="text-sm">Conteúdo da aba {tabs.find(t => t.id === activeTab)?.label} em desenvolvimento.</p>
+          {activeTab === "saques" && (
+            <div className="mx-auto flex w-full flex-col gap-4" style={{ maxWidth: "var(--fin-table-width)" }}>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex h-[46px] w-full items-center gap-2 rounded-[10px] border border-muted bg-card px-3 text-sm text-foreground md:w-[240px]">
+                  <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={event => setSearchTerm(event.target.value)}
+                    placeholder="Buscar por código"
+                    className="h-full w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  aria-label="Filtrar saques"
+                  onClick={() => setIsFilterOpen(true)}
+                  className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                >
+                  <Filter className="h-4 w-4" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label={hideSensitive ? "Mostrar valores" : "Ocultar valores"}
+                  aria-pressed={hideSensitive}
+                  onClick={() => setHideSensitive(prev => !prev)}
+                  className={`flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                    hideSensitive
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-muted bg-card/70 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                  }`}
+                >
+                  {hideSensitive ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Exportar relatório"
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="flex h-[46px] w-[46px] items-center justify-center rounded-[10px] border border-muted bg-card/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                >
+                  <Upload className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+
+              <div className="overflow-hidden rounded-[12px] border border-muted bg-card/60">
+                <table className="w-full text-sm">
+                  <thead className="bg-card/40 text-muted-foreground">
+                    <tr className="text-left">
+                      <th className="px-4 py-3 font-semibold">ID</th>
+                      <th className="px-4 py-3 font-semibold">Descrição</th>
+                      <th className="px-4 py-3 font-semibold text-center">Data</th>
+                      <th className="px-4 py-3 font-semibold text-center">Valor</th>
+                      <th className="px-4 py-3 font-semibold text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {withdrawalHistory
+                      .filter(item => item.id.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(item => (
+                        <tr key={`${item.id}-${item.status}`} className="border-t border-muted/30 text-foreground">
+                          <td className="px-4 py-4 align-middle text-card-foreground font-semibold">{item.id}</td>
+                          <td className="px-4 py-4 align-middle">
+                            <div className="flex flex-col gap-1 text-sm">
+                              <span className="font-semibold text-card-foreground">{item.description}</span>
+                              <span className="text-xs text-muted-foreground">{item.pixKey}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 align-middle text-center text-sm">
+                            <div className="flex flex-col items-center leading-tight">
+                              <span>{item.date}</span>
+                              <span className="text-[11px] text-muted-foreground">{item.time}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 align-middle text-center text-sm font-semibold">
+                            {hideSensitive ? "•••" : formatCurrency(item.value)}
+                          </td>
+                          <td className="px-4 py-4 align-middle text-center">
+                            <span
+                              className={`inline-flex min-w-[88px] items-center justify-center rounded-full px-2 py-[4px] text-[11px] font-semibold ${
+                                item.status === "Aprovado"
+                                  ? "bg-emerald-500/15 text-emerald-400"
+                                  : "bg-rose-500/15 text-rose-300"
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab !== "saldos" && activeTab !== "transacoes" && activeTab !== "saques" && (
+            <div className="mx-auto flex w-full flex-col gap-3" style={{ maxWidth: "var(--fin-table-width)" }}>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {feeCards.map(card => (
+                  <div
+                    key={card.id}
+                    className="rounded-[7px] border border-muted bg-card p-5 text-card-foreground shadow-sm"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-semibold">{card.title}</h3>
+                        {card.id === "credito" ? (
+                          <p className="text-sm text-muted-foreground">
+                            Para ver as taxas por parcela,{" "}
+                            <span className="text-emerald-400 font-semibold">clique aqui.</span>
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{card.description}</p>
+                        )}
+                      </div>
+                      <div className="flex h-full w-full items-center justify-end">
+                        <Image src={card.icon} alt={card.title} width={46} height={46} className="h-40 w-40" />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-1 text-sm">
+                      <span className="text-lg font-semibold text-card-foreground">{card.fee}</span>
+                      <span className="text-xs text-muted-foreground">{card.release}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

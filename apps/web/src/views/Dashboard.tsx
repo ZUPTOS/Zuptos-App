@@ -275,11 +275,9 @@ export default function Dashboard() {
   const tooltipStyles = {
     backgroundColor: "var(--color-card)",
     border: "1px solid var(--color-border)",
-    borderRadius: "12px",
-    fontSize: "11px",
-    color: "var(--color-card-foreground)",
-    padding: "10px 12px",
-    minWidth: "180px"
+    borderRadius: "10px",
+    fontSize: "8px",
+    color: "var(--color-card-foreground)"
   };
 
   const balanceCards = [
