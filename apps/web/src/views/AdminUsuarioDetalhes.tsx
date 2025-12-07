@@ -419,7 +419,7 @@ export default function AdminUsuarioDetalhes() {
                   </button>
 
                   {showManageBalance && (
-                    <div className="absolute right-0 top-full z-20 mt-3 w-[320px] rounded-[10px] border border-foreground/15 bg-card/95 p-4 shadow-xl">
+                    <div className="absolute right-0 top-full z-20 mt-3 w-[320px] rounded-[10px] border border-foreground/15 bg-card p-4 shadow-xl">
                       <div className="flex items-start justify-between">
                         <p className="text-base font-semibold text-foreground">Gerenciar saldo</p>
                         <button type="button" onClick={() => setShowManageBalance(false)} className="text-muted-foreground hover:text-foreground">
@@ -428,7 +428,7 @@ export default function AdminUsuarioDetalhes() {
                       </div>
 
                       <div className="mt-4 space-y-4">
-                        <div className="rounded-[8px] border border-foreground/10 bg-card/60 p-3">
+                        <div className="rounded-[8px] border border-foreground/10 p-3">
                           <span className="text-sm text-muted-foreground">Saldo atual</span>
                           <p className="text-xl font-semibold text-foreground">R$00,00</p>
                         </div>
@@ -439,7 +439,7 @@ export default function AdminUsuarioDetalhes() {
                             placeholder="R$0,00"
                             value={newBalanceValue}
                             onChange={event => setNewBalanceValue(formatCurrency(event.target.value))}
-                            className="h-[46px] rounded-[8px] border border-foreground/15 bg-card/40 text-sm text-foreground placeholder:text-muted-foreground"
+                            className="h-[46px] rounded-[8px] border border-foreground/15 bg-card text-sm text-foreground placeholder:text-muted-foreground !bg-card"
                           />
                         </div>
 
@@ -447,7 +447,7 @@ export default function AdminUsuarioDetalhes() {
                           <button
                             type="button"
                             onClick={() => setShowManageBalance(false)}
-                            className="flex-1 rounded-[8px] border border-foreground/15 bg-card/50 px-3 py-2 text-sm font-semibold text-foreground"
+                            className="flex-1 rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm font-semibold text-foreground"
                           >
                             Cancelar
                           </button>
@@ -498,7 +498,7 @@ export default function AdminUsuarioDetalhes() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmBalance(false)}
-                    className="flex-1 rounded-[8px] border border-foreground/15 bg-card/50 px-3 py-2 text-sm font-semibold text-foreground"
+                    className="flex-1 rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm font-semibold text-foreground"
                   >
                     Cancelar
                   </button>
