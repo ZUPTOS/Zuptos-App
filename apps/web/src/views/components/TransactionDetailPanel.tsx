@@ -58,6 +58,26 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["id"]>("financeiro");
   const peopleInfo = useMemo(() => buildPeopleInfo(transaction), [transaction]);
   const numericValue = parseCurrency(transaction?.value ?? "0");
+  const creationDate = transaction?.date ?? "--/--/----";
+  const creationTime = transaction?.time ?? "";
+  const approvalDate = transaction?.date ?? "--/--/----";
+  const approvalTime = transaction?.time ?? "";
+  const extraDateLabel = transaction?.status === "Chargeback" ? "Data de chargeback" : transaction?.status === "Reembolsado" ? "Data de reembolso" : null;
+  const extraDateValue = extraDateLabel ? approvalDate : null;
+  const extraDateTime = extraDateLabel ? approvalTime : "";
+
+  const renderDateRow = (label: string, dateValue: string | null, timeValue?: string, stacked?: boolean) => {
+    if (!dateValue) return null;
+    return (
+      <div className={`flex ${stacked ? "flex-col items-start" : "items-start justify-between"} gap-3`}>
+        <p className="text-lg text-muted-foreground">{label}</p>
+        <div className={`flex flex-col gap-1 ${stacked ? "flex flex-row items-end text-left" : "items-end text-right"}`}>
+          <p className="text-md leading-tight text-foreground">{dateValue}</p>
+          {timeValue ? <p className="text-xs text-muted-foreground">{timeValue}</p> : null}
+        </div>
+      </div>
+    );
+  };
 
   if (!transaction) {
     return (
@@ -87,12 +107,17 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
 
   return (
     <section className={`${cardSurfaceClassName} rounded-[7px] p-6`}>
-      <div className="flex flex-col gap-1 border-b border-foreground/10 pb-4">
-        <p className="text-lg font-semibold text-foreground">Dados da transação</p>
-        <span className="text-sm text-muted-foreground">ID: {transaction.id}</span>
+      <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
+        <div className="flex items-center gap-5">
+          <p className="text-lg font-semibold text-foreground">Dados da transação</p>
+          <span className="text-sm text-muted-foreground">ID: {transaction.id}</span>
+        </div>
+        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusVariants[transaction.status]}`}>
+          {transaction.status}
+        </span>
       </div>
 
-      <div className="grid gap-6 pt-4 lg:grid-cols-4">
+      <div className="grid gap-6 pt-4 lg:grid-cols-3">
         <div>
           <p className="text-sm text-muted-foreground">Valor</p>
           <p className="text-2xl font-semibold text-foreground">{transaction.value}</p>
@@ -103,33 +128,64 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Status</p>
-          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusVariants[transaction.status]}`}>
-            {transaction.status}
-          </span>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Data da criação</p>
-          <p className="text-lg font-semibold text-foreground">{transaction.date}</p>
-          <p className="text-xs text-muted-foreground">{transaction.time}</p>
+          <p className="text-lg font-semibold text-foreground">{transaction.status}</p>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 rounded-[7px] border border-foreground/10 p-4 lg:grid-cols-2">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">Comprador</p>
-          <p className="text-sm text-muted-foreground">Nome: {peopleInfo.buyer.name}</p>
-          <p className="text-sm text-muted-foreground">CPF/CNPJ: {peopleInfo.buyer.document}</p>
-          <p className="text-sm text-muted-foreground">E-mail: {peopleInfo.buyer.email}</p>
-          <p className="text-sm text-muted-foreground">Telefone: {peopleInfo.buyer.phone}</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">Vendedor</p>
-          <p className="text-sm text-muted-foreground">Nome: {peopleInfo.seller.name}</p>
-          <p className="text-sm text-muted-foreground">CPF/CNPJ: {peopleInfo.seller.document}</p>
-          <p className="text-sm text-muted-foreground">E-mail: {peopleInfo.seller.email}</p>
-          <p className="text-sm text-muted-foreground">Telefone: {peopleInfo.seller.phone}</p>
-        </div>
-      </div>
+      {(() => {
+        const stackDates = !extraDateLabel;
+        return (
+          <div className="mt-10 grid gap-10 rounded-[7px] lg:grid-cols-3">
+            <div className="flex flex-col space-y-2">
+              <p className="text-xl font-semibold text-foreground">Comprador</p>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">Nome:</span>
+                  <span className="text-foreground">{peopleInfo.buyer.name}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">CPF/CNPJ:</span>
+                  <span className="text-foreground">{peopleInfo.buyer.document}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">E-mail:</span>
+                  <span className="text-foreground">{peopleInfo.buyer.email}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">Telefone:</span>
+                  <span className="text-foreground">{peopleInfo.buyer.phone}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <p className="text-xl font-semibold text-foreground">Vendedor</p>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">Nome:</span>
+                  <span className="text-foreground">{peopleInfo.seller.name}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">CPF/CNPJ:</span>
+                  <span className="text-foreground">{peopleInfo.seller.document}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">E-mail:</span>
+                  <span className="text-foreground">{peopleInfo.seller.email}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground">Telefone:</span>
+                  <span className="text-foreground">{peopleInfo.seller.phone}</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {renderDateRow("Data de criação", creationDate, creationTime, stackDates)}
+              {renderDateRow("Data de aprovação", approvalDate, approvalTime, stackDates)}
+              {extraDateLabel ? renderDateRow(extraDateLabel, extraDateValue, extraDateTime, false) : null}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         {tabs.map(tab => {
@@ -273,37 +329,29 @@ export default function TransactionDetailPanel({ transaction, statusVariants, ca
         )}
 
         {activeTab === "info" && (
-          <div className="rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_14px_40px_rgba(0,0,0,0.45)]">
-            <div className="border-b border-foreground/10 px-6 py-4">
-              <p className="text-lg font-semibold text-foreground">Informações</p>
-            </div>
-
-            <div className="grid gap-6 px-6 py-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <p className="text-xl font-semibold text-foreground">Informações de UTM</p>
-                <div className="rounded-[7px] border border-foreground/15 bg-card/70 px-5 py-4">
-                  <div className="flex flex-col gap-4">
-                    {utmInfo.map(item => (
-                      <div key={item.label} className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-foreground">{item.label}</span>
-                        <span className="text-sm font-semibold text-foreground">{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
+          <div className="mt-10 space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-[7px] border border-foreground/10 bg-card/70 p-5">
+                <p className="text-lg font-semibold text-foreground mb-4">Informações de UTM</p>
+                <div className="space-y-3">
+                  {utmInfo.map(item => (
+                    <div key={item.label} className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-muted-foreground">{item.label}</span>
+                      <span className="text-sm font-semibold text-foreground">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <p className="text-xl font-semibold text-foreground">Informações técnicas</p>
-                <div className="rounded-[7px] border border-foreground/15 bg-card/70 px-5 py-4">
-                  <div className="flex flex-col gap-4">
-                    {technicalInfo.map(item => (
-                      <div key={item.label} className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-semibold text-foreground">{item.label}</span>
-                        <span className="text-sm font-semibold text-foreground">{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
+              <div className="rounded-[7px] border border-foreground/10 bg-card/70 p-5">
+                <p className="text-lg font-semibold text-foreground mb-4">Informações técnicas</p>
+                <div className="space-y-3">
+                  {technicalInfo.map(item => (
+                    <div key={item.label} className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-muted-foreground">{item.label}</span>
+                      <span className="text-sm font-semibold text-foreground">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

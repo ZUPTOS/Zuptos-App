@@ -163,21 +163,23 @@ export default function AdminProdutoDetalhes() {
                     <span className="text-xs uppercase text-muted-foreground">{productDetail.producerEmail}</span>
                   </div>
                 </div>
-                <div className="flex flex-col gap-3">
-                  <span className="text-lg text-muted-foreground">Status</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold ${statusStyles[productDetail.status]}`}>
-                      {productDetail.status}
-                    </span>
-                    <button
-                      type="button"
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-foreground/15 bg-muted/20 text-muted-foreground transition hover:border-primary/40 hover:text-primary"
-                      aria-label="Editar status"
-                    >
-                      <ExternalLink className="h-4 w-4" aria-hidden />
-                    </button>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-sm font-semibold text-muted-foreground">Status</span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 text-[12px] font-semibold ${statusStyles[productDetail.status]}`}
+                      >
+                        {productDetail.status}
+                      </span>
+                      <button
+                        type="button"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-[7px] border border-foreground/15 bg-muted/20 text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                        aria-label="Editar status"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    </div>
                   </div>
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -241,9 +243,9 @@ export default function AdminProdutoDetalhes() {
                     <span className="text-sm text-muted-foreground">CPF/CNPJ</span>
                     <p className="text-xl font-semibold text-muted-foreground">{producerDetail.document}</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 flex flex-col">
                     <span className="text-sm text-muted-foreground">Status do documento</span>
-                    <span className={`inline-flex items-center rounded-[10px] px-3 py-1 text-xs font-semibold ${statusStyles[producerDetail.documentStatus]}`}>
+                    <span className={`flex justify-center w-full max-w-[90px] items-center rounded-[10px] px-3 py-1 text-xs font-semibold ${statusStyles[producerDetail.documentStatus]}`}>
                       {producerDetail.documentStatus}
                     </span>
                   </div>

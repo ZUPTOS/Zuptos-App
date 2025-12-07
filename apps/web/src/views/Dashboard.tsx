@@ -123,8 +123,8 @@ const ChartTooltip = ({ active, payload, options, hideValues }: ChartTooltipProp
   const header = REVENUE_TOOLTIP_DATE;
 
   return (
-    <div className="min-w-[210px] rounded-[16px] border border-card bg-card px-4 py-3 text-card-foreground shadow-xl xl:text-[12px] 2xl:text-[18px]">
-      <p className="mb-3 font-sora text-card-foreground/85 xl:text-[12px] 2xl:text-[18px]">
+    <div className="min-w-[180px] rounded-[12px] border border-card bg-card px-3 py-2.5 text-card-foreground shadow-xl xl:text-[11px] 2xl:text-[13px]">
+      <p className="mb-2.5 font-sora text-card-foreground/85 xl:text-[11px] 2xl:text-[13px]">
         {header}
       </p>
       <div className="flex flex-col gap-2">
@@ -138,10 +138,10 @@ const ChartTooltip = ({ active, payload, options, hideValues }: ChartTooltipProp
           const formattedValue = hideValues ? "•••" : formatTooltipValue(numericValue, metricKey);
           const color = option?.color ?? item.color ?? "#ffffff";
           return (
-            <div key={`${labelText}-${index}`} className="flex items-center gap-2 leading-tight xl:text-[12px] 2xl:text-[18px]">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+            <div key={`${labelText}-${index}`} className="flex items-center gap-2 leading-tight xl:text-[11px] 2xl:text-[13px]">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
               <span className="font-sora">
-                {labelText}: <span className="text-card-foreground/90 xl:text-[12px] 2xl:text-[18px]">{formattedValue}</span>
+                {labelText}: <span className="text-card-foreground/90 xl:text-[11px] 2xl:text-[13px]">{formattedValue}</span>
               </span>
             </div>
           );
@@ -275,9 +275,11 @@ export default function Dashboard() {
   const tooltipStyles = {
     backgroundColor: "var(--color-card)",
     border: "1px solid var(--color-border)",
-    borderRadius: "10px",
-    fontSize: "8px",
-    color: "var(--color-card-foreground)"
+    borderRadius: "12px",
+    fontSize: "11px",
+    color: "var(--color-card-foreground)",
+    padding: "10px 12px",
+    minWidth: "180px"
   };
 
   const balanceCards = [
@@ -551,21 +553,21 @@ export default function Dashboard() {
               <div className="relative flex items-center" ref={visualizationRef}>
                 <button
                   onClick={() => setVisualizationOpen(prev => !prev)}
-                  className="flex h-10 w-10 items-center justify-center rounded-[16px] text-muted-foreground hover:text-foreground transition"
+                  className="flex h-9 w-9 items-center justify-center rounded-[12px] text-muted-foreground hover:text-foreground transition"
                   aria-label={isVisualizationOpen ? "Fechar opções de visualização" : "Abrir opções de visualização"}
                   type="button"
                 >
-                  {isVisualizationOpen ? <X className="h-6 w-6" /> : <DetalhamentoIcon className="h-10 w-10" />}
+                  {isVisualizationOpen ? <X className="h-5 w-5" /> : <DetalhamentoIcon className="h-8 w-8" />}
                 </button>
                 {isVisualizationOpen && (
                   <div
-                    className={`${cardSurface} absolute z-50 w-[clamp(220px,20vw,280px)] max-h-[360px] overflow-y-auto p-4 space-y-3`}
-                    style={{ top: "60%", right: "calc(100% + 10px)", transform: "translateY(-10%)" }}
+                    className={`${cardSurface} absolute z-50 w-[clamp(180px,18vw,240px)] max-h-[300px] overflow-y-auto rounded-[10px] p-3 space-y-2 xl:text-[11px] 2xl:text-[13px]`}
+                    style={{ top: "60%", right: "calc(100% + 8px)", transform: "translateY(-10%)" }}
                   >
                     <div className="border-b border-foreground/10 pb-2">
-                      <p className="text-fs-section font-semibold text-foreground">Visualização</p>
+                      <p className="text-sm font-semibold text-foreground xl:text-[12px] 2xl:text-[13px]">Visualização</p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {visualizationOptions.map(option => {
                         const enabled = visibleLines[option.id] !== false;
                         return (
@@ -574,7 +576,7 @@ export default function Dashboard() {
                             onClick={() => handleToggleLine(option.id)}
                             type="button"
                             aria-pressed={enabled}
-                            className={`w-full flex items-center h-[36px] gap-4 rounded-[8px] px-2 py-2 transition duration-200 ${
+                            className={`w-full flex items-center h-[32px] gap-3 rounded-[8px] px-2 py-1.5 transition duration-200 ${
                               enabled
                                 ? "text-foreground"
                                 : "text-muted-foreground hover:bg-muted/10"
@@ -582,7 +584,7 @@ export default function Dashboard() {
                           >
                             <span className="flex items-center">
                               <span
-                                className={`relative inline-flex h-6 w-12 items-center rounded-full border transition-colors duration-300 ${
+                                className={`relative inline-flex h-5 w-10 items-center rounded-full border transition-colors duration-300 ${
                                   enabled ? "border-transparent" : "border-border/60 bg-muted/60"
                                 }`}
                                 style={
@@ -592,8 +594,8 @@ export default function Dashboard() {
                                 }
                               >
                                 <span
-                                  className={`inline-flex h-5 w-5 transform rounded-full transition-all duration-300 ease-out ${
-                                    enabled ? "translate-x-6" : "translate-x-1"
+                                  className={`inline-flex h-4 w-4 transform rounded-full transition-all duration-300 ease-out ${
+                                    enabled ? "translate-x-5" : "translate-x-1"
                                   }`}
                                   style={{
                                     backgroundColor: enabled ? "#ffffff" : "var(--card)"
@@ -601,7 +603,7 @@ export default function Dashboard() {
                                 />
                               </span>
                             </span>
-                            <span className="text-fs-lead font-semibold flex-1 text-left">{option.label}</span>
+                            <span className="text-sm font-semibold flex-1 text-left xl:text-[12px] 2xl:text-[13px]">{option.label}</span>
                           </button>
                         );
                       })}

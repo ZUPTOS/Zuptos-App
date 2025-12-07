@@ -247,7 +247,7 @@ export default function Finances() {
         )
       }
     ],
-    [hideSensitive]
+    [hideSensitive, displayCurrency]
   );
 
   return (
