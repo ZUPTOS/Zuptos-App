@@ -788,25 +788,27 @@ const transactionColumns: Column<Transaction>[] = useMemo(
                   </span>
 
                   <span className="text-muted-foreground">Valor</span>
-                  <span className="font-semibold text-left">{displayCurrency(selectedTransaction.value)}</span>
+                  <span className="font-semibold text-left text-white">{displayCurrency(selectedTransaction.value)}</span>
 
                   <span className="text-muted-foreground">Taxas (4.9% + R$ 0,75)</span>
                   <span className="font-semibold text-left text-red-200">
-                    {displayCurrency(selectedTransaction.value * 0.049 + 0.75, "-")}
+                    <span className="text-white">{displayCurrency(selectedTransaction.value * 0.049 + 0.75, "-")}</span>
                   </span>
 
                   <span className="text-muted-foreground">Comissão do coprodutor</span>
                   <span className="font-semibold text-left text-red-200">
-                    {displayCurrency(selectedTransaction.value * 0.07, "-")}
+                    <span className="text-white">{displayCurrency(selectedTransaction.value * 0.07, "-")}</span>
                   </span>
 
                   <span className="text-muted-foreground">Minha comissão</span>
                   <span className="font-semibold text-left text-emerald-200">
-                    {displayCurrency(
-                      selectedTransaction.value -
-                        (selectedTransaction.value * 0.049 + 0.75) -
-                        selectedTransaction.value * 0.07
-                    )}
+                    <span className="text-white">
+                      {displayCurrency(
+                        selectedTransaction.value -
+                          (selectedTransaction.value * 0.049 + 0.75) -
+                          selectedTransaction.value * 0.07
+                      )}
+                    </span>
                   </span>
                 </div>
               </div>

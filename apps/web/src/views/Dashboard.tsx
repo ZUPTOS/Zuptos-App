@@ -537,9 +537,9 @@ export default function Dashboard() {
                   <p className="text-fs-title font-sora font-bold text-foreground leading-none xl:text-[12px] 2xl:text-[15px]">
                     {maskValue(grossRevenueLabel)}
                   </p>
-                  <span className="inline-flex items-center justify-between gap-1 rounded-[7px] bg-muted px-2 py-1 border w-[102px] h-[36px] ">
-                    <ArrowUpRight className="w-5 h-5 text-lime-400" />
-                    <span className="text-fs-meta font-sora font-bold text-foreground">
+                  <span className="inline-flex items-center justify-between gap-1 rounded-[7px] bg-muted px-2 py-1 border w-[80px] h-[36px] ">
+                    <ArrowUpRight className="w-10 h-10 text-lime-400" />
+                    <span className="font-sora font-bold text-foreground xl:text-[11px] 2xl:text-[13px]">
                       {maskValue(growthPercentageLabel)}
                     </span>
                   </span>
