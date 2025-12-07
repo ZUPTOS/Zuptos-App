@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FilterDrawer } from "@/components/FilterDrawer";
@@ -164,8 +164,10 @@ export default function Finances() {
   const [rowsPerPage, setRowsPerPage] = useState(4);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [hideSensitive, setHideSensitive] = useState(false);
-  const displayCurrency = (value?: number, prefix = "") =>
-    hideSensitive ? "..." : `${prefix}${formatCurrency(value ?? 0)}`;
+  const displayCurrency = useCallback(
+    (value?: number, prefix = "") => (hideSensitive ? "..." : `${prefix}${formatCurrency(value ?? 0)}`),
+    [hideSensitive]
+  );
 
   useEffect(() => {
     const updateRows = () => {

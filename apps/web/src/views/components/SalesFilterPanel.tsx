@@ -1,6 +1,7 @@
 'use client';
 
-import { Search, X } from "lucide-react";
+import { Search, X, ChevronDown } from "lucide-react";
+import { useState } from "react";
 import DateFilter from "@/components/DateFilter";
 
 export type OfferFilter = "assinatura" | "preco_unico";
@@ -41,7 +42,15 @@ const ofertaOptions: ToggleOption[] = [
 const statusOptions: ToggleOption[] = [
   { id: "aprovada", label: "Aprovada", value: "aprovada" },
   { id: "pendente", label: "Pendente", value: "pendente" },
-  { id: "recusada", label: "Recusada", value: "recusada" }
+  { id: "recusada", label: "Recusada", value: "recusada" },
+  { id: "estornada", label: "Estornada", value: "estornada" },
+  { id: "chargeback", label: "Chargeback", value: "chargeback" }
+];
+
+const paymentOptions: ToggleOption[] = [
+  { id: "cartao", label: "Cartão", value: "Cartão" },
+  { id: "boleto", label: "Boleto", value: "Boleto" },
+  { id: "pix", label: "Pix", value: "Pix" }
 ];
 
 const tipoOptions: ToggleOption[] = [
@@ -119,6 +128,8 @@ export default function SalesFilterPanel({
   onFiltersChange,
   onApply
 }: SalesFilterPanelProps) {
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const handleArrayToggle = (
     key: keyof Pick<SalesFilters, "offers" | "statuses" | "tipos" | "vendedor">,
     value: string
@@ -194,27 +205,107 @@ export default function SalesFilterPanel({
           </div>
         </div>
 
-        <InputField
-          label="Método de pagamento"
-          value={filters.paymentMethod}
-          onChange={value => onFiltersChange({ paymentMethod: value })}
-          placeholder="Todos"
-          icon={<Search className="h-4 w-4" />}
-        />
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-card-foreground">Método de pagamento</p>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsPaymentOpen(prev => !prev)}
+              className="flex w-full items-center justify-between gap-2 rounded-[10px] border border-muted bg-card/60 px-3 py-3 text-left text-sm text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <span className="text-foreground">
+                  {filters.paymentMethod || "Todos"}
+                </span>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${isPaymentOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isPaymentOpen && (
+              <div
+                className="absolute left-0 right-0 z-50 mt-2 rounded-[10px] border border-muted bg-card shadow-lg"
+                onMouseDown={e => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted/20"
+                  onClick={() => {
+                    onFiltersChange({ paymentMethod: "" });
+                    setIsPaymentOpen(false);
+                  }}
+                >
+                  Todos
+                </button>
+                {paymentOptions.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`block w-full px-3 py-2 text-left text-sm transition hover:bg-muted/20 ${
+                      filters.paymentMethod === option.value ? "text-primary" : "text-foreground"
+                    }`}
+                    onClick={() => {
+                      onFiltersChange({ paymentMethod: option.value });
+                      setIsPaymentOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-card-foreground">
-            Status da venda
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {statusOptions.map(option => (
-              <ToggleButton
-                key={option.id}
-                label={option.label}
-                active={filters.statuses.includes(option.value)}
-                onClick={() => handleArrayToggle("statuses", option.value)}
-              />
-            ))}
+          <p className="text-sm font-semibold text-card-foreground">Status da venda</p>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsStatusOpen(prev => !prev)}
+              className="flex w-full items-center justify-between gap-2 rounded-[10px] border border-muted bg-card/60 px-3 py-3 text-left text-sm text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <span className="text-foreground">
+                  {filters.statuses[0]
+                    ? statusOptions.find(opt => opt.value === filters.statuses[0])?.label ?? "Todos"
+                    : "Todos"}
+                </span>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${isStatusOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isStatusOpen && (
+              <div
+                className="absolute left-0 right-0 z-50 mt-2 rounded-[10px] border border-muted bg-card shadow-lg"
+                onMouseDown={e => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted/20"
+                  onClick={() => {
+                    onFiltersChange({ statuses: [] });
+                    setIsStatusOpen(false);
+                  }}
+                >
+                  Todos
+                </button>
+                {statusOptions.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`block w-full px-3 py-2 text-left text-sm transition hover:bg-muted/20 ${
+                      filters.statuses[0] === option.value ? "text-primary" : "text-foreground"
+                    }`}
+                    onClick={() => {
+                      onFiltersChange({ statuses: [option.value] });
+                      setIsStatusOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -233,7 +233,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
 
   useEffect(() => {
     focusSlot(activeSlot);
-  }, [maskValue]); // re-sync caret when value changes
+  }, [maskValue, activeSlot]); // re-sync caret when value changes
 
   const validateSegment = (next: DigitArray, slot: number) => {
     const getSegment = (offset: number) => next.slice(offset, offset + 8);

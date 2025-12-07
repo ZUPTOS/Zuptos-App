@@ -200,9 +200,9 @@ export default function AdminConfiguracoes() {
                     />
                     <LabeledInput
                       label="Taxa variável"
-                      placeholder="R$0,00"
+                      placeholder="0,00%"
                       value={getValue('pixTaxaVariavel')}
-                      onChange={value => handleInputChange('pixTaxaVariavel', value, 'currency')}
+                      onChange={value => handleInputChange('pixTaxaVariavel', value, 'percent')}
                     />
                     <LabeledInput
                       label="Adquirente"
@@ -230,9 +230,9 @@ export default function AdminConfiguracoes() {
                     />
                     <LabeledInput
                       label="Taxa variável"
-                      placeholder="R$0,00"
+                      placeholder="0,00%"
                       value={getValue('boletoTaxaVariavel')}
-                      onChange={value => handleInputChange('boletoTaxaVariavel', value, 'currency')}
+                      onChange={value => handleInputChange('boletoTaxaVariavel', value, 'percent')}
                     />
                     <LabeledInput
                       label="Adquirente"
