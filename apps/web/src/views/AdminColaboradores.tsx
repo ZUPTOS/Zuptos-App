@@ -248,7 +248,7 @@ export default function AdminColaboradores() {
                             const key = `${section.id}-${item.title}`;
                             const state = permissionsState[key] ?? { manage: false, view: false };
                             const checkboxClass =
-                              'h-[18px] w-[18px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
+                              "relative h-[24px] w-[24px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 before:absolute before:inset-0 before:flex before:items-center before:justify-center before:text-[14px] before:font-bold before:text-white before:opacity-0 checked:before:opacity-100 before:content-['✓']";
 
                             const manageControl = (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">

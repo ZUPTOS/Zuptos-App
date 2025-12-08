@@ -85,14 +85,14 @@ export default function AdminColaboradorDetalhes() {
   };
 
   const checkboxClass =
-    'h-[18px] w-[18px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
+    "relative h-[24px] w-[24px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 before:absolute before:inset-0 before:flex before:items-center before:justify-center before:text-[14px] before:font-bold before:text-white before:opacity-0 checked:before:opacity-100 before:content-['✓']";
   const actionButtonClass =
-    'flex items-center gap-2 rounded-[7px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary';
+    'flex justify-center items-center gap-2 rounded-[7px] border border-foreground/15 bg-card px-3 py-4 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary';
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
-        <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 py-8 lg:px-8">
+        <div className="mx-auto flex w-full gap-4 max-w-[1180px] flex-col px-4 py-8 lg:px-8">
           <button
             type="button"
             onClick={() => router.back()}
