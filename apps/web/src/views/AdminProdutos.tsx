@@ -7,6 +7,8 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { FilterDrawer } from '@/components/FilterDrawer';
 import DateFilter from '@/components/DateFilter';
 import ConfirmModal from '@/components/ConfirmModal';
+import productsData from '@/data/admin-produtos.json';
+import { buildPageIndicators } from '@/lib/pagination';
 
 type ProductStatus = 'Aprovado' | 'Em produção' | 'Reprovado' | 'Pendente' | 'Em atualização';
 
@@ -29,68 +31,7 @@ const statusStyles: Record<ProductStatus, string> = {
   'Em atualização': 'bg-teal-500/15 text-teal-300'
 };
 
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Produto 01',
-    type: 'Curso',
-    produtor: 'Produtor:',
-    email: 'teste@gmail.com',
-    telefone: '+55 99999 9999',
-    suporte: 'Suporte: +55 99999 9999',
-    status: 'Aprovado'
-  },
-  {
-    id: '2',
-    name: 'Produto 01',
-    type: 'E-book',
-    produtor: 'Produtor:',
-    email: 'teste@gmail.com',
-    telefone: '+55 99999 9999',
-    suporte: 'Suporte: +55 99999 9999',
-    status: 'Em produção'
-  },
-  {
-    id: '3',
-    name: 'Produto 01',
-    type: 'Serviço',
-    produtor: 'Produtor:',
-    email: 'teste@gmail.com',
-    telefone: '+55 99999 9999',
-    suporte: 'Suporte: +55 99999 9999',
-    status: 'Reprovado'
-  },
-  {
-    id: '4',
-    name: 'Produto 01',
-    type: 'Curso',
-    produtor: 'Produtor:',
-    email: 'teste@gmail.com',
-    telefone: '+55 99999 9999',
-    suporte: 'Suporte: +55 99999 9999',
-    status: 'Pendente'
-  },
-  {
-    id: '5',
-    name: 'Produto 01',
-    type: 'E-book',
-    produtor: 'Produtor:',
-    email: 'teste@gmail.com',
-    telefone: '+55 99999 9999',
-    suporte: 'Suporte: +55 99999 9999',
-    status: 'Em produção'
-  },
-  {
-    id: '6',
-    name: 'Produto 01',
-    type: 'Serviço',
-    produtor: 'Produtor:',
-    email: 'teste@gmail.com',
-    telefone: '+55 99999 9999',
-    suporte: 'Suporte: +55 99999 9999',
-    status: 'Em atualização'
-  }
-];
+const mockProducts: Product[] = productsData.products as Product[];
 
 const infoIconClass = 'h-4 w-4 text-muted-foreground';
 
@@ -139,7 +80,7 @@ function ProductCard({ product }: { product: Product }) {
 export default function AdminProdutos() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState(mockProducts);
-  const [currentPage, setCurrentPage] = useState(3);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -156,6 +97,7 @@ export default function AdminProdutos() {
 
     if (query === '') {
       setFilteredProducts(mockProducts);
+      setCurrentPage(1);
       return;
     }
 
@@ -167,6 +109,7 @@ export default function AdminProdutos() {
           product.email.toLowerCase().includes(query)
       )
     );
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page: number | string) => {
@@ -175,7 +118,11 @@ export default function AdminProdutos() {
     }
   };
 
-  const pages = [1, 2, 3, '...', 99, 100, 101] as const;
+  const pageSize = 6;
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  // keep the same pagination pattern used across other tables (1 2 3 ... last-2 last-1 last)
+  const pageIndicators = buildPageIndicators(totalPages, currentPage);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <>
@@ -220,7 +167,7 @@ export default function AdminProdutos() {
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredProducts.length > 0 ? (
-              filteredProducts.map(product => (
+              paginatedProducts.map(product => (
                 <div
                   key={product.id}
                   onClick={() => router.push('/admin/produtos/detalhes')}
@@ -245,23 +192,23 @@ export default function AdminProdutos() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-2">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-4 py-3 text-sm text-muted-foreground transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-2 rounded-[10px] px-4 py-3 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden />
                 Anterior
               </button>
 
               <div className="flex flex-wrap items-center justify-center gap-2">
-                {pages.map((page, idx) => (
+                {pageIndicators.map((page, idx) => (
                   <button
                     key={`${page}-${idx}`}
                     type="button"
                     onClick={() => handlePageChange(page)}
                     className={`h-10 min-w-[40px] rounded-[10px] px-3 text-sm font-medium transition ${
-                      page === currentPage
-                        ? 'bg-primary text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)]'
-                        : 'border border-foreground/10 bg-card text-muted-foreground hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]'
-                    }`}
+                      page === currentPage ? 'bg-card text-foreground' : 'text-muted-foreground'
+                    } ${page === '...' ? 'cursor-default' : 'hover:text-foreground'}`}
                   >
                     {page}
                   </button>
@@ -270,7 +217,9 @@ export default function AdminProdutos() {
 
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-4 py-3 text-sm text-muted-foreground transition hover:border-white/20 hover:bg-card/70 dark:border-white/10 dark:bg-[#0f0f0f]"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                className="inline-flex items-center gap-2 rounded-[10px] px-4 py-3 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+                disabled={currentPage === totalPages}
               >
                 Próximo
                 <ChevronRight className="h-4 w-4" aria-hidden />
