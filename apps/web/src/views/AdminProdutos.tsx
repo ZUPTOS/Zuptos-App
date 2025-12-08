@@ -37,7 +37,7 @@ const infoIconClass = 'h-4 w-4 text-muted-foreground';
 
 function ProductCard({ product }: { product: Product }) {
   return (
-    <div className="w-full xl:max-w-[390px] 2xl:max-w-[417px] 2xl:max-h-[400px] xl:max-h-[350px] text-left rounded-[12px] border border-foreground/10 bg-card shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b] p-6 transition hover:-translate-y-0.5 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
+    <div className="w-full xl:max-w-[390px] 2xl:max-w-[417px] 2xl:max-h-[400px] xl:max-h-[350px] text-left rounded-[12px] border border-foreground/10 bg-card p-6 transition hover:-translate-y-0.5 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
       <div className="flex items-start gap-4">
         <div className="flex h-[70px] w-[70px] items-center justify-center rounded-[14px] border border-foreground/10 bg-foreground/70" />
         <div className="flex flex-col gap-1">
@@ -136,7 +136,7 @@ export default function AdminProdutos() {
             </div>
 
             <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-              <label className="flex xl:h-[36px] 2xl:h-[46px] w-full min-w-[240px] 2xl:max-w-[240px] items-center xl:max-w-[140px] gap-2 rounded-[12px] border border-foreground/10 bg-card px-3 text-sm text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0f0f0f]">
+              <label className="flex xl:h-[36px] 2xl:h-[46px] w-full min-w-[240px] 2xl:max-w-[240px] items-center xl:max-w-[140px] gap-2 rounded-[12px] border border-foreground/10 bg-card px-3 text-sm text-muted-foreground">
                 <Search className="h-4 w-4" aria-hidden />
                 <input
                   type="text"
@@ -194,10 +194,10 @@ export default function AdminProdutos() {
                 type="button"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="inline-flex items-center gap-2 rounded-[10px] px-4 py-3 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden />
-                Anterior
+                <span>Anterior</span>
               </button>
 
               <div className="flex flex-wrap items-center justify-center gap-2">
@@ -218,10 +218,10 @@ export default function AdminProdutos() {
               <button
                 type="button"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                className="inline-flex items-center gap-2 rounded-[10px] px-4 py-3 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-40"
                 disabled={currentPage === totalPages}
               >
-                Próximo
+                <span>Próximo</span>
                 <ChevronRight className="h-4 w-4" aria-hidden />
               </button>
             </div>

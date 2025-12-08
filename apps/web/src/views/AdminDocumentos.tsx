@@ -8,6 +8,7 @@ import { FilterDrawer } from "@/components/FilterDrawer";
 import DateFilter from "@/components/DateFilter";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useRouter } from "next/navigation";
+import documentosData from "@/data/admin-documentos.json";
 
 type DocumentRow = {
   id: string;
@@ -20,38 +21,7 @@ type DocumentRow = {
   createdTime: string;
 };
 
-const rows: DocumentRow[] = [
-  {
-    id: "doc-1",
-    name: "Nome",
-    accountType: "Pessoa física",
-    document: "XX-XXX-XXX.XX",
-    status: "Pendente",
-    faturamento: "R$600,00",
-    createdAt: "05/06/2025",
-    createdTime: "às 18:45"
-  },
-  {
-    id: "doc-2",
-    name: "Nome",
-    accountType: "Pessoa jurídica",
-    document: "XX-XXX-XXX.XX",
-    status: "Aprovado",
-    faturamento: "R$600,00",
-    createdAt: "05/06/2025",
-    createdTime: "às 18:45"
-  },
-  {
-    id: "doc-3",
-    name: "Nome",
-    accountType: "Pessoa jurídica",
-    document: "XX-XXX-XXX.XX",
-    status: "Reprovado",
-    faturamento: "R$600,00",
-    createdAt: "05/06/2025",
-    createdTime: "às 18:45"
-  }
-] as const;
+const rows: DocumentRow[] = documentosData.documents as DocumentRow[];
 
 const columns: Column<DocumentRow>[] = [
   {

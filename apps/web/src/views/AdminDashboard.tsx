@@ -186,7 +186,7 @@ function PaymentMethodCard({
   const trendIcon = isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />;
 
   return (
-    <div className="flex items-center justify-between rounded-[8px] border border-foreground/10 bg-card px-4 py-3 sm:px-5 sm:py-4">
+    <div className="flex items-center justify-between rounded-[8px] border border-foreground/10 bg-card px-3 py-3">
       <div className="flex items-center gap-3 sm:gap-4">
         <span className="flex h-[48px] w-[48px] items-center justify-center rounded-[8px] border border-muted/60 bg-muted/30">
           <Image src={icon} alt={label} width={40} height={40} className="h-10 w-10 object-contain" />
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div
-          className="mx-auto flex w-full flex-col gap-3 px-3 sm:px-4"
+          className="mx-auto flex w-full flex-col gap-3 py-4 xl:px-6"
           style={{ maxWidth: "min(1280px, var(--admin-layout-width))" }}
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -260,7 +260,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className={`${cardSurface} min-h-[420px] px-4 py-4 sm:px-5 lg:px-6`}>
+              <div className={`${cardSurface} min-h-[420px] px-4 py-4`}>
                 <div className="mb-4 flex items-center justify-end">
                   <div className="relative">
                     <button
@@ -350,11 +350,11 @@ export default function AdminDashboard() {
 
             <div className="flex flex-col gap-3">
               <div
-                className={`${cardSurface} flex h-full min-h-[320px] flex-col justify-evenly gap-2 px-5 py-3 lg:px-6`}
+                className={`${cardSurface} flex h-full min-h-[320px] flex-col justify-evenly gap-2 px-5 py-3 xl:px-6`}
               >
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <h3 className="text-fs-title font-semibold text-foreground">Detalhamento financeiro</h3>
-                  <div className="space-y-6 px-4 py-2">
+                  <div className="space-y-4 py-3">
                     {financialBreakdown.map(item => (
                       <div key={item.label} className="flex items-center justify-between text-fs-stat">
                         <span className="text-muted-foreground">{item.label}:</span>
@@ -364,9 +364,9 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <h3 className="text-fs-title font-semibold text-foreground">Detalhamento transacional</h3>
-                  <div className="space-y-6 px-4 py-3">
+                  <div className="space-y-6 py-3">
                     {transactionalBreakdown.map(item => (
                       <div key={item.label} className="flex items-center justify-between text-fs-stat">
                         <span className="text-muted-foreground">{item.label}:</span>
