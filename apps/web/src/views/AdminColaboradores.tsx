@@ -29,19 +29,18 @@ const roleBadge: Record<string, string> = {
 
 const permissionSections = [
   {
-    id: 'general',
-    title: 'Alterar permissões',
+    id: 'usuarios',
+    title: 'Usuários',
     items: [
-      { title: 'Usuários', manage: true, view: true },
       { title: 'Taxas', manage: true, view: true },
       { title: 'Permissões', manage: true, view: true },
       { title: 'Financeiro', manage: true, view: true },
       { title: 'Indicação', manage: true, view: true },
-      { title: 'Ações', manage: true, view: true }
+      { title: 'Ações', manage: true, view: false }
     ]
   },
   {
-    id: 'transactions',
+    id: 'transacoes',
     title: 'Transações',
     items: [
       { title: 'Financeiro', manage: true, view: true },
@@ -57,7 +56,7 @@ const permissionSections = [
   {
     id: 'financeiro-extra',
     title: '',
-    items: [{ title: 'Financeiro', manage: true, view: true }]
+    items: [{ title: 'Financeiro', manage: false, view: true }]
   },
   {
     id: 'produtos',
@@ -171,7 +170,7 @@ export default function AdminColaboradores() {
             </div>
 
             {activeTab === 'colaboradores' ? (
-              <div className="overflow-hidden rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b]">
+              <div className="overflow-hidden rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_16px_44px_rgba(0,0,0,0.55)] dark:border-white/5 dark:bg-[#0b0b0b]">
                 <table className="w-full text-sm text-foreground">
                   <thead className="bg-foreground/5 text-muted-foreground">
                     <tr>
@@ -219,7 +218,7 @@ export default function AdminColaboradores() {
                     <select
                       value={selectedRole}
                       onChange={e => handleRoleSelect(e.target.value)}
-                      className="w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.35)] focus:border-primary/50 focus:outline-none"
+                      className="w-full appearance-none rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.35)] focus:border-primary/50 focus:outline-none"
                     >
                       {roles.map(role => (
                         <option key={role} value={role}>
@@ -232,77 +231,86 @@ export default function AdminColaboradores() {
                   </div>
                 </div>
 
-                <div className="rounded-[7px] border border-foreground/15 bg-card/70 shadow-[0_14px_40px_rgba(0,0,0,0.45)] dark:border-white/10 p-4 md:p-6 flex flex-col gap-4">
-                  {permissionSections.map(section => (
-                    <div key={section.id} className="rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
-                      {section.title && (
-                        <div className="px-6 pt-4 pb-2">
-                          <p className="text-sm font-semibold text-muted-foreground">{section.title}</p>
+                <div className="rounded-[7px] border border-foreground/15 bg-card/70 shadow-[0_14px_40px_rgba(0,0,0,0.45)] dark:border-white/10">
+                  <div className="border-b border-foreground/10 px-4 py-5 md:px-6">
+                    <p className="text-sm font-semibold text-muted-foreground">Alterar permissões</p>
+                  </div>
+                  <div className="flex flex-col gap-4 p-4 md:p-6">
+                    {permissionSections.map(section => (
+                      <div key={section.id} className="rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_12px_36px_rgba(0,0,0,0.45)] dark:border-white/10">
+                        {section.title && (
+                          <div className="px-6 pt-4 pb-2">
+                            <p className="text-sm font-semibold text-muted-foreground">{section.title}</p>
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-3 px-6 py-4">
+                          {section.items.map(item => {
+                            const key = `${section.id}-${item.title}`;
+                            const state = permissionsState[key] ?? { manage: false, view: false };
+                            const checkboxClass =
+                              'h-[18px] w-[18px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
+
+                            const manageControl = (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {item.manage ? (
+                                  <>
+                                    <input
+                                      type="checkbox"
+                                      checked={state.manage}
+                                      onChange={() => togglePermission(key, 'manage')}
+                                      className={checkboxClass}
+                                    />
+                                    <span className="select-none">Gerenciar</span>
+                                  </>
+                                ) : (
+                                  <span className="select-none text-transparent">Gerenciar</span>
+                                )}
+                              </div>
+                            );
+                            const viewControl = (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {item.view ? (
+                                  <>
+                                    <input
+                                      type="checkbox"
+                                      checked={state.view}
+                                      onChange={() => togglePermission(key, 'view')}
+                                      className={checkboxClass}
+                                    />
+                                    <span className="select-none">Ver dados</span>
+                                  </>
+                                ) : (
+                                  <span className="select-none text-transparent">Ver dados</span>
+                                )}
+                              </div>
+                            );
+
+                            const firstControl = item.manage ? manageControl : viewControl;
+                            const secondControl = item.manage ? viewControl : <span className="text-transparent select-none">Ver dados</span>;
+
+                            return (
+                              <div
+                                key={key}
+                                className="grid grid-cols-[minmax(180px,240px)_140px_140px] items-center gap-4"
+                              >
+                                <span className="text-base font-semibold text-foreground">{item.title}</span>
+                                {firstControl}
+                                {secondControl}
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
-                      <div className="px-6 py-4 flex flex-col gap-3">
-                        {section.items.map(item => {
-                          const key = `${section.id}-${item.title}`;
-                          const state = permissionsState[key] ?? { manage: false, view: false };
-                          const manageControl = (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              {item.manage ? (
-                                <>
-                                  <input
-                                    type="checkbox"
-                                    checked={state.manage}
-                                    onChange={() => togglePermission(key, 'manage')}
-                                    className="h-[18px] w-[18px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                                    aria-label={`Gerenciar ${item.title}`}
-                                  />
-                                  <span className="select-none">Gerenciar</span>
-                                </>
-                              ) : (
-                                <span className="select-none text-transparent">Gerenciar</span>
-                              )}
-                            </div>
-                          );
-                          const viewControl = (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              {item.view ? (
-                                <>
-                                  <input
-                                    type="checkbox"
-                                    checked={state.view}
-                                    onChange={() => togglePermission(key, 'view')}
-                                    className="h-[18px] w-[18px] appearance-none rounded-[6px] border border-foreground/25 bg-transparent transition-all checked:border-primary checked:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                                    aria-label={`Ver dados de ${item.title}`}
-                                  />
-                                  <span className="select-none">Ver dados</span>
-                                </>
-                              ) : (
-                                <span className="select-none text-transparent">Ver dados</span>
-                              )}
-                            </div>
-                          );
-
-                          return (
-                            <div
-                              key={key}
-                              className="grid grid-cols-[minmax(180px,240px)_140px_140px] items-center gap-4"
-                            >
-                              <span className="text-base font-semibold text-foreground">{item.title}</span>
-                              {manageControl}
-                              {viewControl}
-                            </div>
-                          );
-                        })}
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="button"
-                      className="rounded-[7px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[0_12px_30px_rgba(108,39,215,0.4)] transition hover:brightness-110"
-                    >
-                      Atualizar
-                    </button>
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="button"
+                        className="rounded-[7px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[0_12px_30px_rgba(108,39,215,0.4)] transition hover:brightness-110"
+                      >
+                        Atualizar
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

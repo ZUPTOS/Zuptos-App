@@ -18,19 +18,18 @@ const statusClass = 'bg-emerald-600/20 text-emerald-300';
 
 const permissionSections = [
   {
-    id: 'general',
-    title: 'Alterar permissões',
+    id: 'usuarios',
+    title: 'Usuários',
     items: [
-      { title: 'Usuários', manage: true, view: true },
       { title: 'Taxas', manage: true, view: true },
       { title: 'Permissões', manage: true, view: true },
       { title: 'Financeiro', manage: true, view: true },
       { title: 'Indicação', manage: true, view: true },
-      { title: 'Ações', manage: true, view: true }
+      { title: 'Ações', manage: true, view: false }
     ]
   },
   {
-    id: 'transactions',
+    id: 'transacoes',
     title: 'Transações',
     items: [
       { title: 'Financeiro', manage: true, view: true },
@@ -46,7 +45,7 @@ const permissionSections = [
   {
     id: 'financeiro-extra',
     title: '',
-    items: [{ title: 'Financeiro', manage: true, view: true }]
+    items: [{ title: 'Financeiro', manage: false, view: true }]
   },
   {
     id: 'produtos',
@@ -93,7 +92,7 @@ export default function AdminColaboradorDetalhes() {
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
-        <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 py-8 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 py-8 lg:px-8">
           <button
             type="button"
             onClick={() => router.back()}
@@ -154,78 +153,85 @@ export default function AdminColaboradorDetalhes() {
             </button>
           </div>
 
-          <div className="rounded-[7px] border border-foreground/15 bg-card/70 p-4 shadow-[0_14px_40px_rgba(0,0,0,0.45)] dark:border-white/10 md:p-6">
-            {permissionSections.map(section => (
-              <div key={section.id} className="mb-4 rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_12px_36px_rgba(0,0,0,0.45)] last:mb-0 dark:border-white/10">
-                {section.title && (
-                  <div className="px-6 pt-4 pb-2">
-                    <p className="text-sm font-semibold text-muted-foreground">{section.title}</p>
+          <div className="rounded-[7px] border border-foreground/15 bg-card/70 shadow-[0_14px_40px_rgba(0,0,0,0.45)] dark:border-white/10">
+            <div className="border-b border-foreground/10 px-4 py-5 md:px-6">
+              <p className="text-sm font-semibold text-muted-foreground">Alterar permissões</p>
+            </div>
+            <div className="p-4 md:p-6">
+              {permissionSections.map(section => (
+                <div key={section.id} className="mb-4 rounded-[7px] border border-foreground/10 bg-card/80 shadow-[0_12px_36px_rgba(0,0,0,0.45)] last:mb-0 dark:border-white/10">
+                  {section.title && (
+                    <div className="px-6 pt-4 pb-2">
+                      <p className="text-sm font-semibold text-muted-foreground">{section.title}</p>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-3 px-6 py-4">
+                    {section.items.map(item => {
+                      const key = `${section.id}-${item.title}`;
+                      const state = permissionsState[key] ?? { manage: false, view: false };
+
+                      const manageControl = (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {item.manage ? (
+                            <>
+                              <input
+                                type="checkbox"
+                                checked={state.manage}
+                                onChange={() => togglePermission(key, 'manage')}
+                                className={checkboxClass}
+                                aria-label={`Gerenciar ${item.title}`}
+                              />
+                              <span className="select-none">Gerenciar</span>
+                            </>
+                          ) : (
+                            <span className="select-none text-transparent">Gerenciar</span>
+                          )}
+                        </div>
+                      );
+
+                      const viewControl = (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {item.view ? (
+                            <>
+                              <input
+                                type="checkbox"
+                                checked={state.view}
+                                onChange={() => togglePermission(key, 'view')}
+                                className={checkboxClass}
+                                aria-label={`Ver dados de ${item.title}`}
+                              />
+                              <span className="select-none">Ver dados</span>
+                            </>
+                          ) : (
+                            <span className="select-none text-transparent">Ver dados</span>
+                          )}
+                        </div>
+                      );
+
+                      const firstControl = item.manage ? manageControl : viewControl;
+                      const secondControl = item.manage ? viewControl : <span className="text-transparent select-none">Ver dados</span>;
+
+                      return (
+                        <div key={key} className="grid grid-cols-[minmax(180px,240px)_140px_140px] items-center gap-4">
+                          <span className="text-base font-semibold text-foreground">{item.title}</span>
+                          {firstControl}
+                          {secondControl}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-                <div className="flex flex-col gap-3 px-6 py-4">
-                  {section.items.map(item => {
-                    const key = `${section.id}-${item.title}`;
-                    const state = permissionsState[key] ?? { manage: false, view: false };
-
-                    const manageControl = (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {item.manage ? (
-                          <>
-                            <input
-                              type="checkbox"
-                              checked={state.manage}
-                              onChange={() => togglePermission(key, 'manage')}
-                              className={checkboxClass}
-                              aria-label={`Gerenciar ${item.title}`}
-                            />
-                            <span className="select-none">Gerenciar</span>
-                          </>
-                        ) : (
-                          <span className="select-none text-transparent">Gerenciar</span>
-                        )}
-                      </div>
-                    );
-
-                    const viewControl = (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {item.view ? (
-                          <>
-                            <input
-                              type="checkbox"
-                              checked={state.view}
-                              onChange={() => togglePermission(key, 'view')}
-                              className={checkboxClass}
-                              aria-label={`Ver dados de ${item.title}`}
-                            />
-                            <span className="select-none">Ver dados</span>
-                          </>
-                        ) : (
-                          <span className="select-none text-transparent">Ver dados</span>
-                        )}
-                      </div>
-                    );
-
-                    return (
-                      <div key={key} className="grid grid-cols-[minmax(180px,240px)_140px_140px] items-center gap-4">
-                        <span className="text-base font-semibold text-foreground">{item.title}</span>
-                        {manageControl}
-                        {viewControl}
-                      </div>
-                    );
-                  })}
                 </div>
-              </div>
-            ))}
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                className="rounded-[7px] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[0_12px_30px_rgba(108,39,215,0.4)] transition hover:brightness-110"
-              >
-                Atualizar
-              </button>
+              ))}
             </div>
           </div>
+            <div className="flex justify-end mt-4">
+                <button
+                  type="button"
+                  className="rounded-[7px] bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+                >
+                  Atualizar
+                </button>
+              </div>
         </div>
       </div>
     </DashboardLayout>
