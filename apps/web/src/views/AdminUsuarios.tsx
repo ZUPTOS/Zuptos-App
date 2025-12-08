@@ -29,23 +29,27 @@ const statusBadge = {
 } as const;
 
 const columns: Column<UserRow>[] = [
-  { id: "name", header: "Nome", cellClassName: "font-semibold", render: row => row.name },
-  { id: "email", header: "E-mail", cellClassName: "text-muted-foreground uppercase", render: row => row.email },
-  { id: "document", header: "Documento", render: row => row.document },
+  { id: "name", header: "Nome", headerClassName: "text-center", cellClassName: "font-semibold text-center", render: row => row.name },
+  { id: "email", header: "E-mail", headerClassName: "text-center", cellClassName: "text-center text-muted-foreground uppercase", render: row => row.email },
+  { id: "document", header: "Documento", headerClassName: "text-center", cellClassName: "text-center", render: row => row.document },
   {
     id: "status",
     header: "Status do documento",
+    headerClassName: "text-center",
+    cellClassName: "text-center",
     render: row => (
-      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadge[row.status as keyof typeof statusBadge] ?? "bg-muted/30 text-muted-foreground"}`}>
+      <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadge[row.status as keyof typeof statusBadge] ?? "bg-muted/30 text-muted-foreground"}`}>
         {row.status}
       </span>
     )
   },
-  { id: "total", header: "Total faturado", render: row => row.total },
+  { id: "total", header: "Total faturado", headerClassName: "text-center", cellClassName: "text-center", render: row => row.total },
   {
     id: "tax",
     header: "Taxa",
-    render: row => <span className="rounded-[8px] border border-foreground/10 px-3 py-1 text-xs text-muted-foreground">{row.tax}</span>
+    headerClassName: "text-center",
+    cellClassName: "text-center",
+    render: row => <span className="inline-flex items-center justify-center rounded-[8px] border border-foreground/10 px-3 py-1 text-xs text-muted-foreground">{row.tax}</span>
   }
 ];
 
