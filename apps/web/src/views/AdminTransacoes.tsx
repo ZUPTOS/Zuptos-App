@@ -138,7 +138,8 @@ export default function AdminTransacoes() {
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-2 py-2 lg:px-6">
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-between gap-2 py-3">
+            <h1 className="text-[22px] font-sora text-foreground">Transações</h1>
             <div className="flex items-center gap-2">
               <label className="flex h-[48px] max-w-[260px] items-center gap-2 rounded-[8px] border border-foreground/10 bg-card px-3 text-sm text-muted-foreground">
                 <Search className="h-4 w-4" />
