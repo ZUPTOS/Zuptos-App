@@ -136,27 +136,27 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
 
         <section className="px-5 py-4">
           <h2 className="text-sm font-semibold text-card-foreground">Comprador</h2>
-          <div className="mt-3 grid gap-2 rounded-[12px] border border-muted bg-card/60 px-4 py-3 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Nome</span>
+          <div className="mt-3 flex flex-col gap-2 rounded-[12px] border border-muted bg-card/60 px-4 py-3 text-xs">
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Nome</span>
               <span className="text-foreground">{detailData.buyer.name}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">CPF</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">CPF</span>
               <span className="text-foreground">{detailData.buyer.cpf}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">E-mail</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">E-mail</span>
               <span className="text-foreground">{detailData.buyer.email}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Telefone</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Telefone</span>
               <span className="flex items-center gap-2 text-foreground">
                 {detailData.buyer.phone} <Phone className="h-3 w-3 text-primary" />
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">IP</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">IP</span>
               <span className="text-foreground">{detailData.buyer.ip}</span>
             </div>
           </div>
@@ -165,8 +165,8 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
         <section className="px-5 py-4">
           <h2 className="text-sm font-semibold text-card-foreground">Transação</h2>
           <div className="mt-3 grid gap-2 rounded-[12px] border border-muted bg-card/60 px-4 py-3 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Status</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Status</span>
               <span
                 className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase ${
                   statusColors[detailData.transaction.status]
@@ -175,23 +175,23 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
                 {statusLabels[detailData.transaction.status]}
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Método</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Método</span>
               <span className="flex items-center gap-2 text-foreground">
                 <Package className="h-4 w-4" />
                 {detailData.transaction.method}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Data de criação</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Data de criação</span>
               <span className="text-foreground">{detailData.transaction.createdAt}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Data da venda</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Data da venda</span>
               <span className="text-foreground">{detailData.transaction.saleDate}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Total</span>
               <span className="text-foreground">
                 {detailData.transaction.total.toLocaleString("pt-BR", {
                   style: "currency",
@@ -199,8 +199,8 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
                 })}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Taxas</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Taxas</span>
               <span className="text-foreground">
                 {`${detailData.transaction.fees.percentage}% + ${detailData.transaction.fees.amount.toLocaleString(
                   "pt-BR",
@@ -208,8 +208,8 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
                 )}`}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Comissão do coprodutor</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Comissão do coprodutor</span>
               <span className="text-foreground">
                 {detailData.transaction.coProducerCommission.toLocaleString("pt-BR", {
                   style: "currency",
@@ -217,8 +217,8 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
                 })}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Minha comissão</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Minha comissão</span>
               <span className="text-foreground">
                 {detailData.transaction.myCommission.toLocaleString("pt-BR", {
                   style: "currency",
@@ -226,8 +226,8 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
                 })}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Página de obrigado</span>
+            <div className="flex items-start gap-4">
+              <span className="min-w-[140px] text-muted-foreground">Página de obrigado</span>
               <span className="flex items-center gap-2 text-primary underline decoration-dashed">
                 {detailData.transaction.thankYouPage}
                 <Copy className="h-4 w-4" />
@@ -240,8 +240,8 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
           <h2 className="text-sm font-semibold text-card-foreground">Marketing</h2>
           <div className="mt-3 rounded-[12px] border border-muted bg-card/60 px-4 py-3 text-xs text-muted-foreground">
             {Object.entries(detailData.marketing).map(([key, value]) => (
-              <div key={key} className="flex justify-between">
-                <span className="capitalize">{key.replace("utm", "UTM ")}</span>
+              <div key={key} className="flex items-start gap-4">
+                <span className="min-w-[140px] capitalize">{key.replace("utm", "UTM ")}</span>
                 <span className="text-foreground">{value}</span>
               </div>
             ))}
