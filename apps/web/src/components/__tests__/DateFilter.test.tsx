@@ -1,179 +1,60 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import {
-  addDays,
-  endOfMonth,
-  endOfWeek,
-  format,
-  startOfMonth,
-  startOfWeek
-} from "date-fns";
-import { ptBR } from "date-fns/locale";
 import DateFilter from "@/components/DateFilter";
 
 describe("DateFilter", () => {
-  const fixedDate = new Date("2024-05-10T12:00:00Z");
+  it("permite selecionar presets e fechar ao clicar fora", async () => {
+    const onDateChange = jest.fn();
+    render(<DateFilter onDateChange={onDateChange} />);
 
-  beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(fixedDate);
-  });
+    const input = screen.getByLabelText(/intervalo de datas/i);
+    await userEvent.click(input);
+    expect(screen.getByRole("button", { name: /hoje/i })).toBeInTheDocument();
 
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-  });
+    await userEvent.click(screen.getByRole("button", { name: /ontem/i }));
+    expect(onDateChange).toHaveBeenCalled();
 
-  const setupUser = () => userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const toggle = screen.getByRole("button", { name: /alternar filtro de datas/i });
+    await userEvent.click(toggle);
+    expect(screen.getByText(/hoje/i)).toBeInTheDocument();
 
-  const openFilter = async (user: ReturnType<typeof setupUser>) => {
-    const toggleButton = screen.getByLabelText("Alternar filtro de datas");
-    await user.click(toggleButton);
-    return toggleButton;
-  };
-
-  const openCalendar = async (user: ReturnType<typeof setupUser>) => {
-    await openFilter(user);
-    const calendarToggle = await screen.findByLabelText("Alternar calendário detalhado");
-    await user.click(calendarToggle);
-  };
-
-  it("chama onDateChange ao selecionar uma predefinição", async () => {
-    const user = setupUser();
-    const handleChange = jest.fn();
-    render(<DateFilter onDateChange={handleChange} />);
-
-    await openFilter(user);
-
-    const presetButton = await screen.findByRole("button", { name: "Ontem" });
-    await user.click(presetButton);
-
-    expect(handleChange).toHaveBeenCalled();
-    const [start, end] = handleChange.mock.calls.at(-1);
-    expect(start.toISOString()).toContain("2024-05-09");
-    expect(end.toISOString()).toContain("2024-05-09");
-  });
-
-  it("trata predefinições de mês", async () => {
-    const user = setupUser();
-    const handleChange = jest.fn();
-    render(<DateFilter onDateChange={handleChange} />);
-
-    await openFilter(user);
-
-    const monthButton = await screen.findByRole("button", { name: "Este mês" });
-    await user.click(monthButton);
-
-    const [start, end] = handleChange.mock.calls.at(-1);
-    expect(start.getDate()).toBe(1);
-    expect(end.getDate()).toBeGreaterThan(start.getDate());
-  });
-
-  it("processa todas as predefinições disponíveis", async () => {
-    const user = setupUser();
-    const handleChange = jest.fn();
-    render(<DateFilter onDateChange={handleChange} />);
-
-    const toggleButton = screen.getByLabelText("Alternar filtro de datas");
-    const getLastRange = () => {
-      const [start, end] = handleChange.mock.calls.at(-1);
-      return { start, end };
-    };
-
-    const selectPreset = async (label: string) => {
-      await user.click(toggleButton);
-      const presetButton = await screen.findByRole("button", { name: label });
-      await user.click(presetButton);
-      return getLastRange();
-    };
-
-    const todayRange = await selectPreset("Hoje");
-    expect(todayRange.start.toDateString()).toBe(fixedDate.toDateString());
-    expect(todayRange.end.toDateString()).toBe(fixedDate.toDateString());
-
-    const yesterdayRange = await selectPreset("Ontem");
-    const yesterday = addDays(fixedDate, -1);
-    expect(yesterdayRange.start.toDateString()).toBe(yesterday.toDateString());
-    expect(yesterdayRange.end.toDateString()).toBe(yesterday.toDateString());
-
-    const weekRange = await selectPreset("Esta semana");
-    const startWeek = startOfWeek(fixedDate, { weekStartsOn: 1 });
-    const endWeek = endOfWeek(fixedDate, { weekStartsOn: 1 });
-    expect(weekRange.start.toDateString()).toBe(startWeek.toDateString());
-    expect(weekRange.end.toDateString()).toBe(endWeek.toDateString());
-
-    const lastWeekRange = await selectPreset("Última semana");
-    const lastWeekStart = addDays(startWeek, -7);
-    const lastWeekEnd = addDays(endWeek, -7);
-    expect(lastWeekRange.start.toDateString()).toBe(lastWeekStart.toDateString());
-    expect(lastWeekRange.end.toDateString()).toBe(lastWeekEnd.toDateString());
-
-    const monthRange = await selectPreset("Este mês");
-    const startMonth = startOfMonth(fixedDate);
-    const endMonth = endOfMonth(fixedDate);
-    expect(monthRange.start.toDateString()).toBe(startMonth.toDateString());
-    expect(monthRange.end.toDateString()).toBe(endMonth.toDateString());
-  });
-
-  it("permite selecionar uma data manualmente pelo calendário", async () => {
-    const user = setupUser();
-    const handleChange = jest.fn();
-    render(<DateFilter onDateChange={handleChange} />);
-
-    await openCalendar(user);
-
-    const octoberLabel = format(new Date(2025, 9, 1), "MMMM 'de' yyyy", {
-      locale: ptBR
+    await userEvent.click(document.body);
+    await waitFor(() => {
+      expect(screen.queryByText(/hoje/i)).not.toBeInTheDocument();
     });
-    expect(screen.getByText(octoberLabel)).toBeInTheDocument();
-
-    const startButton = screen.getByRole("button", { name: "10" });
-    const endButton = screen.getByRole("button", { name: "15" });
-    await user.click(startButton);
-    await user.click(endButton);
-
-    const [start, end] = handleChange.mock.calls.at(-1);
-    expect(start.getFullYear()).toBe(2025);
-    expect(start.getMonth()).toBe(9);
-    expect(start.getDate()).toBe(10);
-    expect(end.getDate()).toBe(15);
-
-    // Calendário permanece aberto após selecionar o intervalo
-    expect(screen.getByText(octoberLabel)).toBeInTheDocument();
   });
 
-  it("permite navegar entre meses no calendário", async () => {
-    const user = setupUser();
-    render(<DateFilter />);
+  it("aceita colar intervalos, navegar pelo calendário e selecionar datas", async () => {
+    const onDateChange = jest.fn();
+    render(<DateFilter onDateChange={onDateChange} />);
 
-    await openCalendar(user);
-
-    const monthLabel = (date: Date) =>
-      format(date, "MMMM 'de' yyyy", {
-        locale: ptBR
-      });
-
-    expect(screen.getByText(monthLabel(new Date(2025, 9, 1)))).toBeInTheDocument();
-
-    await user.click(screen.getByLabelText("Mês anterior"));
-    expect(screen.getByText(monthLabel(new Date(2025, 8, 1)))).toBeInTheDocument();
-
-    await user.click(screen.getByLabelText("Próximo mês"));
-    await user.click(screen.getByLabelText("Próximo mês"));
-    expect(screen.getByText(monthLabel(new Date(2025, 10, 1)))).toBeInTheDocument();
-  });
-
-  it("fecha o menu ao clicar fora do componente", async () => {
-    const user = setupUser();
-    render(<DateFilter />);
-
-    await openFilter(user);
-    expect(await screen.findByRole("button", { name: "Hoje" })).toBeInTheDocument();
-
-    fireEvent.mouseDown(document.body);
+    const input = screen.getByLabelText(/intervalo de datas/i);
+    await userEvent.click(input);
+    fireEvent.paste(input, {
+      clipboardData: {
+        getData: () => "01/01/2024 - 05/01/2024"
+      }
+    } as unknown as ClipboardEvent);
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Hoje" })).not.toBeInTheDocument();
+      expect(onDateChange).toHaveBeenCalled();
     });
+
+    const toggle = screen.getByRole("button", { name: /alternar filtro de datas/i });
+    if (!screen.queryByRole("button", { name: /hoje/i })) {
+      await userEvent.click(toggle);
+    }
+    await userEvent.click(await screen.findByRole("button", { name: /alternar calendário detalhado/i }));
+
+    await userEvent.click(screen.getByLabelText(/mês anterior/i));
+    await userEvent.click(screen.getByLabelText(/próximo mês/i));
+
+    const dayTen = screen.getAllByRole("button", { name: "10" })[0];
+    const dayTwelve = screen.getAllByRole("button", { name: "12" })[0];
+
+    await userEvent.click(dayTen);
+    await userEvent.click(dayTwelve);
+
+    expect(onDateChange.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 });

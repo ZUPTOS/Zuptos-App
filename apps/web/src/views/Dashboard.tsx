@@ -21,6 +21,7 @@ import DateFilter from "@/components/DateFilter";
 import mockData from "@/data/mockData.json";
 import DetalhamentoIcon from "@/components/icons/DetalhamentoIcon";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ChartType = "daily" | "monthly" | "yearly";
 type VisualizationOption = (typeof fallbackVisualizationOptions)[number];
@@ -171,6 +172,7 @@ export default function Dashboard() {
   const visualizationRef = useRef<HTMLDivElement>(null);
   const prevHideValuesRef = useRef(hideValues);
   const { theme } = useTheme();
+  const { user } = useAuth();
   const isLightMode = theme === "light";
 
   const toggleParentFilter = (groupId: string) => {
@@ -308,6 +310,15 @@ export default function Dashboard() {
     () => Object.values(selectedFilters).filter(Boolean).length,
     [selectedFilters]
   );
+
+  const greetingName = useMemo(() => {
+    const username = user?.username?.trim();
+    if (username) return username.slice(0, 6);
+    const name = user?.fullName?.trim();
+    if (name) return name.slice(0, 6);
+    const email = user?.email ?? "";
+    return email.split("@")[0].slice(0, 6) || "Usuário";
+  }, [user]);
 
   const getPaymentIcon = (id: string) => {
     const iconSrc = paymentIconMap[id];
@@ -449,8 +460,8 @@ export default function Dashboard() {
             <p className="text-muted-foreground xl:text-[12px] 2xl:text-[15px]">
               Hoje é 8 de setembro, 2025
             </p>
-            <h1 className="text-foreground xl:text-[20px] 2xl:text-[28px]">
-              Olá, {mockData.user.name}
+            <h1 className="text-foreground xl:text-[20px] 2xl:text-[28px] break-words max-w-[180px] leading-tight">
+              Olá, {greetingName}
             </h1>
             <p className="text-muted-foreground xl:text-[12px] 2xl:text-[15px]">
               Lorem Ipsum is simply dummy text of the printing

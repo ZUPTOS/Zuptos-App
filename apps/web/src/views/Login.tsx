@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -337,6 +337,7 @@ export default function LoginView() {
   const [accessType, setAccessType] = useState(accessOptions[0].value);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const activeTabConfig = authTabs.find(option => option.id === activeTab) ?? authTabs[0];
   const isSignUp = activeTab === "sign-up";
@@ -386,6 +387,7 @@ export default function LoginView() {
     e.preventDefault();
     clearError();
     setLocalError(null);
+    setSuccessMessage(null);
 
     if (!validateForm()) {
       return;
@@ -393,12 +395,27 @@ export default function LoginView() {
 
     try {
       if (isSignUp) {
-        await signUp({
+        const created = await signUp({
           username: signUpUsername,
           email: signUpEmail,
           password: signUpPassword,
+          termsAccepted: true,
           accessType: accessType as "purchases" | "products",
         });
+
+        if (!created) {
+          return;
+        }
+
+        setSuccessMessage("Cadastro realizado com sucesso! Faça login para continuar.");
+        setActiveTab("sign-in");
+        setSignInEmail(signUpEmail);
+        setSignInPassword("");
+        setSignUpUsername("");
+        setSignUpEmail("");
+        setSignUpPassword("");
+        setSignUpConfirmPassword("");
+        setTermsAccepted(false);
       } else {
         const redirectTo = accessType === "products" ? "/produtos" : "/dashboard";
         await signIn(
@@ -455,6 +472,12 @@ export default function LoginView() {
           <div className="flex w-full max-w-[520px] sm:max-w-[560px] md:max-w-[600px] lg:max-w-[480px] xl:max-w-[320px] 2xl:max-w-[340px] items-center gap-3 rounded-[8px] border border-rose-500/30 bg-rose-500/10 px-4 py-3 xl:py-2 xl:px-3 2xl:py-2 2xl:px-3">
             <AlertCircle className="h-5 w-5 text-rose-400 flex-shrink-0" />
             <p className="text-sm text-rose-200">{displayError}</p>
+          </div>
+        )}
+        {successMessage && (
+          <div className="flex w-full max-w-[520px] sm:max-w-[560px] md:max-w-[600px] lg:max-w-[480px] xl:max-w-[320px] 2xl:max-w-[340px] items-center gap-3 rounded-[8px] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 xl:py-2 xl:px-3 2xl:py-2 2xl:px-3">
+            <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+            <p className="text-sm text-emerald-100">{successMessage}</p>
           </div>
         )}
 

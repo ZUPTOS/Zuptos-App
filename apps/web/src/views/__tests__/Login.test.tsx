@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { HTMLAttributes, ReactNode } from "react";
 import LoginView from "@/views/Login";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 jest.mock("@/components/ui/select", () => {
   const SelectContext = React.createContext<{ value?: string; onValueChange?: (value: string) => void }>({});
@@ -45,7 +46,12 @@ jest.mock("@/components/ui/select", () => {
   return { Select, SelectTrigger, SelectContent, SelectItem, SelectValue };
 });
 
-const renderWithProviders = (ui: React.ReactNode) => render(<AuthProvider>{ui}</AuthProvider>);
+const renderWithProviders = (ui: React.ReactNode) =>
+  render(
+    <ThemeProvider>
+      <AuthProvider>{ui}</AuthProvider>
+    </ThemeProvider>
+  );
 
 describe("LoginView", () => {
   it("permite alternar entre tabs e visualizar os campos esperados", async () => {

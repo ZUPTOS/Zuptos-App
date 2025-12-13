@@ -27,6 +27,9 @@ describe("AuthContext", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    (authApi.getCurrentUser as jest.Mock).mockResolvedValue({
+      user: { id: "user-1", email: "john@example.com", username: "john" }
+    });
   });
 
   it("restaura usuário salvo no localStorage", async () => {
@@ -67,7 +70,7 @@ describe("AuthContext", () => {
 
     expect(authApi.signIn).toHaveBeenCalledWith({ email: "john@example.com", password: "secret" });
     expect(localStorage.getItem("authToken")).toBe(token);
-    expect(JSON.parse(localStorage.getItem("authUser") ?? "{}").email).toBe("john@example.com");
+    expect(JSON.parse(localStorage.getItem("authUser") ?? "{}").username).toBe("john");
     expect(router.push).toHaveBeenCalledWith("/dashboard");
     expect(result.current.isAuthenticated).toBe(true);
   });
@@ -93,13 +96,15 @@ describe("AuthContext", () => {
     expect(router.push).toHaveBeenCalledWith("/");
   });
 
-  it("executa signUp e define accessType informado", async () => {
-    const token = buildToken({ sub: "user-3", username: "signup@example.com" });
-    (authApi.signUp as jest.Mock).mockResolvedValue({ access_token: token });
+  it("executa signUp sem autenticar usuário", async () => {
+    (authApi.signUp as jest.Mock).mockResolvedValue({ access_token: "token" });
     const { result } = renderHook(() => useAuth(), { wrapper });
 
+    expect(localStorage.getItem("signupUsernameHints")).toBeNull();
+
+    let created = false;
     await act(async () => {
-      await result.current.signUp({
+      created = await result.current.signUp({
         email: "signup@example.com",
         password: "secret",
         username: "signup",
@@ -108,13 +113,16 @@ describe("AuthContext", () => {
     });
 
     expect(authApi.signUp).toHaveBeenCalled();
-    const storedUser = JSON.parse(localStorage.getItem("authUser") ?? "{}");
-    expect(storedUser.accessType).toBe("products");
+    expect(localStorage.getItem("authToken")).toBeNull();
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(created).toBe(true);
+    expect(JSON.parse(localStorage.getItem("signupUsernameHints") ?? "{}")["signup@example.com"]).toBe("signup");
   });
 
   it("usa valores padrão quando payload do token não contém identificadores no signIn", async () => {
     const token = buildToken({});
     (authApi.signIn as jest.Mock).mockResolvedValue({ access_token: token });
+    (authApi.getCurrentUser as jest.Mock).mockResolvedValueOnce(null);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
     await act(async () => {
@@ -123,24 +131,6 @@ describe("AuthContext", () => {
 
     expect(result.current.user?.id).toBe("");
     expect(result.current.user?.fullName).toBe("");
-  });
-
-  it("mantém valores vazios quando signUp não recebe username/sub no token", async () => {
-    const token = buildToken({});
-    (authApi.signUp as jest.Mock).mockResolvedValue({ access_token: token });
-
-    const { result } = renderHook(() => useAuth(), { wrapper });
-    await act(async () => {
-      await result.current.signUp({
-        email: "empty-signup@example.com",
-        password: "123456",
-        username: "fallback",
-        accessType: "purchases",
-      });
-    });
-
-    expect(result.current.user?.email).toBe("");
-    expect(result.current.user?.id).toBe("");
   });
 
   it("lança erro quando signIn não retorna token", async () => {
@@ -154,20 +144,102 @@ describe("AuthContext", () => {
     ).rejects.toThrow("No token received from server");
   });
 
-  it("lança erro quando signUp não retorna token", async () => {
+  it("não lança erro quando signUp não retorna token", async () => {
     (authApi.signUp as jest.Mock).mockResolvedValue({});
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    await expect(
-      act(async () => {
-        await result.current.signUp({
-          email: "signup-missing@example.com",
-          password: "secret",
-          username: "signup-missing",
-          accessType: "purchases",
-        });
-      }),
-    ).rejects.toThrow("No token received from server");
+    let created = false;
+    await act(async () => {
+      created = await result.current.signUp({
+        email: "signup-missing@example.com",
+        password: "secret",
+        username: "signup-missing",
+        accessType: "purchases",
+      });
+    });
+
+    expect(created).toBe(true);
+  });
+
+  it("tenta fallback de username quando há duplicidade e retorna true quando fallback funciona", async () => {
+    const duplicateError = Object.assign(new Error("duplicate key value"), { status: 403 });
+    (authApi.signUp as jest.Mock)
+      .mockRejectedValueOnce(duplicateError)
+      .mockResolvedValueOnce({ access_token: "token" });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    let created = false;
+    await act(async () => {
+      created = await result.current.signUp({
+        email: "dupe@example.com",
+        password: "secret",
+        username: "dupe",
+        accessType: "purchases",
+      });
+    });
+
+    expect(created).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect((authApi.signUp as jest.Mock).mock.calls.length).toBe(2);
+  });
+
+  it("mostra mensagem amigável quando duplicidade persiste mesmo após fallback", async () => {
+    const duplicateError = Object.assign(new Error("duplicate key value"), { status: 403 });
+    (authApi.signUp as jest.Mock).mockRejectedValue(duplicateError);
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    let created = true;
+    await act(async () => {
+      created = await result.current.signUp({
+        email: "dupe@example.com",
+        password: "secret",
+        username: "dupe",
+        accessType: "purchases",
+      });
+    });
+
+    expect(created).toBe(false);
+    await waitFor(() => {
+      expect(result.current.error).toBe("Já existe uma conta com esse email. Faça login ou recupere a senha.");
+    });
+  });
+
+  it("aplica truncamento de username em 6 caracteres ao autenticar", async () => {
+    (authApi.getCurrentUser as jest.Mock).mockResolvedValueOnce({
+      user: { id: "abc", email: "long@example.com", username: "muito-longonome" }
+    });
+    const token = buildToken({});
+    (authApi.signIn as jest.Mock).mockResolvedValue({ access_token: token });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await act(async () => {
+      await result.current.signIn({ email: "long@example.com", password: "123456" });
+    });
+
+    expect(result.current.user?.username).toBe("muito-".slice(0, 6));
+  });
+
+  it("usa hint de username salvo no cadastro quando perfil devolve apenas email", async () => {
+    (authApi.signUp as jest.Mock).mockResolvedValue({ access_token: "token" });
+    (authApi.getCurrentUser as jest.Mock).mockResolvedValueOnce({ email: "hint@example.com" });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await act(async () => {
+      await result.current.signUp({
+        email: "hint@example.com",
+        password: "secret",
+        username: "meuhint",
+        accessType: "purchases",
+      });
+    });
+
+    const token = buildToken({});
+    (authApi.signIn as jest.Mock).mockResolvedValue({ access_token: token });
+    await act(async () => {
+      await result.current.signIn({ email: "hint@example.com", password: "secret" });
+    });
+
+    expect(result.current.user?.username).toBe("meuhin");
   });
 
   it("propaga erro de signIn quando API falha", async () => {

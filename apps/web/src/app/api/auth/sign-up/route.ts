@@ -2,7 +2,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://86.48.22.80:3000/v1";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,12 +14,19 @@ export async function POST(req: NextRequest) {
       accessType: body.accessType,
     });
 
-    const res = await fetch(`${API_BASE_URL}/v1/auth/sign_up`, {
+    const payload = {
+      username: body.username,
+      password: body.password,
+      email: body.email,
+      termsAccepted: body.termsAccepted ?? true,
+    };
+
+    const res = await fetch(`${API_BASE_URL}/auth/sign_up`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();

@@ -114,8 +114,8 @@ describe("Finances view", () => {
     await user.click(screen.getByRole("button", { name: "Filtrar transações" }));
 
     expect(screen.getByText("Filtrar")).toBeInTheDocument();
-    const overlay = await screen.findByLabelText(/Fechar modal de filtro \(overlay\)/i);
-    await user.click(overlay);
+    const overlay = await screen.findByLabelText(/Fechar filtros/i);
+    await user.click(overlay); 
     expect(screen.queryByText("Filtrar")).not.toBeInTheDocument();
   });
 
@@ -124,10 +124,9 @@ describe("Finances view", () => {
     render(<Finances />);
 
     await user.click(screen.getByRole("button", { name: "Histórico de saques" }));
-    expect(screen.getByText(/Conteúdo da aba Histórico de saques/i)).toBeInTheDocument();
-
+    expect(screen.getByRole("button", { name: "Histórico de saques" })).toHaveClass("text-primary");
     await user.click(screen.getByRole("button", { name: "Taxas" }));
-    expect(screen.getByText(/Conteúdo da aba Taxas/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Taxas" })).toHaveClass("text-primary");
   });
 
   it("filtra transações por intervalo de datas usando o DateFilter", async () => {

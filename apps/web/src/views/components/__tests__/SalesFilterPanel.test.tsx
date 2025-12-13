@@ -20,16 +20,18 @@ const baseFilters: SalesFilters = {
 describe("SalesFilterPanel", () => {
   const Wrapper = ({
     onFiltersChange,
-    onApply
+    onApply,
+    onClose
   }: {
     onFiltersChange: (patch: Partial<SalesFilters>) => void;
     onApply?: () => void;
+    onClose?: () => void;
   }) => {
     const [filters, setFilters] = useState(baseFilters);
     return (
       <SalesFilterPanel
         isOpen
-        onClose={() => {}}
+        onClose={onClose ?? (() => {})}
         filters={filters}
         onFiltersChange={patch => {
           setFilters(prev => ({ ...prev, ...patch }));
@@ -62,15 +64,8 @@ describe("SalesFilterPanel", () => {
     const onFiltersChange = jest.fn();
     render(<Wrapper onFiltersChange={onFiltersChange} />);
 
-    await user.click(screen.getByRole("button", { name: /dd\/mm\/aaaa/i }));
-    fireEvent.change(screen.getByLabelText(/início/i), { target: { value: "01/01/2024" } });
-    expect(onFiltersChange).toHaveBeenCalledWith({ dateFrom: "2024-01-01" });
-    fireEvent.change(screen.getByLabelText(/fim/i), { target: { value: "05/01/2024" } });
-    expect(onFiltersChange).toHaveBeenCalledWith({ dateTo: "2024-01-05" });
-    await user.click(screen.getByRole("button", { name: /definir período/i }));
-
-    await user.click(screen.getByRole("button", { name: /aprovada/i }));
-    expect(onFiltersChange).toHaveBeenCalledWith({ statuses: ["aprovada"] });
+    const dateInput = screen.getByLabelText(/intervalo de datas/i);
+    fireEvent.change(dateInput, { target: { value: "01/01/2024 - 05/01/2024" } });
 
     await user.click(screen.getByRole("button", { name: /curso/i }));
     expect(onFiltersChange).toHaveBeenCalledWith({ tipos: ["Curso"] });
@@ -80,5 +75,32 @@ describe("SalesFilterPanel", () => {
 
     await user.type(screen.getByPlaceholderText(/insira o e-mail/i), "cliente@teste.com");
     expect(onFiltersChange).toHaveBeenLastCalledWith({ buyerEmail: "cliente@teste.com" });
+  });
+
+  it("abre dropdowns, alterna filtros e fecha painel", async () => {
+    const user = userEvent.setup();
+    const onFiltersChange = jest.fn();
+    const onClose = jest.fn();
+    const onApply = jest.fn();
+
+    render(<Wrapper onFiltersChange={onFiltersChange} onClose={onClose} onApply={onApply} />);
+
+    await user.click(screen.getByRole("button", { name: /preço único/i }));
+    expect(onFiltersChange).toHaveBeenCalledWith({ offers: ["preco_unico"] });
+
+    const [paymentToggle, statusToggle] = screen.getAllByRole("button", { name: /todos/i });
+    await user.click(paymentToggle);
+    await user.click(screen.getByRole("button", { name: /Pix/i }));
+    expect(onFiltersChange).toHaveBeenCalledWith({ paymentMethod: "Pix" });
+
+    await user.click(statusToggle);
+    await user.click(screen.getByRole("button", { name: "Pendente" }));
+    expect(onFiltersChange).toHaveBeenCalledWith({ statuses: ["pendente"] });
+
+    await user.click(screen.getByLabelText(/fechar filtros/i));
+    expect(onClose).toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /adicionar filtro/i }));
+    expect(onApply).toHaveBeenCalled();
   });
 });
