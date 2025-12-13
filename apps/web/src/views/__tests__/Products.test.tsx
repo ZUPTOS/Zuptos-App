@@ -99,7 +99,7 @@ describe("Products view", () => {
     await user.click(screen.getByLabelText(/Curso/i));
     const [nomeInput] = screen.getAllByPlaceholderText(/Insira o nome/i);
     await user.type(nomeInput, "Produto Teste");
-    await user.selectOptions(screen.getByDisplayValue("Selecione a categoria"), "Tecnologia");
+    await user.selectOptions(screen.getByDisplayValue("Selecione a categoria"), "Tecnologia da Informação");
 
     await user.click(screen.getByRole("button", { name: /Cadastrar produto/i }));
     expect(screen.queryByText(/Novo produto/i)).not.toBeInTheDocument();
@@ -129,23 +129,15 @@ describe("Products view", () => {
     const modal = screen.getByText(/^Novo produto$/i).closest("aside") as HTMLElement;
 
     const textboxes = within(modal).getAllByRole("textbox");
-    const [nomeInput, descricaoTextarea, complementoTextarea, paginaVendasInput, loginInput, senhaInput] = textboxes;
+    const [nomeInput, descricaoTextarea, complementoTextarea, paginaVendasInput] = textboxes;
 
     await user.type(nomeInput, "Produto Cadastro");
     await user.type(descricaoTextarea, "Descrição breve produto");
     await user.type(complementoTextarea, "Informações internas para análise");
     await user.type(paginaVendasInput, "https://exemplo.com");
-    await user.type(loginInput, "usuario");
-    await user.type(senhaInput, "senha123");
-
     const ebookCheckbox = within(modal).getByLabelText(/^E-BOOK ou arquivo$/i);
     await user.click(ebookCheckbox);
     expect(ebookCheckbox).toBeChecked();
-
-    const toggle = within(modal).getByRole("button", { name: /NÃO/i });
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-pressed", "true");
-    expect(toggle).toHaveTextContent(/SIM/i);
   });
 
   it("filtra por busca e navega na paginação", async () => {

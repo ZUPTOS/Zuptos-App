@@ -21,6 +21,14 @@ jest.mock("@/contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "dark" })
 }));
 
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { username: "testerlong", email: "tester@example.com", fullName: "Tester Long", accessType: "purchases" },
+    token: "token",
+    isAuthenticated: true,
+  })
+}));
+
 jest.mock("recharts", () => {
   const Noop = () => null;
   const Container = () => <div data-testid="chart" />;
@@ -41,7 +49,7 @@ describe("DashboardView", () => {
   it("exibe os saldos e saudação ao usuário", () => {
     render(<DashboardView />);
 
-    expect(screen.getByText(/olá, zuptos/i)).toBeInTheDocument();
+    expect(screen.getByText(/olá, tester/i)).toBeInTheDocument();
     expect(screen.getByText(/saldo disponível/i)).toBeInTheDocument();
     expect(screen.getByText(/saldo pendente/i)).toBeInTheDocument();
   });

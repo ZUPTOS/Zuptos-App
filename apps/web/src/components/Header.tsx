@@ -29,12 +29,20 @@ export default function Header({
   pageSubtitle,
 }: Readonly<HeaderProps>) {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const isLightMode = theme === "light";
   const [mounted, setMounted] = useState(false);
+
+  const displayName = (
+    user?.username?.trim() ||
+    user?.fullName?.trim() ||
+    (user?.email ? user.email.split("@")[0] : "") ||
+    userName ||
+    "Usuário"
+  ).slice(0, 6);
   
   const handleLogout = async () => {
     try {
@@ -124,7 +132,7 @@ export default function Header({
                   <div className="relative z-10 flex h-full w-full items-center justify-center">
                     <Image
                       src="/images/logoSide.svg"
-                      alt={`${userName} avatar`}
+                      alt={`${displayName} avatar`}
                       width={28}
                       height={28}
                       className="h-7 w-7"
@@ -132,7 +140,7 @@ export default function Header({
                   </div>
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-foreground">{userName}</p>
+                  <p className="text-sm font-semibold text-foreground">{displayName}</p>
                   <span className={badgeClasses}>{userLocation}</span>
                 </div>
               </div>

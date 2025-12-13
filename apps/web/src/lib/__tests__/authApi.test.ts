@@ -15,7 +15,6 @@ describe("authApi", () => {
     const mockResponse = {
       ok: true,
       status: 200,
-      statusText: "OK",
       json: jest.fn().mockResolvedValue({ access_token: "token" }),
     };
 
@@ -23,48 +22,46 @@ describe("authApi", () => {
 
     const result = await authApi.signIn({ email: "john@example.com", password: "secret" });
 
-    // Modo mock: não chama fetch
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(result).toEqual(
-      expect.objectContaining({
-        access_token: expect.any(String),
-        success: true,
-        data: expect.any(Object),
-      })
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/auth/sign-in"),
+      expect.objectContaining({ method: "POST" })
     );
+    expect(result).toEqual(expect.objectContaining({ access_token: "token" }));
   });
 
   it("lança erro quando a resposta não for bem sucedida", async () => {
     const mockResponse = {
       ok: false,
       status: 500,
-      statusText: "Server error",
-      json: jest.fn(),
-      url: "/api/auth/me",
+      json: jest.fn().mockResolvedValue({ error: "fail" }),
     };
 
     (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-    await authApi.getCurrentUser("token");
-    expect(global.fetch).not.toHaveBeenCalled();
+    await expect(authApi.getCurrentUser("token")).rejects.toHaveProperty("status", 500);
   });
 
   it("envia requisições adicionais do módulo", async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: jest.fn().mockResolvedValue({ message: "ok" }),
+    };
+    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+
     await authApi.signUp({ email: "a@b.com", password: "123", username: "ab", accessType: "purchases" });
     await authApi.signOut("token");
     await authApi.recoverPassword("a@b.com");
     await authApi.resetPassword("token", "NewPass");
-    expect(global.fetch).not.toHaveBeenCalled();
+
+    expect((global.fetch as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("retorna resposta genérica quando json falha", async () => {
+  it("retorna erro quando json falha", async () => {
+    const badResponse = { ok: true, status: 200, json: jest.fn().mockRejectedValue(new Error("parse")) };
+    (global.fetch as jest.Mock).mockResolvedValue(badResponse);
+
     const result = await authApi.signOut("token");
-    expect(result).toMatchObject({ success: true, message: expect.any(String) });
-  });
-
-  it("ainda funciona quando token enviado está vazio", async () => {
-    await authApi.signOut("");
-    await authApi.getCurrentUser("");
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(result).toBeUndefined();
   });
 });

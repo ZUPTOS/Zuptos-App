@@ -10,12 +10,13 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi, type ApiError, type SignInRequest, type SignUpRequest } from '@/lib/api';
+import { authApi, type ApiError, type AuthResponse, type SignInRequest, type SignUpRequest } from '@/lib/api';
 
 export interface User {
   id: string;
   email: string;
   fullName: string;
+  username?: string;
   accessType: 'purchases' | 'products';
   role?: 'admin' | 'default';
   isAdmin?: boolean;
@@ -28,12 +29,22 @@ interface AuthContextType {
   error: string | null;
   isAuthenticated: boolean;
   signIn: (credentials: SignInRequest, options?: { redirectTo?: string }) => Promise<void>;
-  signUp: (data: SignUpRequest) => Promise<void>;
+  signUp: (data: SignUpRequest) => Promise<boolean>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const isDuplicateError = (err: unknown) => {
+  const apiError = err as ApiError;
+  const rawMessage = err instanceof Error ? err.message : "";
+  return (
+    apiError?.status === 403 ||
+    apiError?.status === 409 ||
+    /duplicate/i.test(rawMessage)
+  );
+};
 
 const ADMIN_CREDENTIALS = {
   email: 'admin@zuptosadmin.com',
@@ -46,6 +57,7 @@ const ADMIN_USER: User = {
   id: 'admin',
   email: ADMIN_CREDENTIALS.email,
   fullName: 'Administrador Zuptos',
+  username: 'admin',
   accessType: 'products',
   role: 'admin',
   isAdmin: true,
@@ -64,6 +76,35 @@ const decodeTokenPayload = (token?: string): Record<string, unknown> => {
 };
 
 const getPayloadString = (value: unknown) => (typeof value === "string" ? value : "");
+
+const saveUsernameHint = (email: string, username: string) => {
+  if (!email || !username) return;
+  try {
+    const key = "signupUsernameHints";
+    const existing = JSON.parse(localStorage.getItem(key) ?? "{}") as Record<string, string>;
+    existing[email] = username;
+    localStorage.setItem(key, JSON.stringify(existing));
+  } catch {
+    // ignore
+  }
+};
+
+const getUsernameHint = (email: string): string => {
+  if (!email) return "";
+  try {
+    const stored = JSON.parse(localStorage.getItem("signupUsernameHints") ?? "{}") as Record<string, string>;
+    return stored[email] ?? "";
+  } catch {
+    return "";
+  }
+};
+
+const equalsIgnoreCase = (a?: string, b?: string) =>
+  typeof a === "string" &&
+  typeof b === "string" &&
+  a.localeCompare(b, undefined, { sensitivity: "accent" }) === 0;
+
+const trimUsername = (value: string, max = 6) => value.slice(0, max);
 
 const logError = (...args: unknown[]) => {
   if (process.env.NODE_ENV !== "test") {
@@ -132,11 +173,50 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         const newToken = response.access_token;
         console.log("✅ [AuthContext] Token recebido (mock)");
 
+        let profile: AuthResponse | null = null;
+        try {
+          profile = await authApi.getCurrentUser(newToken);
+        } catch (profileError) {
+          logError("⚠️ [AuthContext] Falha ao buscar perfil:", profileError);
+        }
+
+        const profileAny = (profile ?? null) as Record<string, unknown> | null;
+        const profileUser: Record<string, unknown> | null =
+          (profileAny as { user?: Record<string, unknown> } | null)?.user ??
+          (profileAny as { data?: { user?: Record<string, unknown> } } | null)?.data?.user ??
+          (profileAny as { data?: Record<string, unknown> } | null)?.data ??
+          profileAny;
+
         const payload = decodeTokenPayload(newToken);
+        const emailFromProfile =
+          getPayloadString(profileUser?.email) ||
+          getPayloadString(payload.email) ||
+          credentials.email ||
+          "";
+        const usernameHint = getUsernameHint(emailFromProfile);
+        const rawProfileUsername = getPayloadString(profileUser?.username);
+        const rawPayloadUsername = getPayloadString(payload.username);
+        const emailLocalPart = emailFromProfile.split("@")[0] || "";
+        const chosenUsername =
+          (rawProfileUsername && !equalsIgnoreCase(rawProfileUsername, emailFromProfile) && rawProfileUsername) ||
+          (usernameHint && !equalsIgnoreCase(usernameHint, emailFromProfile) && usernameHint) ||
+          (rawPayloadUsername && !equalsIgnoreCase(rawPayloadUsername, emailFromProfile) && rawPayloadUsername) ||
+          emailLocalPart;
+
+        const rawFullName =
+          getPayloadString(profileUser?.fullName) ||
+          getPayloadString(profileUser?.name) ||
+          getPayloadString(payload.name) ||
+          "";
+        const chosenFullName =
+          (rawFullName && !equalsIgnoreCase(rawFullName, emailFromProfile) && rawFullName) ||
+          "";
+
         const userData = {
-          id: getPayloadString(payload.sub),
-          email: getPayloadString(payload.email) || credentials.email || "",
-          fullName: getPayloadString(payload.username) || getPayloadString(payload.name) || "",
+          id: getPayloadString(profileUser?.id) || getPayloadString(payload.sub),
+          email: emailFromProfile,
+          fullName: chosenFullName,
+          username: trimUsername(chosenUsername),
           accessType: 'purchases' as const,
           role: 'default' as const,
           isAdmin: false,
@@ -182,49 +262,57 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       setIsLoading(true);
       setError(null);
 
-      try {
-        const response = await authApi.signUp(data);
+      const buildPayload = (username: string) => ({
+        ...data,
+        username,
+        termsAccepted: true,
+      });
 
-        if (!response?.access_token) {
-          throw new Error("No token received from server");
+      const fallbackUsername = `${data.email.split("@")[0]}-${Math.random().toString(36).slice(2, 6)}`;
+
+      try {
+        await authApi.signUp(buildPayload(data.username));
+
+        console.log("✅ [AuthContext] Cadastro realizado com sucesso");
+        saveUsernameHint(data.email, data.username);
+
+        // Garantir que nenhuma sessão fique ativa após cadastro
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+        setToken(null);
+        setUser(null);
+        return true;
+      } catch (err) {
+        // Se for erro de duplicidade, tentar com username alternativo (baseado no email)
+        if (isDuplicateError(err)) {
+          try {
+            await authApi.signUp(buildPayload(fallbackUsername));
+
+            console.log("✅ [AuthContext] Cadastro realizado com username alternativo");
+            saveUsernameHint(data.email, fallbackUsername);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
+            setToken(null);
+            setUser(null);
+            return true;
+          } catch (errFallback) {
+            const rawMessage = errFallback instanceof Error ? errFallback.message : "An error occurred during registration";
+            const friendlyMessage = "Já existe uma conta com esse email. Faça login ou recupere a senha.";
+            logError("❌ [AuthContext] Erro no signUp (fallback):", rawMessage);
+            setError(friendlyMessage);
+            return false;
+          }
         }
 
-        const newToken = response.access_token;
-        console.log("✅ [AuthContext] Token recebido (mock)");
-        const payload = decodeTokenPayload(newToken);
-        const userData = {
-          id: getPayloadString(payload.sub),
-          email: getPayloadString(payload.email) || "",
-          fullName: getPayloadString(payload.username) || getPayloadString(payload.name) || "",
-          accessType: data.accessType,
-          role: 'default' as const,
-          isAdmin: false,
-        };
-
-        console.log("✅ [AuthContext] Dados do usuário extraídos:", userData);
-
-        // Salvar no localStorage
-        localStorage.setItem('authToken', newToken);
-        localStorage.setItem('authUser', JSON.stringify(userData));
-
-        console.log("💾 [AuthContext] Token e usuário salvos no localStorage");
-
-        setToken(newToken);
-        setUser(userData);
-
-        console.log("✅ [AuthContext] State atualizado, redirecionando para dashboard");
-        // Redirecionar para o dashboard
-        router.push('/dashboard');
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An error occurred during registration';
-        logError("❌ [AuthContext] Erro no signUp:", errorMessage);
-        setError(errorMessage);
-        throw err;
+        const rawMessage = err instanceof Error ? err.message : "An error occurred during registration";
+        logError("❌ [AuthContext] Erro no signUp:", rawMessage);
+        setError(rawMessage);
+        return false;
       } finally {
         setIsLoading(false);
       }
     },
-    [router]
+    []
   );
 
   const signOut = useCallback(async () => {
