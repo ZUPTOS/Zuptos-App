@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FilterDrawer } from "@/components/FilterDrawer";
-import productsData from "@/data/productsData.json";
+import { productApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Check,
   ChevronLeft,
@@ -21,11 +22,14 @@ type ProductMode = "producao" | "coproducao";
 interface Product {
   id: string;
   name: string;
-  category: string;
-  description: string;
-  status: ProductStatus;
-  mode: ProductMode;
-  thumbnail: string;
+  type: string;
+  image_url?: string;
+  total_invoiced?: number;
+  total_sold?: number;
+  status?: ProductStatus;
+  mode?: ProductMode;
+  category?: string;
+  description?: string;
 }
 
 type TabId = "todos" | "producao" | "coproducao";
@@ -56,12 +60,10 @@ const statusConfig: Record<
   }
 };
 
-const { products } = productsData as { products: Product[] };
-
 const filterTypeOptions = [
-  { label: "Curso", value: "curso" },
+  { label: "Curso", value: "course" },
   { label: "E-BOOK ou arquivo", value: "ebook" },
-  { label: "Serviço", value: "servico" }
+  { label: "Serviço", value: "service" }
 ];
 
 const filterStatusOptions = [
@@ -101,6 +103,12 @@ const productCategoryOptions = [
 const formInputClasses =
   "w-full rounded-[7px] border border-foreground/25 bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0";
 
+const typeLabelMap: Record<string, string> = {
+  course: "Curso",
+  ebook: "E-BOOK ou arquivo",
+  service: "Serviço",
+};
+
 const buildPaginationItems = (totalPages: number): (number | string)[] => {
   if (totalPages <= 6) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -122,6 +130,8 @@ const buildPaginationItems = (totalPages: number): (number | string)[] => {
 };
 
 export default function Products() {
+  const { user, token } = useAuth();
+  const displayName = user?.username || user?.fullName || user?.email || "Zuptos";
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("todos");
   const [currentPage, setCurrentPage] = useState(1);
@@ -139,6 +149,9 @@ export default function Products() {
   const [hasLoginAccess, setHasLoginAccess] = useState(false);
   const [productLogin, setProductLogin] = useState("");
   const [productPassword, setProductPassword] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
   const handleOverlayKeyDown = (
@@ -155,17 +168,27 @@ export default function Products() {
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
+      const normalizedType = product.type?.toLowerCase() ?? "";
       const matchesTab =
         activeTab === "todos" ? true : product.mode === activeTab;
       const matchesSearch = normalizedSearch
-        ? [product.name, product.category, product.description]
+        ? [
+            product.name,
+            typeLabelMap[normalizedType] ?? product.type,
+            product.category ?? "",
+            product.description ?? "",
+          ]
             .join(" ")
             .toLowerCase()
             .includes(normalizedSearch)
         : true;
-      return matchesTab && matchesSearch;
+      const matchesType =
+        selectedTypes.length === 0 || selectedTypes.includes(normalizedType);
+      const statusValue = product.status ?? "ativo";
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(statusValue);
+      return matchesTab && matchesSearch && matchesType && matchesStatus;
     });
-  }, [activeTab, normalizedSearch]);
+  }, [activeTab, normalizedSearch, products, selectedTypes, selectedStatuses]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -244,17 +267,89 @@ export default function Products() {
     resetNewProductForm();
   };
 
-  const handleProductSubmit = () => {
-    closeNewProductModal();
+  const handleProductSubmit = async () => {
+    const userId = resolveUserId();
+    if (!userId) {
+      setLoadError("Usuário não identificado para criar produto.");
+      return;
+    }
+    const payload = {
+      name: newProductName || "Novo produto",
+      type: newProductTypes[0] || "course",
+      image_url: salesPageUrl || undefined,
+      total_invoiced: 0,
+      total_sold: 0,
+      user_id: userId
+    };
+    try {
+      console.log("🔄 [Products] Payload para criar produto:", payload);
+      await productApi.createProduct(payload, token ?? undefined);
+      closeNewProductModal();
+      void loadProducts();
+    } catch (error) {
+      console.error("Erro ao criar produto:", error);
+      setLoadError("Não foi possível criar o produto. Verifique os dados e tente novamente.");
+      closeNewProductModal();
+    }
   };
 
   useEffect(() => {
     adjustTextareaHeight(descriptionRef.current);
   }, [newProductDescription]);
 
+  const resolveUserId = () => {
+    if (user?.id) return user.id;
+    try {
+      const stored = localStorage.getItem("authUser");
+      if (stored) {
+        const parsed = JSON.parse(stored) as { id?: string };
+        return parsed.id;
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
+  };
+
+  const loadProducts = async () => {
+    const userId = resolveUserId();
+    if (!userId) {
+      setLoadError("Usuário não identificado.");
+      setProducts([]);
+      return;
+    }
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const data = await productApi.listProducts(
+        { user_id: userId, page: 1, limit: 200 },
+        token ?? undefined
+      );
+      const normalized: Product[] = data.map((item, index) => ({
+        ...item,
+        category: item.type,
+        description: (item as Product & { description?: string }).description ?? "",
+        status: (item as Product & { status?: ProductStatus }).status ?? "ativo",
+        mode: index % 2 === 0 ? "producao" : "coproducao"
+      }));
+      setProducts(normalized);
+    } catch (error) {
+      console.error("Erro ao carregar produtos:", error);
+      setLoadError("Não foi possível carregar os produtos.");
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <>
-      <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Produtos">
+      <DashboardLayout userName={displayName} userLocation="RJ" pageTitle="Produtos">
         <div className="min-h-full py-6">
           <div
             className="mx-auto flex w-full flex-col gap-6 px-4 md:px-6"
@@ -316,7 +411,16 @@ export default function Products() {
               })}
             </div>
 
-            {paginatedProducts.length === 0 ? (
+            {loadError && (
+              <div className="rounded-[10px] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {loadError}
+              </div>
+            )}
+            {isLoading ? (
+              <div className="flex h-56 items-center justify-center rounded-[12px] border border-dashed border-muted/60 bg-card/30 text-muted-foreground">
+                Carregando produtos...
+              </div>
+            ) : paginatedProducts.length === 0 ? (
               <div className="flex h-56 flex-col items-center justify-center rounded-[12px] border border-dashed border-muted/60 bg-card/30 text-center text-muted-foreground">
                 <p className="text-lg font-semibold">Nenhum produto encontrado</p>
                 <p className="text-sm">Ajuste os filtros ou adicione um novo produto.</p>
@@ -324,8 +428,13 @@ export default function Products() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {paginatedProducts.map(product => {
-                  const status = statusConfig["ativo"];
-                  const thumbnailSrc = DEFAULT_THUMBNAIL;
+                  const status = statusConfig[product.status ?? "ativo"];
+                  const thumbnailSrc = product.image_url || DEFAULT_THUMBNAIL;
+                  const typeLabel =
+                    typeLabelMap[product.type ? product.type.toLowerCase() : ""] ??
+                    product.category ??
+                    product.type ??
+                    "—";
                   return (
                     <article
                       key={product.id}
@@ -335,8 +444,8 @@ export default function Products() {
                         className="flex flex-shrink-0 items-center justify-center rounded-[16px] bg-background/60"
                         style={{ width: "clamp(86px, 11vw, 110px)", height: "clamp(86px, 11vw, 110px)" }}
                       >
-                          <Image
-                            src={thumbnailSrc}
+                        <Image
+                          src={thumbnailSrc}
                           alt={product.name}
                           width={110}
                           height={110}
@@ -348,7 +457,7 @@ export default function Products() {
                           {product.name}
                         </p>
                         <p className="text-fs-body text-muted-foreground">
-                          {product.category}
+                          {typeLabel}
                         </p>
                         <span
                           className={`inline-flex w-fit rounded-full px-3 py-[6px] text-[11px] font-semibold leading-tight ${status.badgeClass}`}

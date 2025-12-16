@@ -10,7 +10,8 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi, type ApiError, type AuthResponse, type SignInRequest, type SignUpRequest } from '@/lib/api';
+import { authApi, type SignInRequest, type SignUpRequest } from '@/lib/api';
+import { notify } from '@/components/ui/notification-toast';
 
 export interface User {
   id: string;
@@ -35,76 +36,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const isDuplicateError = (err: unknown) => {
-  const apiError = err as ApiError;
-  const rawMessage = err instanceof Error ? err.message : "";
-  return (
-    apiError?.status === 403 ||
-    apiError?.status === 409 ||
-    /duplicate/i.test(rawMessage)
-  );
-};
-
-const ADMIN_CREDENTIALS = {
-  email: 'admin@zuptosadmin.com',
-  password: '123456',
-} as const;
-
-const ADMIN_TOKEN = 'mock-admin-token';
-
-const ADMIN_USER: User = {
-  id: 'admin',
-  email: ADMIN_CREDENTIALS.email,
-  fullName: 'Administrador Zuptos',
-  username: 'admin',
-  accessType: 'products',
-  role: 'admin',
-  isAdmin: true,
-};
-
-const decodeTokenPayload = (token?: string): Record<string, unknown> => {
-  if (!token) return {};
-  const [, payload] = token.split(".");
-  if (!payload) return {};
-  try {
-    const decoded = Buffer.from(payload, "base64").toString("utf-8");
-    return JSON.parse(decoded) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-};
-
-const getPayloadString = (value: unknown) => (typeof value === "string" ? value : "");
-
-const saveUsernameHint = (email: string, username: string) => {
-  if (!email || !username) return;
-  try {
-    const key = "signupUsernameHints";
-    const existing = JSON.parse(localStorage.getItem(key) ?? "{}") as Record<string, string>;
-    existing[email] = username;
-    localStorage.setItem(key, JSON.stringify(existing));
-  } catch {
-    // ignore
-  }
-};
-
-const getUsernameHint = (email: string): string => {
-  if (!email) return "";
-  try {
-    const stored = JSON.parse(localStorage.getItem("signupUsernameHints") ?? "{}") as Record<string, string>;
-    return stored[email] ?? "";
-  } catch {
-    return "";
-  }
-};
-
-const equalsIgnoreCase = (a?: string, b?: string) =>
-  typeof a === "string" &&
-  typeof b === "string" &&
-  a.localeCompare(b, undefined, { sensitivity: "accent" }) === 0;
-
-const trimUsername = (value: string, max = 6) => value.slice(0, max);
 
 const logError = (...args: unknown[]) => {
   if (process.env.NODE_ENV !== "test") {
@@ -150,101 +81,38 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       setError(null);
 
       try {
-        const isAdminLogin =
-          credentials.email === ADMIN_CREDENTIALS.email &&
-          credentials.password === ADMIN_CREDENTIALS.password;
-
-        if (isAdminLogin) {
-          console.log("👑 [AuthContext] Login admin mockado");
-          localStorage.setItem('authToken', ADMIN_TOKEN);
-          localStorage.setItem('authUser', JSON.stringify(ADMIN_USER));
-          setToken(ADMIN_TOKEN);
-          setUser(ADMIN_USER);
-          router.push('/admin/dashboard');
-          return;
-        }
-
         const response = await authApi.signIn(credentials);
 
         if (!response?.access_token) {
           throw new Error("No token received from server");
         }
 
-        const newToken = response.access_token;
-        console.log("✅ [AuthContext] Token recebido (mock)");
+        const userFromApi =
+          (response.data as { user?: Partial<User> } | undefined)?.user ??
+          (response as { user?: Partial<User> } | undefined)?.user ??
+          null;
 
-        let profile: AuthResponse | null = null;
-        try {
-          profile = await authApi.getCurrentUser(newToken);
-        } catch (profileError) {
-          logError("⚠️ [AuthContext] Falha ao buscar perfil:", profileError);
-        }
-
-        const profileAny = (profile ?? null) as Record<string, unknown> | null;
-        const profileUser: Record<string, unknown> | null =
-          (profileAny as { user?: Record<string, unknown> } | null)?.user ??
-          (profileAny as { data?: { user?: Record<string, unknown> } } | null)?.data?.user ??
-          (profileAny as { data?: Record<string, unknown> } | null)?.data ??
-          profileAny;
-
-        const payload = decodeTokenPayload(newToken);
-        const emailFromProfile =
-          getPayloadString(profileUser?.email) ||
-          getPayloadString(payload.email) ||
-          credentials.email ||
-          "";
-        const usernameHint = getUsernameHint(emailFromProfile);
-        const rawProfileUsername = getPayloadString(profileUser?.username);
-        const rawPayloadUsername = getPayloadString(payload.username);
-        const emailLocalPart = emailFromProfile.split("@")[0] || "";
-        const chosenUsername =
-          (rawProfileUsername && !equalsIgnoreCase(rawProfileUsername, emailFromProfile) && rawProfileUsername) ||
-          (usernameHint && !equalsIgnoreCase(usernameHint, emailFromProfile) && usernameHint) ||
-          (rawPayloadUsername && !equalsIgnoreCase(rawPayloadUsername, emailFromProfile) && rawPayloadUsername) ||
-          emailLocalPart;
-
-        const rawFullName =
-          getPayloadString(profileUser?.fullName) ||
-          getPayloadString(profileUser?.name) ||
-          getPayloadString(payload.name) ||
-          "";
-        const chosenFullName =
-          (rawFullName && !equalsIgnoreCase(rawFullName, emailFromProfile) && rawFullName) ||
-          "";
-
-        const userData = {
-          id: getPayloadString(profileUser?.id) || getPayloadString(payload.sub),
-          email: emailFromProfile,
-          fullName: chosenFullName,
-          username: trimUsername(chosenUsername),
-          accessType: 'purchases' as const,
-          role: 'default' as const,
-          isAdmin: false,
+        const userData: User = {
+          id: (userFromApi?.id as string) || "",
+          email: (userFromApi?.email as string) || credentials.email,
+          fullName: (userFromApi?.fullName as string) || "",
+          username: (userFromApi?.username as string) || credentials.email.split("@")[0],
+          accessType: (userFromApi?.accessType as User["accessType"]) || "purchases",
+          role: (userFromApi?.role as User["role"]) || "default",
+          isAdmin: Boolean(userFromApi?.isAdmin),
         };
 
-        console.log("✅ [AuthContext] Dados do usuário extraídos:", userData);
-
-        // Salvar no localStorage
-        localStorage.setItem('authToken', newToken);
+        localStorage.setItem('authToken', response.access_token);
         localStorage.setItem('authUser', JSON.stringify(userData));
 
-        console.log("💾 [AuthContext] Token e usuário salvos no localStorage");
-
-        setToken(newToken);
+        setToken(response.access_token);
         setUser(userData);
 
-        console.log("✅ [AuthContext] State atualizado, redirecionando para dashboard");
-        // Redirecionar para o dashboard
+        notify.success("Login realizado com sucesso", "Bem-vindo de volta!");
+
         const redirectTo = options?.redirectTo ?? '/dashboard';
         router.push(redirectTo);
       } catch (err) {
-        const apiError = err as ApiError;
-        if (apiError?.status === 403) {
-          console.warn("❌ [AuthContext] Credenciais inválidas fornecidas");
-          setError("Email ou senha inválidos. Tente novamente.");
-          return;
-        }
-
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during login';
         logError("❌ [AuthContext] Erro no signIn:", errorMessage);
         setError(errorMessage);
@@ -262,48 +130,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       setIsLoading(true);
       setError(null);
 
-      const buildPayload = (username: string) => ({
-        ...data,
-        username,
-        termsAccepted: true,
-      });
-
-      const fallbackUsername = `${data.email.split("@")[0]}-${Math.random().toString(36).slice(2, 6)}`;
-
       try {
-        await authApi.signUp(buildPayload(data.username));
+        await authApi.signUp({ ...data, termsAccepted: true });
 
-        console.log("✅ [AuthContext] Cadastro realizado com sucesso");
-        saveUsernameHint(data.email, data.username);
-
-        // Garantir que nenhuma sessão fique ativa após cadastro
+        // Logout forçado após cadastro (seguindo comportamento anterior)
         localStorage.removeItem('authToken');
         localStorage.removeItem('authUser');
         setToken(null);
         setUser(null);
         return true;
       } catch (err) {
-        // Se for erro de duplicidade, tentar com username alternativo (baseado no email)
-        if (isDuplicateError(err)) {
-          try {
-            await authApi.signUp(buildPayload(fallbackUsername));
-
-            console.log("✅ [AuthContext] Cadastro realizado com username alternativo");
-            saveUsernameHint(data.email, fallbackUsername);
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('authUser');
-            setToken(null);
-            setUser(null);
-            return true;
-          } catch (errFallback) {
-            const rawMessage = errFallback instanceof Error ? errFallback.message : "An error occurred during registration";
-            const friendlyMessage = "Já existe uma conta com esse email. Faça login ou recupere a senha.";
-            logError("❌ [AuthContext] Erro no signUp (fallback):", rawMessage);
-            setError(friendlyMessage);
-            return false;
-          }
-        }
-
         const rawMessage = err instanceof Error ? err.message : "An error occurred during registration";
         logError("❌ [AuthContext] Erro no signUp:", rawMessage);
         setError(rawMessage);
@@ -321,8 +157,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setError(null);
 
     try {
-      const isAdminSession = token === ADMIN_TOKEN;
-      if (token && !isAdminSession) {
+      if (token) {
         console.log("📤 [AuthContext] Chamando API de logout");
         await authApi.signOut(token);
         console.log("✅ [AuthContext] Logout na API bem-sucedido");
@@ -335,6 +170,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
       setToken(null);
       setUser(null);
+
+      notify.success("Até a proxima", "Você efetuou logou");
 
       console.log("✅ [AuthContext] State limpo, redirecionando para home");
       // Redirecionar para login

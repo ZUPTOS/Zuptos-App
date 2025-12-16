@@ -23,7 +23,7 @@ describe("authApi", () => {
     const result = await authApi.signIn({ email: "john@example.com", password: "secret" });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/auth/sign-in"),
+      expect.stringContaining("auth/sign_in"),
       expect.objectContaining({ method: "POST" })
     );
     expect(result).toEqual(expect.objectContaining({ access_token: "token" }));

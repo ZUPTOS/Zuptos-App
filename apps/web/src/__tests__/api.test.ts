@@ -303,6 +303,104 @@ async function runConnectivitySuite() {
     });
   }
 
+  // 5) Products
+  const productPayload = {
+    name: `Product Test ${Date.now()}`,
+    type: "course",
+    image_url: "http://example.com/image.png",
+    total_invoiced: 1000,
+    total_sold: 500,
+    ...(userSub ? { user_id: userSub } : {}),
+  };
+
+  const productCreate = await request(`${API_PREFIX}/product`, {
+    method: "POST",
+    token: authToken,
+    body: productPayload,
+  });
+  const productId =
+    (productCreate.data as { id?: string } | null)?.id ??
+    (productCreate.data as { data?: { id?: string } } | null)?.data?.id;
+  results.push({
+    name: "Product - create",
+    method: "POST",
+    path: "/product",
+    status: productCreate.response?.status,
+    ok: Boolean(productCreate.response?.ok),
+  });
+
+  const productList = await request(`${API_PREFIX}/product`, { token: authToken });
+  results.push({
+    name: "Product - list",
+    method: "GET",
+    path: "/product",
+    status: productList.response?.status,
+    ok: Boolean(productList.response?.ok),
+  });
+
+  if (productId) {
+    const productDetail = await request(`${API_PREFIX}/product/${productId}`, {
+      method: "GET",
+      token: authToken,
+    });
+    results.push({
+      name: "Product - detail",
+      method: "GET",
+      path: `/product/${productId}`,
+      status: productDetail.response?.status,
+      ok: Boolean(productDetail.response?.ok),
+    });
+
+    const productUpdate = await request(`${API_PREFIX}/product/${productId}`, {
+      method: "PATCH",
+      token: authToken,
+      body: { name: `${productPayload.name} - atualizado`, total_invoiced: 1234 },
+    });
+    results.push({
+      name: "Product - update",
+      method: "PATCH",
+      path: `/product/${productId}`,
+      status: productUpdate.response?.status,
+      ok: Boolean(productUpdate.response?.ok),
+    });
+
+    const productDelete = await request(`${API_PREFIX}/product/${productId}`, {
+      method: "DELETE",
+      token: authToken,
+    });
+    results.push({
+      name: "Product - delete",
+      method: "DELETE",
+      path: `/product/${productId}`,
+      status: productDelete.response?.status,
+      ok: Boolean(productDelete.response?.ok),
+    });
+  } else {
+    results.push(
+      {
+        name: "Product - detail",
+        method: "GET",
+        path: "/product/{id}",
+        ok: false,
+        note: "Sem product_id retornado",
+      },
+      {
+        name: "Product - update",
+        method: "PATCH",
+        path: "/product/{id}",
+        ok: false,
+        note: "Sem product_id retornado",
+      },
+      {
+        name: "Product - delete",
+        method: "DELETE",
+        path: "/product/{id}",
+        ok: false,
+        note: "Sem product_id retornado",
+      },
+    );
+  }
+
   printResults(results);
 }
 

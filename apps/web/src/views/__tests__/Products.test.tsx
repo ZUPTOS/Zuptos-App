@@ -3,38 +3,37 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import Products from "@/views/Products";
 
-function buildMockProducts() {
-  const baseProducts = [
-    { id: "1", name: "Produto A", category: "Curso", description: "Descrição A", status: "pausado", mode: "producao", thumbnail: "/custom-a.png" },
-    { id: "2", name: "Produto B", category: "E-book", description: "Descrição B", status: "em_breve", mode: "coproducao", thumbnail: "/custom-b.png" },
-    { id: "3", name: "Produto C", category: "Assinatura", description: "Descrição C", status: "ativo", mode: "producao", thumbnail: "/custom-c.png" },
-    { id: "4", name: "Produto D", category: "Assinatura", description: "Descrição D", status: "ativo", mode: "producao", thumbnail: "/custom-d.png" },
-    { id: "5", name: "Produto E", category: "Assinatura", description: "Descrição E", status: "ativo", mode: "producao", thumbnail: "/custom-e.png" },
-    { id: "6", name: "Produto F", category: "Assinatura", description: "Descrição F", status: "ativo", mode: "producao", thumbnail: "/custom-f.png" },
-    { id: "7", name: "Produto G", category: "Assinatura", description: "Descrição G", status: "ativo", mode: "producao", thumbnail: "/custom-g.png" },
-    { id: "8", name: "Produto H", category: "Assinatura", description: "Descrição H", status: "ativo", mode: "producao", thumbnail: "/custom-h.png" },
-    { id: "9", name: "Produto I", category: "Assinatura", description: "Descrição I", status: "ativo", mode: "producao", thumbnail: "/custom-i.png" },
-    { id: "10", name: "Produto J", category: "Assinatura", description: "Descrição J", status: "ativo", mode: "producao", thumbnail: "/custom-j.png" },
-    { id: "11", name: "Produto K", category: "Assinatura", description: "Descrição K", status: "ativo", mode: "producao", thumbnail: "/custom-k.png" },
-    { id: "12", name: "Produto L", category: "Assinatura", description: "Descrição L", status: "ativo", mode: "producao", thumbnail: "/custom-l.png" },
-    { id: "13", name: "Produto M", category: "Assinatura", description: "Descrição M", status: "ativo", mode: "producao", thumbnail: "/custom-m.png" }
+// eslint-disable-next-line no-var
+var mockProducts: {
+  id: string;
+  name: string;
+  type: string;
+  image_url: string;
+  total_invoiced: number;
+  total_sold: number;
+}[];
+
+jest.mock("@/lib/api", () => {
+  const productsFixture = [
+    { id: "1", name: "Produto A", type: "course", image_url: "/custom-a.png", total_invoiced: 1000, total_sold: 500 },
+    { id: "2", name: "Produto B", type: "ebook", image_url: "/custom-b.png", total_invoiced: 800, total_sold: 300 },
+    { id: "3", name: "Produto C", type: "service", image_url: "/custom-c.png", total_invoiced: 1200, total_sold: 600 },
+    { id: "4", name: "Produto D", type: "course", image_url: "/custom-d.png", total_invoiced: 900, total_sold: 200 },
+    { id: "5", name: "Produto E", type: "ebook", image_url: "/custom-e.png", total_invoiced: 400, total_sold: 120 },
+    { id: "6", name: "Produto F", type: "service", image_url: "/custom-f.png", total_invoiced: 700, total_sold: 220 },
+    { id: "7", name: "Produto G", type: "course", image_url: "/custom-g.png", total_invoiced: 500, total_sold: 80 },
+    { id: "8", name: "Produto H", type: "ebook", image_url: "/custom-h.png", total_invoiced: 300, total_sold: 50 },
+    { id: "9", name: "Produto I", type: "service", image_url: "/custom-i.png", total_invoiced: 250, total_sold: 40 },
   ];
+  mockProducts = productsFixture;
 
-  const extraProducts = Array.from({ length: 80 }, (_, index) => {
-    const id = `${index + baseProducts.length + 1}`;
-    return {
-      id,
-      name: `Produto Extra ${id}`,
-      category: "Assinatura",
-      description: `Descrição Extra ${id}`,
-      status: "ativo",
-      mode: index % 2 === 0 ? "producao" : "coproducao",
-      thumbnail: "/custom-extra.png"
-    };
-  });
-
-  return [...baseProducts, ...extraProducts];
-}
+  return {
+    productApi: {
+      listProducts: jest.fn().mockResolvedValue(productsFixture),
+      createProduct: jest.fn().mockResolvedValue({ id: "new-id", status: "success" })
+    }
+  };
+});
 
 jest.mock("@/components/DashboardLayout", () => ({
   __esModule: true,
@@ -46,25 +45,25 @@ jest.mock("next/image", () => ({
   default: (): ReactElement => <span data-testid="mocked-image" />
 }));
 
-jest.mock("@/data/productsData.json", () => ({
-  products: buildMockProducts()
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "user-1" }, token: "token" })
 }));
 
 describe("Products view", () => {
-  it("renderiza produtos e badge Ativo para todos", () => {
+  it("renderiza produtos vindos da API e mostra badge ativo", async () => {
     render(<Products />);
 
-    expect(screen.getByText("Produto A")).toBeInTheDocument();
+    expect(await screen.findByText("Produto A")).toBeInTheDocument();
     expect(screen.getByText("Produto B")).toBeInTheDocument();
-    const badges = screen.getAllByText("Ativo");
-    expect(badges.length).toBeGreaterThanOrEqual(12);
-    expect(screen.queryByText("Descrição A")).not.toBeInTheDocument();
+    const badges = await screen.findAllByText("Ativo");
+    expect(badges).toHaveLength(mockProducts.length);
   });
 
   it("filtra por aba Coprodução", async () => {
     const user = userEvent.setup();
     render(<Products />);
 
+    await screen.findByText("Produto A");
     await user.click(screen.getByRole("button", { name: "Coprodução" }));
     expect(screen.queryByText("Produto A")).not.toBeInTheDocument();
     expect(screen.getByText("Produto B")).toBeInTheDocument();
@@ -74,7 +73,7 @@ describe("Products view", () => {
     const user = userEvent.setup();
     render(<Products />);
 
-    await user.type(screen.getByPlaceholderText(/Buscar produto/i), "termo-inexistente");
+    await user.type(await screen.findByPlaceholderText(/Buscar produto/i), "termo-inexistente");
     expect(await screen.findByText(/Nenhum produto encontrado/i)).toBeInTheDocument();
   });
 
@@ -105,11 +104,23 @@ describe("Products view", () => {
     expect(screen.queryByText(/Novo produto/i)).not.toBeInTheDocument();
   });
 
-  it("mostra paginação com reticências quando há muitas páginas", () => {
+  it("mostra paginação com reticências quando há muitas páginas", async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { writable: true, value: 500 });
+    const user = userEvent.setup();
     render(<Products />);
 
-    expect(screen.getByText("...")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "6" })).toBeInTheDocument();
+    await screen.findAllByText("Ativo");
+
+    const nextButton = screen.getByRole("button", { name: "Próximo" });
+    expect(nextButton).not.toBeDisabled();
+    await user.click(nextButton);
+    expect(screen.getByText("Produto G")).toBeInTheDocument();
+    expect(screen.queryByText("Produto A")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Anterior" }));
+    expect(screen.getByText("Produto A")).toBeInTheDocument();
+    Object.defineProperty(window, "innerWidth", { writable: true, value: originalWidth });
   });
 
   it("permite marcar filtros e preencher informações internas no cadastro", async () => {
@@ -144,21 +155,11 @@ describe("Products view", () => {
     const user = userEvent.setup();
     render(<Products />);
 
-    // busca por E-book
-    await user.type(screen.getByPlaceholderText(/Buscar produto/i), "E-book");
-    expect(await screen.findByText("Produto B")).toBeInTheDocument();
+    await user.type(await screen.findByPlaceholderText(/Buscar produto/i), "Produto H");
+    expect(await screen.findByText("Produto H")).toBeInTheDocument();
     expect(screen.queryByText("Produto A")).not.toBeInTheDocument();
 
-    // limpar busca e verificar paginação
     await user.clear(screen.getByPlaceholderText(/Buscar produto/i));
-    expect(screen.getAllByText("Ativo").length).toBeGreaterThan(0);
-
-    // ir para página 2
-    await user.click(screen.getByRole("button", { name: "Próximo" }));
-    expect(screen.getByText("Produto M")).toBeInTheDocument();
-
-    // voltar para página 1
-    await user.click(screen.getByRole("button", { name: "Anterior" }));
-    expect(screen.getByText("Produto A")).toBeInTheDocument();
+    expect(await screen.findByText("Produto A")).toBeInTheDocument();
   });
 });

@@ -11,10 +11,11 @@ import {
   X
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import salesData from "@/data/salesData.json";
+import { salesApi } from "@/lib/api";
 import SalesFilterPanel, { SalesFilters, OfferFilter } from "@/views/components/SalesFilterPanel";
 import SalesDetailPanel from "@/views/components/SalesDetailPanel";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type PaymentMethod = "credit_card" | "pix" | "boleto";
 export type SaleStatus = "aprovada" | "recusada" | "expirada";
@@ -43,10 +44,11 @@ interface MetricCard {
   data: { label: string; value: number }[];
 }
 
-const { metricCards, salesHistory } = salesData as {
-  metricCards: MetricCard[];
-  salesHistory: Sale[];
-};
+const emptyMetrics: MetricCard[] = [
+  { id: "faturamento", title: "Faturamento", value: 0, change: 0, data: [] },
+  { id: "receita", title: "Receita líquida", value: 0, change: 0, data: [] },
+  { id: "total-vendas", title: "Total de vendas", value: 0, change: 0, data: [] }
+];
 
 const paymentMethods: Record<
   PaymentMethod,
@@ -155,6 +157,7 @@ const initialFilters: SalesFilters = {
 };
 
 export default function Sales() {
+  const { token } = useAuth();
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterOpen, setFilterOpen] = useState(false);
@@ -162,6 +165,10 @@ export default function Sales() {
   const [isExportModalOpen, setExportModalOpen] = useState(false);
   const [filters, setFilters] = useState<SalesFilters>(initialFilters);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [metricCards, setMetricCards] = useState<MetricCard[]>(emptyMetrics);
+  const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const handleFiltersChange = (patch: Partial<SalesFilters>) => {
     setFilters(prev => ({ ...prev, ...patch }));
   };
@@ -188,9 +195,9 @@ export default function Sales() {
     const couponSearch = filters.coupon.trim().toLowerCase();
     const utmSearch = filters.utm.trim().toLowerCase();
 
-    return salesHistory.filter(sale => {
+    return sales.filter(sale => {
       const saleDate = new Date(sale.saleDate);
-      const paymentLabel = paymentMethods[sale.paymentMethod].label.toLowerCase();
+      const paymentLabel = (paymentMethods[sale.paymentMethod] ?? paymentMethods.credit_card).label.toLowerCase();
       const couponValue = sale.coupon?.toLowerCase();
       const utmValue = sale.utm?.toLowerCase();
       const offerType = getOfferType(sale);
@@ -209,7 +216,7 @@ export default function Sales() {
         lowerIncludes(utmValue, utmSearch)
       );
     });
-  }, [normalizedSearch, filters]);
+  }, [normalizedSearch, filters, sales]);
 
   useEffect(() => {
     const updateRows = () => {
@@ -293,7 +300,7 @@ export default function Sales() {
         width: "10%",
         cellClassName: "px-3 py-3",
         render: sale => {
-          const payment = paymentMethods[sale.paymentMethod];
+          const payment = paymentMethods[sale.paymentMethod] ?? paymentMethods.credit_card;
           return (
             <span className="flex items-center justify-center">
               <Image
@@ -349,6 +356,73 @@ export default function Sales() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const normalizeStatus = (status?: string): SaleStatus => {
+      const value = (status ?? "").toLowerCase();
+      if (["completed", "success", "approved"].includes(value)) return "aprovada";
+      if (["failed", "refused", "canceled", "cancelled", "denied", "rejected"].includes(value)) return "recusada";
+      return "expirada";
+    };
+    const normalizePayment = (method?: string): PaymentMethod => {
+      const value = (method ?? "").toLowerCase();
+      if (value.includes("pix")) return "pix";
+      if (value.includes("boleto")) return "boleto";
+      return "credit_card";
+    };
+    const buildMetrics = (list: Sale[]): MetricCard[] => {
+      const total = list.reduce((acc, item) => acc + (item.total ?? 0), 0);
+      const approvedTotal = list
+        .filter(item => item.status === "aprovada")
+        .reduce((acc, item) => acc + (item.total ?? 0), 0);
+      return [
+        { id: "faturamento", title: "Faturamento", value: total, change: 0, data: [] },
+        { id: "receita", title: "Receita líquida", value: approvedTotal, change: 0, data: [] },
+        { id: "total-vendas", title: "Total de vendas", value: list.length, change: 0, data: [] }
+      ];
+    };
+
+    const loadSales = async () => {
+      setIsLoading(true);
+      setFetchError(null);
+      try {
+        const response = await salesApi.listSales(token ?? undefined);
+        const normalizedSales: Sale[] = (response.sales ?? []).map(item => ({
+          id: item.sale_id ?? item.product_id ?? "sem-id",
+          productName: item.product_id ?? "Produto",
+          productType: item.sale_type ?? "Produto",
+          buyerName: "-",
+          buyerEmail: "-",
+          saleType: item.sale_type ?? "Produtor",
+          saleDate: item.sale_date ?? new Date().toISOString(),
+          paymentMethod: normalizePayment(item.payment_method),
+          plan: item.sale_type ?? "Plano",
+          total: item.amount ?? 0,
+          status: normalizeStatus(item.status),
+          coupon: undefined,
+          utm: undefined
+        }));
+
+        if (!active) return;
+        setSales(normalizedSales);
+        setMetricCards(buildMetrics(normalizedSales));
+      } catch (error) {
+        console.error("Erro ao carregar vendas:", error);
+        if (!active) return;
+        setFetchError("Não foi possível carregar as vendas");
+        setSales([]);
+        setMetricCards(emptyMetrics);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    void loadSales();
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   return (
     <DashboardLayout
@@ -452,6 +526,12 @@ export default function Sales() {
     </div>
     {selectedSale && (
       <SalesDetailPanel sale={selectedSale} onClose={() => setSelectedSale(null)} />
+    )}
+    {isLoading && (
+      <div className="p-4 text-sm text-muted-foreground">Carregando vendas...</div>
+    )}
+    {fetchError && !isLoading && (
+      <div className="p-4 text-sm text-red-400">{fetchError}</div>
     )}
     {isExportModalOpen && (
       <aside className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
