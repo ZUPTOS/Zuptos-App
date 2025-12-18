@@ -66,6 +66,11 @@ export interface Product {
   total_sold?: number;
   description?: string;
   status?: string;
+  category?: string;
+  internal_description?: string;
+  sale_url?: string;
+  login_username?: string;
+  login_password?: string;
 }
 
 export interface ProductListParams {
@@ -81,6 +86,11 @@ export interface CreateProductRequest {
   total_invoiced?: number;
   total_sold?: number;
   description?: string;
+  category?: string;
+  internal_description?: string;
+  sale_url?: string;
+  login_username?: string;
+  login_password?: string;
 }
 
 export interface UpdateProductRequest {
@@ -90,4 +100,42 @@ export interface UpdateProductRequest {
   total_invoiced?: number;
   total_sold?: number;
   description?: string;
+  category?: string;
+  internal_description?: string;
+  sale_url?: string;
+  login_username?: string;
+  login_password?: string;
+}
+
+export interface KycAddress {
+  address: string;
+  number: string;
+  complement?: string;
+  state: string;
+  city: string;
+  neighborhood: string;
+}
+
+export interface KycPayload {
+  account_type: string;
+  document: string;
+  social_name: string;
+  phone: string;
+  owner_name: string;
+  medium_ticket: string;
+  average_revenue: string;
+  address: KycAddress;
+}
+
+export type KycResponse = KycPayload & {
+  id?: string;
+  status?: string;
+};
+
+export interface KycDocumentResponse {
+  id?: string;
+  name?: string;
+  status?: string;
+  url?: string;
+  message?: string;
 }

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import Products from "@/views/Products";
@@ -31,6 +31,9 @@ jest.mock("@/lib/api", () => {
     productApi: {
       listProducts: jest.fn().mockResolvedValue(productsFixture),
       createProduct: jest.fn().mockResolvedValue({ id: "new-id", status: "success" })
+    },
+    kycApi: {
+      getStatus: jest.fn().mockResolvedValue(true)
     }
   };
 });
@@ -92,7 +95,9 @@ describe("Products view", () => {
     const user = userEvent.setup();
     render(<Products />);
 
-    await user.click(screen.getByRole("button", { name: /Adicionar produto/i }));
+    const addButton = await screen.findByRole("button", { name: /Adicionar produto/i });
+    await waitFor(() => expect(addButton).toBeEnabled());
+    await user.click(addButton);
     expect(screen.getByText(/^Novo produto$/i)).toBeInTheDocument();
 
     await user.click(screen.getByLabelText(/Curso/i));
@@ -136,7 +141,9 @@ describe("Products view", () => {
     expect(recusadoFilter).toBeChecked();
     await user.click(screen.getByRole("button", { name: /Adicionar filtro/i }));
 
-    await user.click(screen.getByRole("button", { name: /Adicionar produto/i }));
+    const addButton = await screen.findByRole("button", { name: /Adicionar produto/i });
+    await waitFor(() => expect(addButton).toBeEnabled());
+    await user.click(addButton);
     const modal = screen.getByText(/^Novo produto$/i).closest("aside") as HTMLElement;
 
     const textboxes = within(modal).getAllByRole("textbox");

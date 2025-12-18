@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { kycApi } from "@/lib/api";
-import type { KycPayload } from "@/lib/api-types";
+import type { ApiError, KycPayload } from "@/lib/api-types";
 import { useAuth } from "@/contexts/AuthContext";
 import { notify } from "@/components/ui/notification-toast";
 
@@ -96,7 +96,7 @@ export default function KycView() {
     document_card: null,
     proof_of_residence: null
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingForm, setIsSendingForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const resolvedToken = useMemo(
     () => token ?? (typeof window !== "undefined" ? localStorage.getItem("authToken") : null),
@@ -166,14 +166,35 @@ export default function KycView() {
     });
   }, [activeDocumentSlots]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isFormComplete) {
       setFormError("Preencha todas as informações para avançar.");
       notify.warning("Informações incompletas", "Preencha todos os campos obrigatórios antes de avançar.");
       return;
     }
+    if (!resolvedToken) {
+      notify.warning("Sessão expirada", "Faça login novamente para enviar seu cadastro.");
+      return;
+    }
     setFormError(null);
-    setCurrentStep("documentos");
+    setIsSendingForm(true);
+    try {
+      const payload = buildKycPayload();
+      console.log("[KYC] Enviando payload:", payload);
+      await kycApi.create(payload, resolvedToken);
+      notify.success("Dados enviados", "Cadastro salvo. Continue com o envio dos documentos.");
+      setCurrentStep("documentos");
+    } catch (error) {
+      const status = (error as ApiError | undefined)?.status;
+      const data = (error as ApiError & { data?: unknown } | undefined)?.data;
+      if (status === 401) {
+        return;
+      }
+      console.error("Erro ao enviar KYC:", { error, data });
+      notify.error("Erro ao enviar", "Não foi possível salvar suas informações. Tente novamente.");
+    } finally {
+      setIsSendingForm(false);
+    }
   };
   const handleBack = () => setCurrentStep("dados");
   const formatDigits = (value: string) => value.replace(/\D/g, "");
@@ -259,37 +280,8 @@ export default function KycView() {
 
   const missingDocuments = activeDocumentSlots.filter(slot => !selectedFiles[slot.documentType]);
   const handleSubmitDocuments = async () => {
-    if (!isFormComplete) {
-      notify.warning("Informações incompletas", "Finalize os dados do formulário antes de enviar.");
-      setCurrentStep("dados");
-      return;
-    }
-    if (missingDocuments.length > 0) {
-      notify.warning("Documentos pendentes", "Envie todos os documentos antes de finalizar.");
-      return;
-    }
-    if (!resolvedToken) {
-      notify.warning("Sessão expirada", "Faça login novamente para enviar seu cadastro.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const payload = buildKycPayload();
-      await kycApi.create(payload, resolvedToken);
-      for (const slot of activeDocumentSlots) {
-        const file = selectedFiles[slot.documentType];
-        if (file) {
-          await kycApi.uploadDocument(slot.documentType, file, resolvedToken);
-        }
-      }
-      notify.success("KYC enviado", "Dados e documentos enviados com sucesso.");
-    } catch (error) {
-      console.error("Erro ao enviar KYC:", error);
-      notify.error("Erro ao enviar", "Não foi possível concluir seu cadastro. Tente novamente.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Envio de documentos ainda não está ativo nesta etapa.
+    notify.warning("Envio de documentos em breve", "Continuaremos com o cadastro somente com os dados preenchidos.");
   };
 
   const hasAnyInput = useMemo(
@@ -443,10 +435,10 @@ export default function KycView() {
                   <Button
                     type="button"
                     className="min-w-[220px] rounded-[8px] bg-gradient-to-r from-[#8a2be2] to-[#6a1bff] text-sm md:text-base font-semibold text-white hover:brightness-110 h-[44px] md:h-[49px] disabled:opacity-60"
-                    disabled={!isFormComplete}
+                    disabled={!isFormComplete || isSendingForm}
                     onClick={handleNext}
                   >
-                    Avançar
+                    {isSendingForm ? "Enviando..." : "Avançar"}
                   </Button>
                 </div>
               </Card>
@@ -486,10 +478,9 @@ export default function KycView() {
                   <Button
                     type="button"
                     className="min-w-[240px] rounded-[8px] bg-gradient-to-r from-[#8a2be2] to-[#6a1bff] text-sm md:text-base font-semibold text-white hover:brightness-110 h-[44px] md:h-[49px] disabled:opacity-60"
-                    disabled={isSubmitting || missingDocuments.length > 0}
                     onClick={handleSubmitDocuments}
                   >
-                    {isSubmitting ? "Enviando..." : "Enviar documentos"}
+                    Enviar documentos
                   </Button>
                 </div>
                 {missingDocuments.length > 0 && (

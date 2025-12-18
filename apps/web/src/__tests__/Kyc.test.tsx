@@ -2,6 +2,17 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import KycView from "@/views/Kyc";
 
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { username: "Tester" }, token: "token" })
+}));
+
+jest.mock("@/lib/api", () => ({
+  kycApi: {
+    create: jest.fn().mockResolvedValue({}),
+    uploadDocument: jest.fn().mockResolvedValue({})
+  }
+}));
+
 // Simplified mocks to avoid layout noise and keep focus on conditional rendering.
 jest.mock("@/components/DashboardLayout", () => ({
   __esModule: true,
@@ -39,18 +50,49 @@ jest.mock("@/components/ui/select", () => {
   return { Select, SelectTrigger, SelectContent, SelectItem, SelectValue };
 });
 
+const preencherCamposObrigatoriosPJ = () => {
+  fireEvent.change(screen.getByLabelText(/CNPJ/i), { target: { value: "12345678000123" } });
+  fireEvent.change(screen.getByLabelText(/Razão social/i), { target: { value: "Empresa Teste" } });
+  fireEvent.change(screen.getByLabelText(/Nome do representante legal/i), { target: { value: "Representante" } });
+  fireEvent.change(screen.getByLabelText(/CPF do representante legal/i), { target: { value: "12345678901" } });
+  fireEvent.change(screen.getByLabelText(/^Telefone/i), { target: { value: "62999999999" } });
+  fireEvent.change(screen.getByLabelText(/^CEP/i), { target: { value: "74000000" } });
+  fireEvent.change(screen.getByLabelText(/^Rua/i), { target: { value: "Rua 1" } });
+  fireEvent.change(screen.getByLabelText(/^Número/i), { target: { value: "123" } });
+  fireEvent.change(screen.getByLabelText(/^Estado/i), { target: { value: "GO" } });
+  fireEvent.change(screen.getByLabelText(/^Cidade/i), { target: { value: "Goiania" } });
+  fireEvent.change(screen.getByLabelText(/^Bairro/i), { target: { value: "Centro" } });
+  fireEvent.change(screen.getByLabelText(/Faturamento médio/i), { target: { value: "1000" } });
+  fireEvent.change(screen.getByLabelText(/Ticket médio/i), { target: { value: "500" } });
+};
+
+const preencherCamposObrigatoriosPF = () => {
+  fireEvent.change(screen.getByLabelText(/Nome completo/i), { target: { value: "Pessoa Física" } });
+  fireEvent.change(screen.getByLabelText(/^CPF$/i), { target: { value: "12345678901" } });
+  fireEvent.change(screen.getByLabelText(/^Telefone/i), { target: { value: "62999999999" } });
+  fireEvent.change(screen.getByLabelText(/^CEP/i), { target: { value: "74000000" } });
+  fireEvent.change(screen.getByLabelText(/^Rua/i), { target: { value: "Rua 1" } });
+  fireEvent.change(screen.getByLabelText(/^Número/i), { target: { value: "123" } });
+  fireEvent.change(screen.getByLabelText(/^Estado/i), { target: { value: "GO" } });
+  fireEvent.change(screen.getByLabelText(/^Cidade/i), { target: { value: "Goiania" } });
+  fireEvent.change(screen.getByLabelText(/^Bairro/i), { target: { value: "Centro" } });
+  fireEvent.change(screen.getByLabelText(/Faturamento médio/i), { target: { value: "1000" } });
+  fireEvent.change(screen.getByLabelText(/Ticket médio/i), { target: { value: "500" } });
+};
+
 describe("KycView", () => {
-  it("renderiza campos de PJ por padrão e 6 slots de documentos", () => {
+  it("renderiza campos de PJ por padrão e 5 slots de documentos", () => {
     render(<KycView />);
 
     expect(screen.getByLabelText(/CNPJ/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Razão social/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/^CPF$/i)).not.toBeInTheDocument();
 
+    preencherCamposObrigatoriosPJ();
     fireEvent.click(screen.getByText(/Avançar/i));
 
     const docCards = screen.getAllByText(/Selecione do seu dispositivo/i);
-    expect(docCards).toHaveLength(6);
+    expect(docCards).toHaveLength(5);
   });
 
   it("ao selecionar Pessoa física, mostra CPF e reduz para 4 slots de documentos", () => {
@@ -63,6 +105,7 @@ describe("KycView", () => {
     expect(screen.queryByLabelText(/CNPJ/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Razão social/i)).not.toBeInTheDocument();
 
+    preencherCamposObrigatoriosPF();
     fireEvent.click(screen.getByText(/Avançar/i));
 
     const docCards = screen.getAllByText(/Selecione do seu dispositivo/i);

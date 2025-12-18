@@ -3,23 +3,31 @@ import type { ApiError } from "./api-types";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://86.48.22.80:3000/v1";
 
+export const UNAUTHORIZED_EVENT = "zuptos:unauthorized";
+
 export async function request<T>(
   path: string,
   init: RequestInit & { baseUrl?: string; silent?: boolean } = {}
 ): Promise<T> {
   const { baseUrl, silent, ...rest } = init;
   const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData;
-  const defaultHeaders = isFormData ? {} : { "Content-Type": "application/json" };
+  const defaultHeaders = isFormData
+    ? undefined
+    : { "Content-Type": "application/json" } satisfies Record<string, string>;
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${baseUrl ?? API_BASE_URL}${normalizedPath}`;
 
+  const headers = new Headers(defaultHeaders);
+  if (rest.headers) {
+    new Headers(rest.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
   const res = await fetch(url, {
-    headers: {
-      ...defaultHeaders,
-      ...(rest.headers ?? {}),
-    },
     ...rest,
+    headers,
   });
 
   let data: unknown;
@@ -30,6 +38,23 @@ export async function request<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      try {
+        window.dispatchEvent(
+          new CustomEvent(UNAUTHORIZED_EVENT, {
+            detail: {
+              message: (data as { message?: string })?.message,
+              path: normalizedPath,
+              url,
+              status: res.status,
+            },
+          })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (!silent) {
       console.error("[api] Request failed", {
         path: normalizedPath,
@@ -45,6 +70,7 @@ export async function request<T>(
     ) as ApiError;
     err.status = res.status;
     err.response = res;
+    (err as ApiError & { data?: unknown }).data = data;
     throw err;
   }
 

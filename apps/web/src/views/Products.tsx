@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FilterDrawer } from "@/components/FilterDrawer";
-import { productApi } from "@/lib/api";
+import { productApi, kycApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Check,
@@ -15,6 +16,7 @@ import {
   Search,
   X
 } from "lucide-react";
+import { notify } from "@/components/ui/notification-toast";
 
 type ProductStatus = "ativo" | "pausado" | "em_breve";
 type ProductMode = "producao" | "coproducao";
@@ -131,6 +133,7 @@ const buildPaginationItems = (totalPages: number): (number | string)[] => {
 
 export default function Products() {
   const { user, token } = useAuth();
+  const router = useRouter();
   const displayName = user?.username || user?.fullName || user?.email || "Zuptos";
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("todos");
@@ -152,6 +155,8 @@ export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isKycComplete, setIsKycComplete] = useState<boolean | null>(null);
+  const [kycMessage, setKycMessage] = useState<string | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
   const handleOverlayKeyDown = (
@@ -262,30 +267,64 @@ export default function Products() {
     setProductPassword("");
   };
 
+  const isKycLoading = isKycComplete === null;
+  const isKycBlocked = isKycLoading || isKycComplete === false;
+  const blockMessage =
+    kycMessage ?? "Conclua o cadastro para liberar a criação de produtos.";
+
+  const handleAddProductClick = () => {
+    if (isKycLoading) {
+      notify.warning("Verificando seu cadastro", "Aguarde enquanto validamos seu KYC.");
+      return;
+    }
+    if (isKycComplete === false) {
+      notify.warning("Complete seu cadastro", "Finalize o KYC para adicionar novos produtos.");
+      router.push("/kyc");
+      return;
+    }
+    setIsAddProductOpen(true);
+  };
+
   const closeNewProductModal = () => {
     setIsAddProductOpen(false);
     resetNewProductForm();
   };
 
   const handleProductSubmit = async () => {
+    if (isKycBlocked) {
+      notify.warning("Complete seu cadastro", "Finalize o KYC antes de criar produtos.");
+      return;
+    }
     const userId = resolveUserId();
     if (!userId) {
       setLoadError("Usuário não identificado para criar produto.");
       return;
     }
+    const saleUrl = salesPageUrl.trim();
+    const description = newProductDescription.trim();
+    const internalDescription = internalComplement.trim();
+    const authToken = token ?? undefined;
+    if (!authToken) {
+      setLoadError("Sua sessão expirou. Faça login novamente para criar produtos.");
+      return;
+    }
     const payload = {
-      name: newProductName || "Novo produto",
+      name: newProductName.trim() || "Novo produto",
       type: newProductTypes[0] || "course",
-      image_url: salesPageUrl || undefined,
-      total_invoiced: 0,
-      total_sold: 0,
+      description: description || undefined,
+      category: newProductCategory || "Outros",
+      internal_description: internalDescription || undefined,
+      sale_url: saleUrl || undefined,
+      login_username:
+        hasLoginAccess && productLogin.trim() ? productLogin.trim() : undefined,
+      login_password: hasLoginAccess && productPassword ? productPassword : undefined,
       user_id: userId
     };
     try {
       console.log("🔄 [Products] Payload para criar produto:", payload);
-      await productApi.createProduct(payload, token ?? undefined);
+      await productApi.createProduct(payload, authToken);
       closeNewProductModal();
-      void loadProducts();
+      await loadProducts();
     } catch (error) {
       console.error("Erro ao criar produto:", error);
       setLoadError("Não foi possível criar o produto. Verifique os dados e tente novamente.");
@@ -296,6 +335,31 @@ export default function Products() {
   useEffect(() => {
     adjustTextareaHeight(descriptionRef.current);
   }, [newProductDescription]);
+
+  useEffect(() => {
+    const fetchKycStatus = async () => {
+      if (!token) {
+        setIsKycComplete(false);
+        setKycMessage("Complete o cadastro para liberar a criação de produtos.");
+        return;
+      }
+      try {
+        const completed = await kycApi.getStatus(token);
+        setIsKycComplete(completed);
+        setKycMessage(
+          completed
+            ? null
+            : "Complete o cadastro para liberar a criação de produtos."
+        );
+      } catch (error) {
+        console.error("Erro ao verificar status do KYC:", error);
+        setIsKycComplete(false);
+        setKycMessage("Não foi possível validar seu cadastro agora. Tente novamente.");
+      }
+    };
+
+    void fetchKycStatus();
+  }, [token]);
 
   const resolveUserId = () => {
     if (user?.id) return user.id;
@@ -379,8 +443,10 @@ export default function Products() {
             </button>
             <button
               type="button"
-              onClick={() => setIsAddProductOpen(true)}
-              className="flex h-12 items-center justify-center gap-2 rounded-[8px] bg-primary px-6 text-sm font-semibold text-white transition-transform"
+              onClick={handleAddProductClick}
+              disabled={isKycBlocked}
+              className="flex h-12 items-center justify-center gap-2 rounded-[8px] bg-primary px-6 text-sm font-semibold text-white transition-transform disabled:cursor-not-allowed disabled:opacity-60"
+              title={isKycBlocked ? blockMessage : undefined}
             >
               <Plus className="h-5 w-5" aria-hidden />
               Adicionar produto

@@ -1,5 +1,5 @@
 import type { AuthResponse, SignInRequest, SignUpRequest } from "../api-types";
-import { API_BASE_URL, request } from "../request";
+import { API_BASE_URL, readStoredToken, request } from "../request";
 
 const AUTH_BASE = `${API_BASE_URL}/auth`;
 
@@ -39,11 +39,16 @@ export const authApi = {
     });
   },
 
-  signOut: async (token: string): Promise<AuthResponse> => {
+  signOut: async (token?: string): Promise<AuthResponse> => {
+    const finalToken = token ?? readStoredToken();
+    if (!finalToken) {
+      throw new Error("Missing auth token for logout");
+    }
     return request<AuthResponse>("/sign_out", {
       method: "DELETE",
       baseUrl: AUTH_BASE,
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${finalToken}` },
+      body: JSON.stringify({}),
     });
   },
 

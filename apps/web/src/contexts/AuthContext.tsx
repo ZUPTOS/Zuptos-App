@@ -7,11 +7,13 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi, type SignInRequest, type SignUpRequest } from '@/lib/api';
 import { notify } from '@/components/ui/notification-toast';
+import { UNAUTHORIZED_EVENT } from '@/lib/request';
 
 export interface User {
   id: string;
@@ -50,6 +52,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastUnauthorizedAt = useRef(0);
 
   // Restaurar sessão ao carregar
   useEffect(() => {
@@ -69,6 +72,45 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleUnauthorized = (event: Event) => {
+      const storedToken = localStorage.getItem("authToken");
+      if (!token && !storedToken) return;
+
+      const now = Date.now();
+      if (now - lastUnauthorizedAt.current < 2000) return;
+      lastUnauthorizedAt.current = now;
+
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("authUser");
+      setToken(null);
+      setUser(null);
+      setError(null);
+
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      const rawMessage = detail?.message && typeof detail.message === "string" ? detail.message : undefined;
+      const normalized = rawMessage?.toLowerCase();
+      const isSessionError =
+        normalized !== undefined &&
+        ["invalid session", "jwt expired", "token expired", "unauthorized"].some(fragment =>
+          normalized.includes(fragment)
+        );
+
+      notify.warning(
+        "Sessão expirada",
+        rawMessage && !isSessionError ? `${rawMessage}. Faça login novamente.` : "Faça login novamente."
+      );
+      router.push("/");
+    };
+
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => {
+      window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, [router, token]);
 
   const clearError = useCallback(() => {
     setError(null);

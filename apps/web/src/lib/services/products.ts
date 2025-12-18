@@ -39,25 +39,36 @@ export const productApi = {
       throw new Error("Missing type for product creation");
     }
 
-    const body: Record<string, unknown> = {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product creation");
+    }
+
+    const bodyEntries = {
       name: payload.name,
       type: payload.type,
+      description: payload.description,
+      category: payload.category,
+      internal_description: payload.internal_description,
+      sale_url: payload.sale_url,
+      login_username: payload.login_username,
+      login_password: payload.login_password,
       image_url: payload.image_url,
       total_invoiced: payload.total_invoiced ?? 0,
       total_sold: payload.total_sold ?? 0,
-      description: payload.description,
+      user_id,
     };
-    if (user_id) {
-      body.user_id = user_id;
-    }
+    const body = Object.fromEntries(
+      Object.entries(bodyEntries).filter(([, value]) => value !== undefined && value !== null)
+    );
+
     console.log("🔄 [productApi] Enviando criação de produto:", body);
-    const authToken = token ?? readStoredToken();
     return request<{ id: string; status?: string; message?: string }>("/product", {
       method: "POST",
       baseUrl: PRODUCTS_BASE,
       headers: {
         "Content-Type": "application/json",
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify(body),
     });
