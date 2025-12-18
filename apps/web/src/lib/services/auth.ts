@@ -32,11 +32,13 @@ export const authApi = {
 
   getCurrentUser: async (token: string): Promise<AuthResponse> => {
     console.log("Getting current user with token:", token);
-    return request<AuthResponse>("/me", {
+    const response = await request<AuthResponse>("/me", {
       method: "GET",
       baseUrl: AUTH_BASE,
       headers: { Authorization: `Bearer ${token}` },
     });
+    console.log("Current user response:", response);
+    return response;
   },
 
   signOut: async (token?: string): Promise<AuthResponse> => {
