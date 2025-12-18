@@ -5,16 +5,18 @@ export const API_BASE_URL =
 
 export async function request<T>(
   path: string,
-  init: RequestInit & { baseUrl?: string } = {}
+  init: RequestInit & { baseUrl?: string; silent?: boolean } = {}
 ): Promise<T> {
-  const { baseUrl, ...rest } = init;
+  const { baseUrl, silent, ...rest } = init;
+  const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData;
+  const defaultHeaders = isFormData ? {} : { "Content-Type": "application/json" };
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${baseUrl ?? API_BASE_URL}${normalizedPath}`;
 
   const res = await fetch(url, {
     headers: {
-      "Content-Type": "application/json",
+      ...defaultHeaders,
       ...(rest.headers ?? {}),
     },
     ...rest,
@@ -28,12 +30,14 @@ export async function request<T>(
   }
 
   if (!res.ok) {
-    console.error("[api] Request failed", {
-      path: normalizedPath,
-      url,
-      status: res.status,
-      data,
-    });
+    if (!silent) {
+      console.error("[api] Request failed", {
+        path: normalizedPath,
+        url,
+        status: res.status,
+        data,
+      });
+    }
     const err = new Error(
       (data as { error?: string; message?: string })?.error ||
         (data as { message?: string })?.message ||

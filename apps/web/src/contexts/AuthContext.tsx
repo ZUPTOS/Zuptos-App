@@ -157,9 +157,10 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setError(null);
 
     try {
-      if (token) {
+      const headerToken = token ?? localStorage.getItem('authToken') ?? undefined;
+      if (headerToken) {
         console.log("📤 [AuthContext] Chamando API de logout");
-        await authApi.signOut(token);
+        await authApi.signOut(headerToken);
         console.log("✅ [AuthContext] Logout na API bem-sucedido");
       }
 

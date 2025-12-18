@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import mockData from "@/data/mockData.json";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,24 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { kycApi } from "@/lib/api";
+import type { KycPayload } from "@/lib/api-types";
+import { useAuth } from "@/contexts/AuthContext";
+import { notify } from "@/components/ui/notification-toast";
 
 type Step = "dados" | "documentos";
+
+type DocumentType =
+  | "document_front"
+  | "document_back"
+  | "selfie_with_document"
+  | "document_card"
+  | "proof_of_residence";
 
 type DocumentSlot = {
   id: string;
   title: string;
+  documentType: DocumentType;
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -31,13 +43,12 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2
 });
 
-const documentSlots: DocumentSlot[] = [
-  { id: "doc-front", title: "Frente do documento" },
-  { id: "doc-back", title: "Verso do documento" },
-  { id: "selfie", title: "Selfie segurando o documento" },
-  { id: "cnpj-card", title: "Cartão Cnpj" },
-  { id: "comprovante-res", title: "Comprovante de residência" },
-  { id: "contrato-social", title: "Contrato social" }
+const pjDocumentSlots: DocumentSlot[] = [
+  { id: "doc-front", title: "Frente do documento", documentType: "document_front" },
+  { id: "doc-back", title: "Verso do documento", documentType: "document_back" },
+  { id: "selfie", title: "Selfie segurando o documento", documentType: "selfie_with_document" },
+  { id: "cnpj-card", title: "Cartão CNPJ", documentType: "document_card" },
+  { id: "comprovante-res", title: "Comprovante de residência", documentType: "proof_of_residence" }
 ];
 
 const infoFields = [
@@ -53,7 +64,10 @@ const infoFields = [
   { id: "ticket", label: "Ticket médio", placeholder: "Ticket médio" },
   { id: "link", label: "Página de vendas", placeholder: "Insira o link", colSpan: 2 }
 ];
-const pfSpecificFields = [{ id: "cpf", label: "CPF", placeholder: "XXX.XXX.XXX-XX" }];
+const pfSpecificFields = [
+  { id: "nomeCompleto", label: "Nome completo", placeholder: "Nome completo" },
+  { id: "cpf", label: "CPF", placeholder: "XXX.XXX.XXX-XX" }
+];
 const pjPrimaryPair = [
   { id: "cnpj", label: "CNPJ", placeholder: "XX.XXX.XXX/XXXX-XX" },
   { id: "razao", label: "Razão social", placeholder: "Razão social" }
@@ -64,17 +78,34 @@ const pjRemainingFields = [
 ];
 
 const pfDocumentSlots: DocumentSlot[] = [
-  { id: "doc-front", title: "Frente do documento" },
-  { id: "doc-back", title: "Verso do documento" },
-  { id: "selfie", title: "Selfie segurando o documento" },
-  { id: "comprovante-res", title: "Comprovante de residência" }
+  { id: "doc-front", title: "Frente do documento", documentType: "document_front" },
+  { id: "doc-back", title: "Verso do documento", documentType: "document_back" },
+  { id: "selfie", title: "Selfie segurando o documento", documentType: "selfie_with_document" },
+  { id: "comprovante-res", title: "Comprovante de residência", documentType: "proof_of_residence" }
 ];
 
 export default function KycView() {
+  const { user, token } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>("dados");
   const [accountType, setAccountType] = useState("pj");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [selectedFiles, setSelectedFiles] = useState<Record<DocumentType, File | null>>({
+    document_front: null,
+    document_back: null,
+    selfie_with_document: null,
+    document_card: null,
+    proof_of_residence: null
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const resolvedToken = useMemo(
+    () => token ?? (typeof window !== "undefined" ? localStorage.getItem("authToken") : null),
+    [token]
+  );
 
+  const displayName =
+    user?.username || user?.fullName || user?.email || mockData.user.name;
+  const userLocation = user?.accessType || mockData.user.location;
   const fullWidthIdsForPJ = useMemo(
     () => new Set(["representante", "telefone", "cep", "rua", "estado", "link"]),
     []
@@ -82,14 +113,68 @@ export default function KycView() {
   const isPessoaFisica = accountType === "pf";
   const responsiveFieldHeight = "max-h-[60px]";
   const limitedWidth = "2xl:w-[396px]";
-  const formFields = useMemo(
-    () => [...(isPessoaFisica ? [] : pjRemainingFields), ...infoFields],
+  const formFields = useMemo(() => {
+    const extra = isPessoaFisica ? [] : pjRemainingFields;
+    return [...extra, ...infoFields];
+  }, [isPessoaFisica]);
+  const activeDocumentSlots = useMemo(
+    () => (isPessoaFisica ? pfDocumentSlots : pjDocumentSlots),
     [isPessoaFisica]
   );
-  const activeDocumentSlots = isPessoaFisica ? pfDocumentSlots : documentSlots;
   const documentsGridClass = isPessoaFisica ? "grid gap-4 sm:grid-cols-2" : "grid gap-5 sm:grid-cols-2";
 
-  const handleNext = () => setCurrentStep("documentos");
+  const requiredFields = useMemo(() => {
+    const base = ["telefone", "cep", "rua", "numero", "estado", "cidade", "bairro", "faturamento", "ticket"];
+    if (isPessoaFisica) {
+      return ["nomeCompleto", "cpf", ...base];
+    }
+    return ["cnpj", "razao", "representante", "cpfRepresentante", ...base];
+  }, [isPessoaFisica]);
+
+  const isFieldValid = (fieldId: string) => {
+    const value = formValues[fieldId] ?? "";
+    if (["cpf", "cnpj", "cpfRepresentante", "telefone", "cep", "numero"].includes(fieldId)) {
+      return value.replace(/\D/g, "").length > 0;
+    }
+    if (["faturamento", "ticket"].includes(fieldId)) {
+      return value.replace(/\D/g, "").length > 0;
+    }
+    return value.trim().length > 0;
+  };
+
+  const missingFields = useMemo(
+    () => requiredFields.filter(field => !isFieldValid(field)),
+    [requiredFields, formValues]
+  );
+  const isFormComplete = missingFields.length === 0;
+
+  useEffect(() => {
+    setSelectedFiles(prev => {
+      const allowed = new Set(activeDocumentSlots.map(slot => slot.documentType));
+      const allTypes: DocumentType[] = [
+        "document_front",
+        "document_back",
+        "selfie_with_document",
+        "document_card",
+        "proof_of_residence"
+      ];
+      const next = { ...prev } as Record<DocumentType, File | null>;
+      allTypes.forEach(type => {
+        next[type] = allowed.has(type) ? prev[type] ?? null : null;
+      });
+      return next;
+    });
+  }, [activeDocumentSlots]);
+
+  const handleNext = () => {
+    if (!isFormComplete) {
+      setFormError("Preencha todas as informações para avançar.");
+      notify.warning("Informações incompletas", "Preencha todos os campos obrigatórios antes de avançar.");
+      return;
+    }
+    setFormError(null);
+    setCurrentStep("documentos");
+  };
   const handleBack = () => setCurrentStep("dados");
   const formatDigits = (value: string) => value.replace(/\D/g, "");
 
@@ -134,12 +219,92 @@ export default function KycView() {
       formatted = formatCurrencyBRL(value);
     }
     setFormValues(prev => ({ ...prev, [id]: formatted }));
+    setFormError(null);
   };
+
+  const extractDigits = (value?: string) => (value ?? "").replace(/\D/g, "");
+  const parseNumberString = (value?: string) => {
+    const digits = extractDigits(value);
+    return digits ? String(Number(digits)) : "";
+  };
+
+  const buildKycPayload = (): KycPayload => {
+    const isPF = accountType === "pf";
+    const documentNumber = isPF ? formValues.cpf : formValues.cnpj;
+    const socialName = isPF ? formValues.nomeCompleto : formValues.razao;
+    const ownerName = isPF ? formValues.nomeCompleto : formValues.representante;
+
+    return {
+      account_type: isPF ? "CPF" : "CNPJ",
+      document: extractDigits(documentNumber),
+      social_name: (socialName ?? "").trim(),
+      phone: extractDigits(formValues.telefone),
+      owner_name: (ownerName ?? "").trim(),
+      medium_ticket: parseNumberString(formValues.ticket),
+      average_revenue: parseNumberString(formValues.faturamento),
+      address: {
+        address: (formValues.rua ?? "").trim(),
+        number: (formValues.numero ?? "").trim(),
+        complement: (formValues.complemento ?? "").trim(),
+        state: (formValues.estado ?? "").trim(),
+        city: (formValues.cidade ?? "").trim(),
+        neighborhood: (formValues.bairro ?? "").trim()
+      }
+    };
+  };
+
+  const handleFileChange = (documentType: DocumentType, file: File | null) => {
+    setSelectedFiles(prev => ({ ...prev, [documentType]: file }));
+  };
+
+  const missingDocuments = activeDocumentSlots.filter(slot => !selectedFiles[slot.documentType]);
+  const handleSubmitDocuments = async () => {
+    if (!isFormComplete) {
+      notify.warning("Informações incompletas", "Finalize os dados do formulário antes de enviar.");
+      setCurrentStep("dados");
+      return;
+    }
+    if (missingDocuments.length > 0) {
+      notify.warning("Documentos pendentes", "Envie todos os documentos antes de finalizar.");
+      return;
+    }
+    if (!resolvedToken) {
+      notify.warning("Sessão expirada", "Faça login novamente para enviar seu cadastro.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = buildKycPayload();
+      await kycApi.create(payload, resolvedToken);
+      for (const slot of activeDocumentSlots) {
+        const file = selectedFiles[slot.documentType];
+        if (file) {
+          await kycApi.uploadDocument(slot.documentType, file, resolvedToken);
+        }
+      }
+      notify.success("KYC enviado", "Dados e documentos enviados com sucesso.");
+    } catch (error) {
+      console.error("Erro ao enviar KYC:", error);
+      notify.error("Erro ao enviar", "Não foi possível concluir seu cadastro. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const hasAnyInput = useMemo(
+    () => Object.values(formValues).some(value => (value ?? "").trim().length > 0),
+    [formValues]
+  );
+
+  const formWarning =
+    formError ??
+    (!isFormComplete && hasAnyInput ? "Preencha todos os campos obrigatórios para avançar." : null);
 
   return (
     <DashboardLayout
-      userName={mockData.user.name}
-      userLocation={mockData.user.location}
+      userName={displayName}
+      userLocation={userLocation}
       pageTitle=""
     >
       <section className="px-4 pt-4">
@@ -196,19 +361,21 @@ export default function KycView() {
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor={pfSpecificFields[0].id} className="text-sm md:text-base">{pfSpecificFields[0].label}</Label>
+                      {pfSpecificFields.map(field => (
+                        <div key={field.id} className="space-y-2">
+                          <Label htmlFor={field.id} className="text-sm md:text-base">{field.label}</Label>
                           <Input
-                            id={pfSpecificFields[0].id}
-                            placeholder={pfSpecificFields[0].placeholder}
+                            id={field.id}
+                            placeholder={field.placeholder}
                             className={cn(
                               "rounded-[8px] w-full text-sm md:text-base",
                               responsiveFieldHeight
                             )}
-                            value={formValues[pfSpecificFields[0].id] ?? ""}
-                            onChange={e => handleInputChange(pfSpecificFields[0].id, e.target.value)}
+                            value={formValues[field.id] ?? ""}
+                            onChange={e => handleInputChange(field.id, e.target.value)}
                           />
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -269,10 +436,14 @@ export default function KycView() {
                   </div>
                 </CardContent>
 
-                <div className="mt-8 flex justify-end border-t border-border/70 pt-6">
+                <div className="mt-8 flex flex-col items-end gap-3 border-t border-border/70 pt-6">
+                  {formWarning && (
+                    <p className="text-sm text-red-400">{formWarning}</p>
+                  )}
                   <Button
                     type="button"
-                    className="min-w-[220px] rounded-[8px] bg-gradient-to-r from-[#8a2be2] to-[#6a1bff] text-sm md:text-base font-semibold text-white hover:brightness-110 h-[44px] md:h-[49px]"
+                    className="min-w-[220px] rounded-[8px] bg-gradient-to-r from-[#8a2be2] to-[#6a1bff] text-sm md:text-base font-semibold text-white hover:brightness-110 h-[44px] md:h-[49px] disabled:opacity-60"
+                    disabled={!isFormComplete}
                     onClick={handleNext}
                   >
                     Avançar
@@ -301,7 +472,12 @@ export default function KycView() {
                 <CardContent className="mt-6 space-y-6 p-0">
                   <div className={`${documentsGridClass} justify-start gap-2 sm:gap-3 md:gap-4`}>
                     {activeDocumentSlots.map(slot => (
-                      <DocumentUploadCard key={slot.id} slot={slot} />
+                      <DocumentUploadCard
+                        key={slot.id}
+                        slot={slot}
+                        file={selectedFiles[slot.documentType] ?? null}
+                        onFileChange={handleFileChange}
+                      />
                     ))}
                   </div>
                 </CardContent>
@@ -309,11 +485,18 @@ export default function KycView() {
                 <div className="mt-8 flex justify-center border-t border-border/70 pt-6">
                   <Button
                     type="button"
-                    className="min-w-[240px] rounded-[8px] bg-gradient-to-r from-[#8a2be2] to-[#6a1bff] text-sm md:text-base font-semibold text-white hover:brightness-110 h-[44px] md:h-[49px]"
+                    className="min-w-[240px] rounded-[8px] bg-gradient-to-r from-[#8a2be2] to-[#6a1bff] text-sm md:text-base font-semibold text-white hover:brightness-110 h-[44px] md:h-[49px] disabled:opacity-60"
+                    disabled={isSubmitting || missingDocuments.length > 0}
+                    onClick={handleSubmitDocuments}
                   >
-                    Enviar documentos
+                    {isSubmitting ? "Enviando..." : "Enviar documentos"}
                   </Button>
                 </div>
+                {missingDocuments.length > 0 && (
+                  <p className="pt-2 text-center text-sm text-red-400">
+                    Envie todos os documentos listados para concluir.
+                  </p>
+                )}
               </Card>
             </div>
           )}
@@ -323,19 +506,43 @@ export default function KycView() {
   );
 }
 
-function DocumentUploadCard({ slot }: { slot: DocumentSlot }) {
+function DocumentUploadCard({
+  slot,
+  file,
+  onFileChange
+}: {
+  slot: DocumentSlot;
+  file: File | null;
+  onFileChange: (documentType: DocumentType, file: File | null) => void;
+}) {
   const inputId = `upload-${slot.id}`;
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    onFileChange(slot.documentType, nextFile);
+    // Allow selecting the same file again if needed
+    event.target.value = "";
+  };
+
   return (
     <label htmlFor={inputId} className="group block h-full cursor-pointer">
-      <input id={inputId} type="file" className="sr-only" accept="image/*,application/pdf" />
+      <input
+        id={inputId}
+        type="file"
+        className="sr-only"
+        accept="image/*,application/pdf"
+        onChange={handleChange}
+      />
       <div className="flex h-full flex-col gap-3 sm:gap-4 rounded-[8px] border border-border/60 bg-[#0f0f0f] p-2 sm:p-3 md:p-4 transition duration-150 hover:border-primary/60">
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground md:text-base">{slot.title}</p>
+          <p className="text-xs text-muted-foreground md:text-sm">
+            {file ? file.name : "Nenhum arquivo selecionado"}
+          </p>
         </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[8px] border border-border/60 bg-[#0b0b0b] px-2 sm:px-3 py-5 sm:py-6 md:py-8 text-center">
           <p className="text-sm font-semibold text-primary md:text-base">Selecione do seu dispositivo</p>
           <p className="text-xs text-muted-foreground md:text-sm">ou solte arquivos aqui</p>
-          <p className="text-xs text-muted-foreground md:text-sm">Você pode inserir arquivos em: png ou jpeg</p>
+          <p className="text-xs text-muted-foreground md:text-sm">Você pode inserir arquivos em: png, jpeg ou pdf</p>
         </div>
       </div>
     </label>
