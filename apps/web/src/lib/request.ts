@@ -1,7 +1,7 @@
 import type { ApiError } from "./api-types";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://86.48.22.80:3000/v1";
+const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+export const API_BASE_URL = DEFAULT_API_BASE;
 
 export const UNAUTHORIZED_EVENT = "zuptos:unauthorized";
 
