@@ -166,35 +166,14 @@ export default function KycView() {
     });
   }, [activeDocumentSlots]);
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (!isFormComplete) {
       setFormError("Preencha todas as informações para avançar.");
       notify.warning("Informações incompletas", "Preencha todos os campos obrigatórios antes de avançar.");
       return;
     }
-    if (!resolvedToken) {
-      notify.warning("Sessão expirada", "Faça login novamente para enviar seu cadastro.");
-      return;
-    }
     setFormError(null);
-    setIsSendingForm(true);
-    try {
-      const payload = buildKycPayload();
-      console.log("[KYC] Enviando payload:", payload);
-      await kycApi.create(payload, resolvedToken);
-      notify.success("Dados enviados", "Cadastro salvo. Continue com o envio dos documentos.");
-      setCurrentStep("documentos");
-    } catch (error) {
-      const status = (error as ApiError | undefined)?.status;
-      const data = (error as ApiError & { data?: unknown } | undefined)?.data;
-      if (status === 401) {
-        return;
-      }
-      console.error("Erro ao enviar KYC:", { error, data });
-      notify.error("Erro ao enviar", "Não foi possível salvar suas informações. Tente novamente.");
-    } finally {
-      setIsSendingForm(false);
-    }
+    setCurrentStep("documentos");
   };
   const handleBack = () => setCurrentStep("dados");
   const formatDigits = (value: string) => value.replace(/\D/g, "");
@@ -254,6 +233,14 @@ export default function KycView() {
     const documentNumber = isPF ? formValues.cpf : formValues.cnpj;
     const socialName = isPF ? formValues.nomeCompleto : formValues.razao;
     const ownerName = isPF ? formValues.nomeCompleto : formValues.representante;
+    const kycAddress = {
+      address: (formValues.rua ?? "").trim(),
+      number: (formValues.numero ?? "").trim(),
+      complement: (formValues.complemento ?? "").trim(),
+      state: (formValues.estado ?? "").trim(),
+      city: (formValues.cidade ?? "").trim(),
+      neighborhood: (formValues.bairro ?? "").trim()
+    };
 
     return {
       account_type: isPF ? "CPF" : "CNPJ",
@@ -263,14 +250,8 @@ export default function KycView() {
       owner_name: (ownerName ?? "").trim(),
       medium_ticket: parseNumberString(formValues.ticket),
       average_revenue: parseNumberString(formValues.faturamento),
-      address: {
-        address: (formValues.rua ?? "").trim(),
-        number: (formValues.numero ?? "").trim(),
-        complement: (formValues.complemento ?? "").trim(),
-        state: (formValues.estado ?? "").trim(),
-        city: (formValues.cidade ?? "").trim(),
-        neighborhood: (formValues.bairro ?? "").trim()
-      }
+      address: kycAddress,
+      kycAddress
     };
   };
 
@@ -278,10 +259,41 @@ export default function KycView() {
     setSelectedFiles(prev => ({ ...prev, [documentType]: file }));
   };
 
-  const missingDocuments = activeDocumentSlots.filter(slot => !selectedFiles[slot.documentType]);
+  const missingDocuments = useMemo(
+    () => activeDocumentSlots.filter(slot => !selectedFiles[slot.documentType]),
+    [activeDocumentSlots, selectedFiles]
+  );
+
   const handleSubmitDocuments = async () => {
-    // Envio de documentos ainda não está ativo nesta etapa.
-    notify.warning("Envio de documentos em breve", "Continuaremos com o cadastro somente com os dados preenchidos.");
+    if (!isFormComplete) {
+      setFormError("Preencha todas as informações para enviar.");
+      notify.warning("Informações incompletas", "Complete os campos obrigatórios antes de enviar.");
+      setCurrentStep("dados");
+      return;
+    }
+    if (!resolvedToken) {
+      notify.warning("Sessão expirada", "Faça login novamente para enviar seu cadastro.");
+      return;
+    }
+
+    setIsSendingForm(true);
+    try {
+      const payload = buildKycPayload();
+      console.log("[KYC] Enviando payload:", payload);
+      const response = await kycApi.create(payload, resolvedToken);
+      console.log("[KYC] Resposta do servidor:", response);
+      notify.success("Dados enviados", "Cadastro salvo. Enviaremos os documentos depois.");
+    } catch (error) {
+      const status = (error as ApiError | undefined)?.status;
+      const data = (error as ApiError & { data?: unknown } | undefined)?.data;
+      if (status === 401) {
+        return;
+      }
+      console.error("Erro ao enviar KYC:", { error, data });
+      notify.error("Erro ao enviar", "Não foi possível salvar suas informações. Tente novamente.");
+    } finally {
+      setIsSendingForm(false);
+    }
   };
 
   const hasAnyInput = useMemo(
@@ -478,9 +490,10 @@ export default function KycView() {
                   <Button
                     type="button"
                     className="min-w-[240px] rounded-[8px] bg-gradient-to-r from-[#8a2be2] to-[#6a1bff] text-sm md:text-base font-semibold text-white hover:brightness-110 h-[44px] md:h-[49px] disabled:opacity-60"
+                    disabled={isSendingForm}
                     onClick={handleSubmitDocuments}
                   >
-                    Enviar documentos
+                    {isSendingForm ? "Enviando..." : "Enviar documentos"}
                   </Button>
                 </div>
                 {missingDocuments.length > 0 && (

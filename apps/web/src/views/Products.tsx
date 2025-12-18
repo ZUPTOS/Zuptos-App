@@ -344,13 +344,18 @@ export default function Products() {
         return;
       }
       try {
-        const completed = await kycApi.getStatus(token);
-        setIsKycComplete(completed);
-        setKycMessage(
-          completed
-            ? null
-            : "Complete o cadastro para liberar a criação de produtos."
-        );
+        const statusInfo = await kycApi.getStatus(token);
+        const raw = statusInfo.rawStatus?.toLowerCase();
+        if (statusInfo.approved) {
+          setIsKycComplete(true);
+          setKycMessage(null);
+        } else if (raw === "in_progress" || raw === "processing" || raw === "waiting") {
+          setIsKycComplete(false);
+          setKycMessage("Cadastro em análise, por favor aguarde.");
+        } else {
+          setIsKycComplete(false);
+          setKycMessage("Complete o cadastro para liberar a criação de produtos.");
+        }
       } catch (error) {
         console.error("Erro ao verificar status do KYC:", error);
         setIsKycComplete(false);

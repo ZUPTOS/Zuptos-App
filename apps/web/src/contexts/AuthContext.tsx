@@ -23,6 +23,7 @@ export interface User {
   accessType: 'purchases' | 'products';
   role?: 'admin' | 'default';
   isAdmin?: boolean;
+  status?: string;
 }
 
 interface AuthContextType {
@@ -38,6 +39,23 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const normalizeUser = (rawUser: Partial<User> | null | undefined, fallbackEmail: string): User => {
+  const status =
+    (rawUser as { status?: string } | undefined)?.status ??
+    (rawUser as { kyc?: { status?: string } } | undefined)?.kyc?.status;
+
+  return {
+    id: (rawUser?.id as string) || "",
+    email: (rawUser?.email as string) || fallbackEmail,
+    fullName: (rawUser?.fullName as string) || "",
+    username: (rawUser?.username as string) || fallbackEmail.split("@")[0],
+    accessType: (rawUser?.accessType as User["accessType"]) || "purchases",
+    role: (rawUser?.role as User["role"]) || "default",
+    isAdmin: Boolean(rawUser?.isAdmin),
+    status: status ? String(status) : undefined,
+  };
+};
 
 const logError = (...args: unknown[]) => {
   if (process.env.NODE_ENV !== "test") {
@@ -129,20 +147,30 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           throw new Error("No token received from server");
         }
 
+        let userData: User;
         const userFromApi =
           (response.data as { user?: Partial<User> } | undefined)?.user ??
           (response as { user?: Partial<User> } | undefined)?.user ??
           null;
 
-        const userData: User = {
-          id: (userFromApi?.id as string) || "",
-          email: (userFromApi?.email as string) || credentials.email,
-          fullName: (userFromApi?.fullName as string) || "",
-          username: (userFromApi?.username as string) || credentials.email.split("@")[0],
-          accessType: (userFromApi?.accessType as User["accessType"]) || "purchases",
-          role: (userFromApi?.role as User["role"]) || "default",
-          isAdmin: Boolean(userFromApi?.isAdmin),
-        };
+        try {
+          const meResponse = await authApi.getCurrentUser(response.access_token);
+          console.log("🔍 [AuthContext] /auth/me response on login:", meResponse);
+          const meUser =
+            (meResponse as { data?: { user?: Partial<User>; kyc?: { status?: string } }; user?: Partial<User> })
+              ?.data?.user ??
+            (meResponse as { user?: Partial<User> }).user ??
+            (meResponse as { data?: Partial<User> }).data ??
+            (meResponse as Partial<User>);
+          const meUserWithKycStatus =
+            meUser && (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc
+              ? { ...meUser, status: (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc?.status }
+              : meUser;
+          userData = normalizeUser(meUserWithKycStatus ?? userFromApi, credentials.email);
+        } catch (meError) {
+          console.log("⚠️ [AuthContext] Falha ao consultar /auth/me:", meError);
+          userData = normalizeUser(userFromApi, credentials.email);
+        }
 
         localStorage.setItem('authToken', response.access_token);
         localStorage.setItem('authUser', JSON.stringify(userData));
@@ -165,6 +193,33 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     },
     [router]
   );
+
+  useEffect(() => {
+    const refreshUser = async () => {
+      if (!token) return;
+      try {
+        const meResponse = await authApi.getCurrentUser(token);
+        const meUser =
+          (meResponse as { data?: { user?: Partial<User>; kyc?: { status?: string } }; user?: Partial<User> })
+            ?.data?.user ??
+          (meResponse as { user?: Partial<User> }).user ??
+          (meResponse as { data?: Partial<User> }).data ??
+          (meResponse as Partial<User>);
+        const meUserWithKycStatus =
+          meUser && (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc
+            ? { ...meUser, status: (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc?.status }
+            : meUser;
+        const normalized = normalizeUser(meUserWithKycStatus, meUser?.email || user?.email || "");
+        setUser(normalized);
+        localStorage.setItem("authUser", JSON.stringify(normalized));
+      } catch (error) {
+        console.log("⚠️ [AuthContext] Falha ao atualizar /auth/me:", error);
+      }
+    };
+
+    void refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const signUp = useCallback(
     async (data: SignUpRequest) => {

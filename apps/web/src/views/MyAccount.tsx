@@ -1,34 +1,132 @@
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import mockData from "@/data/mockData.json";
+import { useAuth } from "@/contexts/AuthContext";
+import { authApi } from "@/lib/api";
+
+type KycProfile = {
+  status?: string;
+  accountType?: string;
+  document?: string;
+  phone?: string;
+  socialName?: string;
+  ownerName?: string;
+  averageRevenue?: string | number;
+  mediumTicket?: string | number;
+  kycAddress?: {
+    address?: string;
+    number?: string;
+    complement?: string;
+    state?: string;
+    city?: string;
+    neighborhood?: string;
+  };
+};
+
+type ProfileResponse = {
+  username?: string;
+  email?: string;
+  fullName?: string;
+  role?: string;
+  kyc?: KycProfile;
+  status?: string;
+};
+
+const APPROVED = ["approved", "aprovado", "complete", "completed", "validado"];
+const IN_PROGRESS = ["in_progress", "processing", "pending", "waiting"];
 
 export default function MyAccountView() {
-  const profileData = {
-    accountType: "Pessoa jurídica",
-    phone: "xxxxxxxxxxxxxxx",
-    document: "xxxxxxxxxxxxxxx",
-    address: "Pessoa jurídica",
-    birthDate: "dd/mm/aaaa",
-  };
+  const { user, token } = useAuth();
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const documentationStatus = {
-    label: "Aprovado",
-    message: "Seus documentos foram aprovados. Você já pode vender!",
-  };
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return;
+      setIsLoading(true);
+      try {
+        const response = await authApi.getCurrentUser(token);
+        const data =
+          (response as { data?: ProfileResponse })?.data ??
+          (response as ProfileResponse);
+        setProfile(data ?? null);
+      } catch (error) {
+        console.error("Erro ao carregar perfil:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchProfile();
+  }, [token]);
+
+  const resolvedProfile = useMemo(() => {
+    const base: ProfileResponse = profile ?? {};
+    const name = base.fullName || base.username || user?.fullName || user?.username || mockData.user.name;
+    const email = base.email || user?.email || mockData.user.email;
+    const kyc = base.kyc;
+    const addressParts = [
+      kyc?.kycAddress?.address,
+      kyc?.kycAddress?.number,
+      kyc?.kycAddress?.city,
+      kyc?.kycAddress?.state,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return {
+      name,
+      email,
+      accountType: kyc?.accountType || "—",
+      phone: kyc?.phone || "—",
+      document: kyc?.document || "—",
+      address: addressParts || "—",
+      status: (kyc?.status || base.status || user?.status)?.toLowerCase(),
+    };
+  }, [profile, user]);
+
+  const documentationStatus = useMemo(() => {
+    if (!resolvedProfile.status) {
+      return {
+        label: "Pendente",
+        message: "Complete seu cadastro para liberar todas as funcionalidades.",
+        tone: "pending" as const,
+      };
+    }
+    if (APPROVED.includes(resolvedProfile.status)) {
+      return {
+        label: "Aprovado",
+        message: "Seus documentos foram aprovados. Você já pode vender!",
+        tone: "approved" as const,
+      };
+    }
+    if (IN_PROGRESS.includes(resolvedProfile.status)) {
+      return {
+        label: "Em análise",
+        message: "Cadastro em análise, por favor aguarde.",
+        tone: "pending" as const,
+      };
+    }
+    return {
+      label: resolvedProfile.status.toUpperCase(),
+      message: "Cadastro em análise, por favor aguarde.",
+      tone: "pending" as const,
+    };
+  }, [resolvedProfile.status]);
 
   const infoFields = [
-    { label: "Tipo de Conta", value: profileData.accountType },
-    { label: "Telefone", value: profileData.phone },
-    { label: "Documento", value: profileData.document },
-    { label: "Endereço", value: profileData.address },
-    { label: "Data de nascimento", value: profileData.birthDate },
+    { label: "Tipo de Conta", value: resolvedProfile.accountType },
+    { label: "Telefone", value: resolvedProfile.phone },
+    { label: "Documento", value: resolvedProfile.document },
+    { label: "Endereço", value: resolvedProfile.address },
   ];
 
-  const userInitial = mockData.user.name?.charAt(0)?.toUpperCase() ?? "Z";
+  const userInitial = resolvedProfile.name?.charAt(0)?.toUpperCase() ?? "Z";
 
   return (
     <DashboardLayout
-      userName={mockData.user.name}
-      userLocation={mockData.user.location}
+      userName={resolvedProfile.name}
+      userLocation={user?.accessType || mockData.user.location}
       pageTitle=""
     >
       <section className="px-4 py-10 sm:px-6 lg:px-8">
@@ -41,8 +139,9 @@ export default function MyAccountView() {
                 {userInitial}
               </div>
               <div>
-                <p className="text-lg font-semibold text-foreground sm:text-xl">{mockData.user.name}</p>
-                <p className="text-sm text-muted-foreground">{mockData.user.email}</p>
+                <p className="text-lg font-semibold text-foreground sm:text-xl">{resolvedProfile.name}</p>
+                <p className="text-sm text-muted-foreground">{resolvedProfile.email}</p>
+                {isLoading && <p className="text-xs text-muted-foreground">Atualizando dados...</p>}
               </div>
             </div>
 
@@ -74,7 +173,14 @@ export default function MyAccountView() {
             <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/70 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <span className="inline-flex items-center rounded-full bg-emerald-700/25 px-4 py-1 text-sm font-semibold text-emerald-400">
+                <span
+                  className="inline-flex items-center rounded-full px-4 py-1 text-sm font-semibold"
+                  style={{
+                    backgroundColor:
+                      documentationStatus.tone === "approved" ? "rgba(16,185,129,0.2)" : "rgba(234,179,8,0.15)",
+                    color: documentationStatus.tone === "approved" ? "#34d399" : "#facc15",
+                  }}
+                >
                   {documentationStatus.label}
                 </span>
               </div>

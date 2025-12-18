@@ -125,6 +125,7 @@ export interface KycPayload {
   medium_ticket: string;
   average_revenue: string;
   address: KycAddress;
+  kycAddress?: KycAddress;
 }
 
 export type KycResponse = KycPayload & {

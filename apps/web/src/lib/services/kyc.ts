@@ -7,35 +7,46 @@ type KycStatusResponse =
   | null
   | undefined;
 
-const parseKycCompleted = (data: KycStatusResponse) => {
-  if (!data) return false;
+export type KycStatusInfo = {
+  exists: boolean;
+  approved: boolean;
+  rawStatus?: string;
+};
+
+const APPROVED = ["approved", "aprovado", "completed", "complete", "validado"];
+
+const parseKycStatus = (data: KycStatusResponse): KycStatusInfo => {
+  if (!data) return { exists: false, approved: false, rawStatus: undefined };
 
   if (Array.isArray(data)) {
-    return data.length > 0;
+    const first = data[0];
+    const status = (first as { status?: string } | undefined)?.status;
+    const normalized = status?.toLowerCase();
+    return {
+      exists: data.length > 0,
+      approved: normalized ? APPROVED.includes(normalized) : false,
+      rawStatus: normalized ?? status,
+    };
   }
 
   if (typeof data === "object") {
     const status = (data as { status?: string }).status;
     const id = (data as { id?: string }).id;
-    if (status) {
-      const normalized = status.toLowerCase();
-      if (["approved", "aprovado", "completed", "complete", "validado"].includes(normalized)) {
-        return true;
-      }
-      if (["pending", "in_progress", "processing", "waiting"].includes(normalized)) {
-        return false;
-      }
-    }
-    return Boolean(id);
+    const normalized = status?.toLowerCase();
+    return {
+      exists: Boolean(status || id),
+      approved: normalized ? APPROVED.includes(normalized) : false,
+      rawStatus: normalized ?? status,
+    };
   }
 
-  return false;
+  return { exists: false, approved: false, rawStatus: undefined };
 };
 
 export const kycApi = {
-  getStatus: async (token?: string): Promise<boolean> => {
+  getStatus: async (token?: string): Promise<KycStatusInfo> => {
     const authToken = token ?? readStoredToken();
-    if (!authToken) return false;
+    if (!authToken) return { exists: false, approved: false, rawStatus: undefined };
 
     try {
       const data = await request<KycStatusResponse>("/kyc", {
@@ -45,9 +56,9 @@ export const kycApi = {
         silent: true,
       });
 
-      return parseKycCompleted(data);
+      return parseKycStatus(data);
     } catch {
-      return false;
+      return { exists: false, approved: false, rawStatus: undefined };
     }
   },
 
