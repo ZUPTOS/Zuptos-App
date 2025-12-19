@@ -55,17 +55,30 @@ export const authApi = {
   },
 
   recoverPassword: async (email: string): Promise<AuthResponse> => {
-    return request<AuthResponse>("/recover_password", {
+    console.log("🔁 [Auth] recover_password payload:", { email });
+    const response = await request<AuthResponse>("/recover_password", {
       method: "POST",
       baseUrl: AUTH_BASE,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
+    console.log("✅ [Auth] recover_password response:", response);
+    return response;
   },
 
-  resetPassword: async (token: string, password: string): Promise<AuthResponse> =>
-    request<AuthResponse>("/reset_password", {
+  resetPassword: async (token: string, password: string): Promise<AuthResponse> => {
+    console.log("🔁 [Auth] reset_password payload:", {
+      token: token.slice(0, 8),
+      tokenLength: token.length,
+      passwordLength: password.length,
+    });
+    const response = await request<AuthResponse>(`/reset_password?token=${encodeURIComponent(token)}`, {
       method: "POST",
       baseUrl: AUTH_BASE,
-      body: JSON.stringify({ token, password }),
-    }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    console.log("✅ [Auth] reset_password response:", response);
+    return response;
+  },
 };
