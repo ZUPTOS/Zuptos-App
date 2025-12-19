@@ -1,5 +1,5 @@
 import type { CreateSaleRequest, Sale, SaleListResponse } from "../api-types";
-import { API_BASE_URL, buildQuery, readStoredToken, readStoredUserId, request } from "../request";
+import { API_BASE_URL, readStoredToken, readStoredUserId, request } from "../request";
 
 const SALES_BASE = API_BASE_URL;
 

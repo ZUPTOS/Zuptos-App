@@ -2,8 +2,8 @@ import Image from "next/image";
 
 export default function FooterGlow() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 flex flex-col items-center">
-      <div className="mb-[-24px] z-20 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur">
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center">
+      <div className="mb-[-24px] z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur">
         <Image src="/images/logoSide.svg" alt="Zuptos monograma" width={28} height={28} />
       </div>
       <div className="relative h-[320px] w-full overflow-hidden">
