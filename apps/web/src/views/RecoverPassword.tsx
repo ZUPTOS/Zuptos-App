@@ -7,15 +7,28 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import FooterGlow from "@/views/components/FooterGlow";
+import { authApi } from "@/lib/api";
+import { notify } from "@/components/ui/notification-toast";
 
 export default function RecoverPasswordView() {
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (email.trim()) {
+    if (!email.trim()) return;
+
+    setIsLoading(true);
+    try {
+      await authApi.recoverPassword(email.trim());
+      notify.success("E-mail enviado", "Verifique sua caixa de entrada para redefinir a senha.");
       router.push("/email-enviado");
+    } catch (error) {
+      console.error("Erro ao enviar e-mail de recuperação:", error);
+      notify.error("Não foi possível enviar", "Tente novamente em instantes.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -53,8 +66,9 @@ export default function RecoverPasswordView() {
             <Button
               type="submit"
               className="h-12 w-[556px] rounded-[8px] bg-gradient-to-r from-[#8E2DE2] to-[#4A00E0] text-[22px] font-sora font-semibold text-white shadow-lg transition hover:opacity-90"
+              disabled={isLoading}
             >
-              Enviar e-mail
+              {isLoading ? "Enviando..." : "Enviar e-mail"}
             </Button>
             <Link
               href="/"
