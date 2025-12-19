@@ -144,7 +144,7 @@ export default function KycView() {
 
   const missingFields = useMemo(
     () => requiredFields.filter(field => !isFieldValid(field)),
-    [requiredFields, formValues]
+    [requiredFields, formValues, isFieldValid]
   );
   const isFormComplete = missingFields.length === 0;
 
