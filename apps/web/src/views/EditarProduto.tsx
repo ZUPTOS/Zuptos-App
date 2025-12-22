@@ -1,10 +1,13 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { productApi } from "@/lib/api";
+import type { Product, ProductDeliverable, ProductOffer } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const tabs = [
   "Área de membros",
@@ -16,16 +19,6 @@ const tabs = [
   "Upsell, downsell e mais",
   "Cupons",
   "Coprodução",
-] as const;
-
-const files = [
-  { name: "Arquivo x", link: "https://www.site.com", size: "353.49kb", status: "Ativo" },
-  { name: "Arquivo y", link: "https://www.site.com", size: "-", status: "Ativo" },
-];
-
-const offers = [
-  { name: "BÁSICO", checkout: "Checkout 1", type: "Preço único", price: "R$ 497,00", access: "www.link.com", status: "Ativo" },
-  { name: "BÁSICO", checkout: "Checkout 2", type: "Preço único", price: "R$ 497,00", access: "www.link.com", status: "Inativo" },
 ] as const;
 
 const checkouts = [
@@ -50,6 +43,11 @@ const coproductions = [
 ] as const;
 
 export default function EditarProdutoView() {
+  const searchParams = useSearchParams();
+  const productId = searchParams?.get("id") ?? undefined;
+  const { token } = useAuth();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Entregável");
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -61,37 +59,206 @@ export default function EditarProdutoView() {
   const [showCoproductionDetailModal, setShowCoproductionDetailModal] = useState(false);
   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
   const [deliverableTab, setDeliverableTab] = useState<"arquivo" | "link">("arquivo");
+  const [deliverables, setDeliverables] = useState<ProductDeliverable[]>([]);
+  const [deliverablesLoading, setDeliverablesLoading] = useState(false);
+  const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
+  const [deliverableName, setDeliverableName] = useState("");
+  const [deliverableContent, setDeliverableContent] = useState("");
+  const [deliverableFile, setDeliverableFile] = useState<File | null>(null);
+  const [deliverableFormError, setDeliverableFormError] = useState<string | null>(null);
+  const [savingDeliverable, setSavingDeliverable] = useState(false);
+  const [offers, setOffers] = useState<ProductOffer[]>([]);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [offersError, setOffersError] = useState<string | null>(null);
+  const [offerName, setOfferName] = useState("");
+  const [offerPrice, setOfferPrice] = useState("");
+  const [offerBackRedirect, setOfferBackRedirect] = useState("");
+  const [offerNextRedirect, setOfferNextRedirect] = useState("");
+  const [offerStatus, setOfferStatus] = useState<"active" | "inactive">("active");
+  const [offerFree, setOfferFree] = useState(false);
+  const [savingOffer, setSavingOffer] = useState(false);
   const [pixelType, setPixelType] = useState<"padrao" | "api">("padrao");
   const [couponUnit, setCouponUnit] = useState<"valor" | "percent">("valor");
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const headerCard = useMemo(
-    () => (
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!productId || !token) return;
+      setIsLoading(true);
+      try {
+        const data = await productApi.getProductById(productId, token);
+        setProduct(data);
+      } catch (error) {
+        console.error("Erro ao carregar produto:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void fetchProduct();
+  }, [productId, token]);
+
+  const loadDeliverables = useCallback(async () => {
+    if (!productId || !token || activeTab !== "Entregável") return;
+    setDeliverablesLoading(true);
+    setDeliverablesError(null);
+    try {
+      const data = await productApi.getDeliverablesByProductId(productId, token);
+      console.log("[productApi] Entregáveis recebidos:", data);
+      setDeliverables(data);
+    } catch (error) {
+      console.error("Erro ao carregar entregáveis:", error);
+      setDeliverablesError("Não foi possível carregar os entregáveis agora.");
+    } finally {
+      setDeliverablesLoading(false);
+    }
+  }, [activeTab, productId, token]);
+
+  useEffect(() => {
+    void loadDeliverables();
+  }, [loadDeliverables]);
+
+  const loadOffers = useCallback(async () => {
+    if (!productId || !token || activeTab !== "Ofertas") return;
+    setOffersLoading(true);
+    setOffersError(null);
+    try {
+      const data = await productApi.getOffersByProductId(productId, token);
+      console.log("[productApi] Ofertas recebidas:", data);
+      setOffers(data);
+    } catch (error) {
+      console.error("Erro ao carregar ofertas:", error);
+      setOffersError("Não foi possível carregar as ofertas agora.");
+    } finally {
+      setOffersLoading(false);
+    }
+  }, [activeTab, productId, token]);
+
+  useEffect(() => {
+    void loadOffers();
+  }, [loadOffers]);
+
+  const formatSize = (size?: number) => {
+    if (!size) return "-";
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleCreateDeliverable = async () => {
+    if (!productId || !token) return;
+    const trimmedName = deliverableName.trim() || "Entregável";
+    const trimmedContent = deliverableContent.trim();
+
+    if (deliverableTab === "link" && !trimmedContent) {
+      setDeliverableFormError("Preencha o link do entregável.");
+      return;
+    }
+
+    if (deliverableTab === "arquivo" && !deliverableFile) {
+      setDeliverableFormError("Selecione um arquivo para enviar.");
+      return;
+    }
+
+    const payload =
+      deliverableTab === "link"
+        ? {
+            name: trimmedName,
+            type: "link",
+            status: "active",
+            content: trimmedContent,
+          }
+        : {
+            name: trimmedName,
+            type: "File",
+            status: "active",
+            size: deliverableFile?.size,
+          };
+
+    setSavingDeliverable(true);
+    setDeliverableFormError(null);
+    try {
+      console.log("[productApi] Enviando criação de entregável:", payload);
+      const response = await productApi.createDeliverable(productId, payload, token);
+      console.log("[productApi] Resposta do servidor (entregável):", response);
+      await loadDeliverables();
+      setShowDeliverableModal(false);
+      setDeliverableName("");
+      setDeliverableContent("");
+      setDeliverableFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Erro ao criar entregável:", error);
+      setDeliverableFormError("Não foi possível salvar o entregável.");
+    } finally {
+      setSavingDeliverable(false);
+    }
+  };
+
+  const handleCreateOffer = async () => {
+    if (!productId || !token) return;
+    const payload: ProductOffer = {
+      name: offerName.trim() || "Oferta",
+      type: offerType === "assinatura" ? "subscription" : "single",
+      status: offerStatus === "inactive" ? "inactive" : "active",
+      offer_price: offerPrice ? Number(offerPrice) : undefined,
+      free: offerFree,
+      back_redirect_url: offerBackRedirect || undefined,
+      next_redirect_url: offerNextRedirect || undefined,
+    };
+
+    setSavingOffer(true);
+    try {
+      console.log("[productApi] Enviando criação de oferta:", payload);
+      const response = await productApi.createOffer(productId, payload, token);
+      console.log("[productApi] Resposta do servidor (oferta):", response);
+      await loadOffers();
+      setShowOfferModal(false);
+      setOfferName("");
+      setOfferPrice("");
+      setOfferBackRedirect("");
+      setOfferNextRedirect("");
+      setOfferFree(false);
+      setOfferStatus("active");
+    } catch (error) {
+      console.error("Erro ao criar oferta:", error);
+      setOffersError("Não foi possível salvar a oferta.");
+    } finally {
+      setSavingOffer(false);
+    }
+  };
+
+  const headerCard = useMemo(() => {
+    const thumb = product?.image_url || "/images/produto.png";
+    const name = product?.name ?? "Produto";
+    const status = (product as Product & { status?: string })?.status ?? "Ativo";
+    return (
       <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <div className="overflow-hidden rounded-[10px] bg-foreground/10">
             <Image
-              src="/images/produto.png"
-              alt="Produto 01"
+              src={thumb}
+              alt={name}
               width={72}
               height={72}
               className="h-[72px] w-[72px] object-cover"
             />
           </div>
           <div className="space-y-1">
-            <p className="text-base font-semibold text-foreground">Produto 01</p>
-            <span className="text-xs font-semibold text-emerald-400">Ativo</span>
+            <p className="text-base font-semibold text-foreground">{name}</p>
+            <span className="text-xs font-semibold text-emerald-400">{status}</span>
           </div>
         </div>
         <div className="text-right text-sm text-muted-foreground">
-          <p className="font-semibold text-foreground">R$ 350,34 faturados</p>
-          <p>6 vendas realizadas</p>
+          <p className="font-semibold text-foreground">R$ 0,00 faturados</p>
+          <p>0 vendas realizadas</p>
         </div>
       </div>
-    ),
-    []
-  );
+    );
+  }, [product]);
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -154,36 +321,58 @@ export default function EditarProdutoView() {
                     <span>Status</span>
                   </div>
                   <div className="divide-y divide-foreground/10">
-                    {files.map(file => (
-                      <div key={file.name} className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">Arquivo x</p>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={file.link}
-                              className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
-                            >
-                              {file.link.replace("https://", "")}
-                            </a>
-                            <button
-                              type="button"
-                              className="h-8 w-8 rounded-[6px] border border-foreground/15 bg-card text-sm text-foreground transition hover:border-foreground/30"
-                              aria-label="Baixar"
-                            >
-                              📎
-                            </button>
+                    {deliverablesLoading && (
+                      <div className="px-4 py-4 text-sm text-muted-foreground">Carregando entregáveis...</div>
+                    )}
+                    {!deliverablesLoading && deliverablesError && (
+                      <div className="px-4 py-4 text-sm text-rose-300">{deliverablesError}</div>
+                    )}
+                    {!deliverablesLoading && !deliverablesError && deliverables.length === 0 && (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum entregável cadastrado.</div>
+                    )}
+                    {!deliverablesLoading && !deliverablesError && deliverables.map(deliverable => {
+                      const linkLabel = deliverable.content?.replace(/^https?:\/\//, "") ?? deliverable.content ?? "-";
+                      const isActive = deliverable.status?.toLowerCase() === "active";
+                      return (
+                        <div key={deliverable.id} className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium capitalize">{deliverable.name || deliverable.type || "Entregável"}</p>
+                            <p className="text-xs text-muted-foreground break-all">ID: {deliverable.id}</p>
+                          </div>
+                          <div>
+                            {deliverable.content ? (
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={deliverable.content}
+                                  className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {linkLabel}
+                                </a>
+                                <button
+                                  type="button"
+                                  className="h-8 w-8 rounded-[6px] border border-foreground/15 bg-card text-sm text-foreground transition hover:border-foreground/30"
+                                  aria-label="Baixar"
+                                >
+                                  📎
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">{formatSize(deliverable.size)}</div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span
+                              className={`h-2.5 w-2.5 rounded-full ${isActive ? "bg-primary" : "bg-muted-foreground/50"}`}
+                              aria-hidden
+                            />
+                            <span className="font-medium text-foreground">{deliverable.status ?? "-"}</span>
                           </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">{file.size}</div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="h-2.5 w-2.5 rounded-full bg-primary" aria-hidden />
-                          <span className="font-medium text-foreground">{file.status}</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </>
@@ -222,33 +411,47 @@ export default function EditarProdutoView() {
                     <span>Status</span>
                   </div>
                   <div className="divide-y divide-foreground/10">
-                    {offers.map(offer => (
-                      <div key={`${offer.name}-${offer.checkout}`} className="grid grid-cols-6 items-center gap-4 px-4 py-4 text-sm text-foreground">
-                        <span className="font-semibold uppercase">{offer.name}</span>
-                        <span className="font-semibold">{offer.checkout}</span>
-                        <span className="text-muted-foreground">{offer.type}</span>
-                        <span className="font-semibold">{offer.price}</span>
-                        <div className="flex items-center">
-                          <button
-                            type="button"
-                            className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
-                          >
-                            {offer.access}
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-start">
-                          <span
-                            className={`inline-flex items-center rounded-full px-3 py-[6px] text-xs font-semibold ${
-                              offer.status === "Ativo"
-                                ? "bg-emerald-500/15 text-emerald-300"
-                                : "bg-muted/40 text-muted-foreground"
-                            }`}
-                          >
-                            {offer.status}
+                    {offersLoading && (
+                      <div className="px-4 py-4 text-sm text-muted-foreground">Carregando ofertas...</div>
+                    )}
+                    {!offersLoading && offersError && (
+                      <div className="px-4 py-4 text-sm text-rose-300">{offersError}</div>
+                    )}
+                    {!offersLoading && !offersError && offers.length === 0 && (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhuma oferta cadastrada.</div>
+                    )}
+                    {!offersLoading && !offersError && offers.map(offer => {
+                      const isActive = offer.status?.toLowerCase() === "active";
+                      return (
+                        <div key={offer.id ?? offer.name} className="grid grid-cols-6 items-center gap-4 px-4 py-4 text-sm text-foreground">
+                          <span className="font-semibold uppercase break-words">{offer.name}</span>
+                          <span className="font-semibold text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">{offer.type}</span>
+                          <span className="font-semibold">
+                            {offer.free ? "Grátis" : offer.offer_price != null ? `R$ ${offer.offer_price}` : "-"}
                           </span>
+                          <div className="flex items-center">
+                            <button
+                              type="button"
+                              className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
+                            >
+                              {offer.next_redirect_url?.replace(/^https?:\/\//, "") || "-"}
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-start">
+                            <span
+                              className={`inline-flex items-center rounded-full px-3 py-[6px] text-xs font-semibold ${
+                                isActive
+                                  ? "bg-emerald-500/15 text-emerald-300"
+                                  : "bg-muted/40 text-muted-foreground"
+                              }`}
+                            >
+                              {offer.status}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </>
@@ -714,23 +917,31 @@ export default function EditarProdutoView() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                  <span>Status da oferta</span>
-                  <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                    <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                  </button>
-                </div>
                 <div className="space-y-2">
-                  <label className="space-y-2 text-sm text-muted-foreground">
-                    <span>Nome da oferta</span>
-                    <input
-                      className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Digite um nome"
-                    />
-                  </label>
+                  <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                    <span>Status da oferta</span>
+                    <button
+                      type="button"
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${offerStatus === "active" ? "bg-primary/70" : "bg-muted"}`}
+                      onClick={() => setOfferStatus(prev => (prev === "active" ? "inactive" : "active"))}
+                    >
+                      <span
+                        className={`absolute h-4 w-4 rounded-full bg-white transition ${offerStatus === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"}`}
+                      />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="space-y-2 text-sm text-muted-foreground">
+                      <span>Nome da oferta</span>
+                      <input
+                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        placeholder="Digite um nome"
+                        value={offerName}
+                        onChange={event => setOfferName(event.target.value)}
+                      />
+                    </label>
+                  </div>
                 </div>
-              </div>
 
               {offerType === "preco_unico" && (
                 <div className="space-y-2">
@@ -743,13 +954,21 @@ export default function EditarProdutoView() {
                   </label>
                   <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                     <span>Oferta gratuita</span>
-                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                    <button
+                      type="button"
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${offerFree ? "bg-primary/70" : "bg-muted"}`}
+                      onClick={() => setOfferFree(prev => !prev)}
+                    >
+                      <span
+                        className={`absolute h-4 w-4 rounded-full bg-white transition ${offerFree ? "left-[calc(100%-18px)]" : "left-[6px]"}`}
+                      />
                     </button>
                   </div>
                   <input
                     className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="R$ 0,00"
+                    value={offerPrice}
+                    onChange={event => setOfferPrice(event.target.value)}
                   />
                 </div>
               )}
@@ -941,26 +1160,28 @@ export default function EditarProdutoView() {
                     </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Back Redirect</p>
-                    <p className="text-xs text-muted-foreground">
-                      Redirecione o comprador para URL cadastrada automaticamente ao sair do checkout.
-                    </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Back Redirect</p>
+                      <p className="text-xs text-muted-foreground">
+                        Redirecione o comprador para URL cadastrada automaticamente ao sair do checkout.
+                      </p>
+                    </div>
+                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
+                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                    </button>
                   </div>
-                  <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                    <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                  </button>
+                  <input
+                    className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    placeholder="Insira o link"
+                    value={offerBackRedirect}
+                    onChange={event => setOfferBackRedirect(event.target.value)}
+                  />
                 </div>
-                <input
-                  className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="Insira o link"
-                />
-              </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-foreground">Ir para outra página após aprovado</p>
                     <p className="text-xs text-muted-foreground">
@@ -970,21 +1191,25 @@ export default function EditarProdutoView() {
                   <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
                     <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
                   </button>
+                  </div>
+                  <input
+                    className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    placeholder="Insira o link"
+                    value={offerNextRedirect}
+                    onChange={event => setOfferNextRedirect(event.target.value)}
+                  />
                 </div>
-                <input
-                  className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="Insira o link"
-                />
-              </div>
 
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  className="rounded-[10px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                >
-                  Adicionar oferta
-                </button>
-              </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    className="rounded-[10px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
+                    onClick={handleCreateOffer}
+                    disabled={savingOffer}
+                  >
+                    {savingOffer ? "Salvando..." : "Adicionar oferta"}
+                  </button>
+                </div>
             </div>
           </div>
         </div>
@@ -1752,22 +1977,42 @@ export default function EditarProdutoView() {
                 <input
                   className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   placeholder="Digite um nome"
+                  value={deliverableName}
+                  onChange={event => setDeliverableName(event.target.value)}
                 />
               </label>
 
               {deliverableTab === "arquivo" && (
-                <div className="rounded-[12px] border border-foreground/15 bg-card/80 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-foreground/15 bg-foreground/10" />
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <p className="text-sm text-foreground">Selecione um arquivo ou arraste e solte aqui</p>
-                      <p>JPG, PNG, PDF ou ZIP, não superior a 50 MB</p>
+                <>
+                  <div className="rounded-[12px] border border-foreground/15 bg-card/80 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-foreground/15 bg-foreground/10" />
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <p className="text-sm text-foreground">Selecione um arquivo ou arraste e solte aqui</p>
+                        <p>JPG, PNG, PDF ou ZIP, não superior a 50 MB</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="ml-auto rounded-[8px] border border-foreground/20 px-3 py-2 text-xs font-semibold text-foreground"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Selecionar
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={event => {
+                          const file = event.target.files?.[0];
+                          setDeliverableFile(file ?? null);
+                          if (file && !deliverableName.trim()) {
+                            setDeliverableName(file.name);
+                          }
+                        }}
+                      />
                     </div>
-                    <button className="ml-auto rounded-[8px] border border-foreground/20 px-3 py-2 text-xs font-semibold text-foreground">
-                      Selecionar
-                    </button>
                   </div>
-                </div>
+                </>
               )}
 
               {deliverableTab === "link" && (
@@ -1776,8 +2021,14 @@ export default function EditarProdutoView() {
                   <input
                     className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="Inserir link"
+                    value={deliverableContent}
+                    onChange={event => setDeliverableContent(event.target.value)}
                   />
                 </label>
+              )}
+
+              {deliverableFormError && (
+                <p className="text-sm text-rose-300">{deliverableFormError}</p>
               )}
 
               <div className="flex items-center justify-end gap-3 pt-4">
@@ -1791,9 +2042,10 @@ export default function EditarProdutoView() {
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => setShowDeliverableModal(false)}
+                  onClick={handleCreateDeliverable}
+                  disabled={savingDeliverable}
                 >
-                  Adicionar
+                  {savingDeliverable ? "Salvando..." : "Adicionar"}
                 </button>
               </div>
             </div>

@@ -73,8 +73,20 @@ export interface Product {
   login_password?: string;
 }
 
+export interface ProductDeliverable {
+  id: string;
+  product_id: string;
+  name?: string;
+  type: string;
+  content: string;
+  status: string;
+  size?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ProductListParams {
-  user_id: string;
+  user_id?: string;
   page?: number;
   limit?: number;
 }
@@ -91,6 +103,19 @@ export interface CreateProductRequest {
   sale_url?: string;
   login_username?: string;
   login_password?: string;
+}
+
+export interface ProductOffer {
+  id?: string;
+  name: string;
+  type: string;
+  status: string;
+  offer_price?: number;
+  free?: boolean;
+  back_redirect_url?: string;
+  next_redirect_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface UpdateProductRequest {
