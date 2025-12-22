@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import mockData from "@/data/mockData.json";
 import { Button } from "@/components/ui/button";
@@ -131,20 +131,23 @@ export default function KycView() {
     return ["cnpj", "razao", "representante", "cpfRepresentante", ...base];
   }, [isPessoaFisica]);
 
-  const isFieldValid = (fieldId: string) => {
-    const value = formValues[fieldId] ?? "";
-    if (["cpf", "cnpj", "cpfRepresentante", "telefone", "cep", "numero"].includes(fieldId)) {
-      return value.replace(/\D/g, "").length > 0;
-    }
-    if (["faturamento", "ticket"].includes(fieldId)) {
-      return value.replace(/\D/g, "").length > 0;
-    }
-    return value.trim().length > 0;
-  };
+  const isFieldValid = useCallback(
+    (fieldId: string) => {
+      const value = formValues[fieldId] ?? "";
+      if (["cpf", "cnpj", "cpfRepresentante", "telefone", "cep", "numero"].includes(fieldId)) {
+        return value.replace(/\D/g, "").length > 0;
+      }
+      if (["faturamento", "ticket"].includes(fieldId)) {
+        return value.replace(/\D/g, "").length > 0;
+      }
+      return value.trim().length > 0;
+    },
+    [formValues]
+  );
 
   const missingFields = useMemo(
     () => requiredFields.filter(field => !isFieldValid(field)),
-    [requiredFields, formValues, isFieldValid]
+    [requiredFields, isFieldValid]
   );
   const isFormComplete = missingFields.length === 0;
 

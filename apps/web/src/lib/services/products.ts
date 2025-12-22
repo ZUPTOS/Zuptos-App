@@ -1,14 +1,22 @@
-import type { CreateProductRequest, Product, ProductListParams, UpdateProductRequest } from "../api-types";
-import { API_BASE_URL, buildQuery, readStoredToken, readStoredUserId, request } from "../request";
+import type {
+  CreateProductRequest,
+  Product,
+  ProductDeliverable,
+  ProductListParams,
+  ProductOffer,
+  UpdateProductRequest,
+} from "../api-types";
+import { API_BASE_URL, buildQuery, readStoredToken, request } from "../request";
 
 const PRODUCTS_BASE = API_BASE_URL;
 
 export const productApi = {
-  listProducts: async (params: ProductListParams, token?: string): Promise<Product[]> => {
+  listProducts: async (params: ProductListParams = {}, token?: string): Promise<Product[]> => {
+    const page = Math.max(params.page ?? 1, 1);
+    const limit = Math.min(Math.max(params.limit ?? 10, 1), 10);
     const query = buildQuery({
-      user_id: params.user_id,
-      page: params.page ?? 1,
-      limit: params.limit ?? 20,
+      page,
+      limit,
     });
     const authToken = token ?? readStoredToken();
     return request<Product[]>(`/product${query}`, {
@@ -27,11 +35,19 @@ export const productApi = {
     });
   },
 
+  getDeliverablesByProductId: async (id: string, token?: string): Promise<ProductDeliverable[]> => {
+    const authToken = token ?? readStoredToken();
+    return request<ProductDeliverable[]>(`/product/${id}/deliverables`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    });
+  },
+
   createProduct: async (
-    payload: Partial<CreateProductRequest & { user_id?: string }>,
+    payload: Partial<CreateProductRequest>,
     token?: string
   ): Promise<{ id: string; status?: string; message?: string }> => {
-    const user_id = payload.user_id ?? readStoredUserId();
     if (!payload.name) {
       throw new Error("Missing name for product creation");
     }
@@ -53,10 +69,6 @@ export const productApi = {
       sale_url: payload.sale_url,
       login_username: payload.login_username,
       login_password: payload.login_password,
-      image_url: payload.image_url,
-      total_invoiced: payload.total_invoiced ?? 0,
-      total_sold: payload.total_sold ?? 0,
-      user_id,
     };
     const body = Object.fromEntries(
       Object.entries(bodyEntries).filter(([, value]) => value !== undefined && value !== null)
@@ -114,5 +126,88 @@ export const productApi = {
       baseUrl: PRODUCTS_BASE,
       headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
     });
+  },
+
+  createDeliverable: async (
+    id: string,
+    payload: { name: string; type: string; status?: string; content?: string; size?: number },
+    token?: string
+  ): Promise<ProductDeliverable> => {
+    if (!id) {
+      throw new Error("Missing product id for deliverable creation");
+    }
+    if (!payload?.name) {
+      throw new Error("Missing deliverable name");
+    }
+    if (!payload?.type) {
+      throw new Error("Missing deliverable type");
+    }
+    if (payload.type.toLowerCase() === "link" && !payload.content) {
+      throw new Error("Missing deliverable content for link");
+    }
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for deliverable creation");
+    }
+
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined && value !== null)
+    );
+
+    console.log("🔄 [productApi] Enviando criação de entregável:", body);
+    const response = await request<ProductDeliverable>(`/product/${id}/deliverables`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+    console.log("✅ [productApi] Resposta criação de entregável:", response);
+    return response;
+  },
+
+  getOffersByProductId: async (id: string, token?: string): Promise<ProductOffer[]> => {
+    const authToken = token ?? readStoredToken();
+    return request<ProductOffer[]>(`/product/${id}/offers`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    });
+  },
+
+  createOffer: async (
+    id: string,
+    payload: ProductOffer,
+    token?: string
+  ): Promise<ProductOffer> => {
+    if (!id) {
+      throw new Error("Missing product id for offer creation");
+    }
+    if (!payload?.name || !payload?.type) {
+      throw new Error("Missing offer name or type");
+    }
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for offer creation");
+    }
+
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined && value !== null)
+    );
+
+    console.log("🔄 [productApi] Enviando criação de oferta:", body);
+    const response = await request<ProductOffer>(`/product/${id}/offers`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+    console.log("✅ [productApi] Resposta criação de oferta:", response);
+    return response;
   },
 };

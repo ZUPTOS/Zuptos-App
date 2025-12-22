@@ -27,16 +27,8 @@ interface NavItem {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const initialPinned = (() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return localStorage.getItem("sidebarPinned") === "true";
-    } catch {
-      return false;
-    }
-  })();
-  const [isPinned, setIsPinned] = useState(initialPinned);
-  const [isExpanded, setIsExpanded] = useState(initialPinned);
+  const [isPinned, setIsPinned] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const { theme } = useTheme();
   const isLightMode = theme === "light";
   const handleLogoClick = () => {
@@ -159,6 +151,17 @@ export default function Sidebar() {
 
   const isAdminRoute = pathname?.startsWith("/admin");
   const navItems = isAdminRoute ? adminNavItems : defaultNavItems;
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("sidebarPinned");
+      const nextPinned = stored === "true";
+      setIsPinned(nextPinned);
+      setIsExpanded(nextPinned);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     try {
