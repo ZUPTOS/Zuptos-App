@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
-import type { Product, ProductDeliverable, ProductOffer } from "@/lib/api";
+import type { Product, ProductDeliverable, ProductOffer, Checkout } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 const tabs = [
@@ -19,10 +19,6 @@ const tabs = [
   "Upsell, downsell e mais",
   "Cupons",
   "Coprodução",
-] as const;
-
-const checkouts = [
-  { name: "Checkout 1", payment: "Preço único", offers: "TODAS" }
 ] as const;
 
 const trackingPixels = [
@@ -42,13 +38,43 @@ const coproductions = [
   { name: "BÁSICO", start: "dd/mm/aaaa", commission: "0%", duration: "Vitalícia", status: "Aprovado" },
 ] as const;
 
-export default function EditarProdutoView() {
+type TabLabel = (typeof tabs)[number];
+
+const tabSlugMap: Record<string, TabLabel> = {
+  entregaveis: "Entregável",
+  ofertas: "Ofertas",
+  checkouts: "Checkouts",
+};
+
+const tabToSlug: Record<TabLabel, string> = {
+  "Área de membros": "area-de-membros",
+  Entregável: "entregaveis",
+  Ofertas: "ofertas",
+  Checkouts: "checkouts",
+  Configurações: "configuracoes",
+  "Pixels de rastreamento": "pixels",
+  "Upsell, downsell e mais": "upsell",
+  Cupons: "cupons",
+  Coprodução: "coproducao",
+};
+
+export default function EditarProdutoView({ initialTab }: { initialTab?: string } = {}) {
   const searchParams = useSearchParams();
-  const productId = searchParams?.get("id") ?? undefined;
+  const params = useParams<{ id?: string }>();
+  const productId = useMemo(() => {
+    if (params?.id) return params.id;
+    const fromQuery = searchParams?.get("id");
+    if (fromQuery) return fromQuery;
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lastProductId") ?? undefined;
+    }
+    return undefined;
+  }, [params, searchParams]);
   const { token } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Entregável");
+  const initialTabLabel = (initialTab && tabSlugMap[initialTab]) || "Entregável";
+  const [activeTab, setActiveTab] = useState<TabLabel>(initialTabLabel);
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [showPixelModal, setShowPixelModal] = useState(false);
@@ -80,6 +106,9 @@ export default function EditarProdutoView() {
   const [pixelType, setPixelType] = useState<"padrao" | "api">("padrao");
   const [couponUnit, setCouponUnit] = useState<"valor" | "percent">("valor");
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
+  const [checkouts, setCheckouts] = useState<Checkout[]>([]);
+  const [checkoutsLoading, setCheckoutsLoading] = useState(false);
+  const [checkoutsError, setCheckoutsError] = useState<string | null>(null);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -138,6 +167,26 @@ export default function EditarProdutoView() {
   useEffect(() => {
     void loadOffers();
   }, [loadOffers]);
+
+  const loadCheckouts = useCallback(async () => {
+    if (!productId || !token || activeTab !== "Checkouts") return;
+    setCheckoutsLoading(true);
+    setCheckoutsError(null);
+    try {
+      const data = await productApi.getCheckoutsByProductId(productId, token);
+      console.log("[productApi] Checkouts recebidos:", data);
+      setCheckouts(data);
+    } catch (error) {
+      console.error("Erro ao carregar checkouts:", error);
+      setCheckoutsError("Não foi possível carregar os checkouts agora.");
+    } finally {
+      setCheckoutsLoading(false);
+    }
+  }, [activeTab, productId, token]);
+
+  useEffect(() => {
+    void loadCheckouts();
+  }, [loadCheckouts]);
 
   const formatSize = (size?: number) => {
     if (!size) return "-";
@@ -231,6 +280,18 @@ export default function EditarProdutoView() {
     }
   };
 
+  useEffect(() => {
+    setActiveTab((initialTab && tabSlugMap[initialTab]) || "Entregável");
+  }, [initialTab]);
+
+  const navigateToTab = (tab: TabLabel) => {
+    setActiveTab(tab);
+    const slug = tabToSlug[tab] ?? tab.toLowerCase();
+    if (productId) {
+      router.push(`/editar-produto/${encodeURIComponent(productId)}/${slug}`);
+    }
+  };
+
   const headerCard = useMemo(() => {
     const thumb = product?.image_url || "/images/produto.png";
     const name = product?.name ?? "Produto";
@@ -272,7 +333,7 @@ export default function EditarProdutoView() {
                   <li key={tab}>
                     <button
                       type="button"
-                      onClick={() => setActiveTab(tab)}
+                      onClick={() => navigateToTab(tab)}
                       className={`w-full px-2 py-2 text-left transition ${
                         isActive
                           ? "text-foreground drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]"
@@ -473,6 +534,7 @@ export default function EditarProdutoView() {
                     <button
                       type="button"
                       className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
+                      onClick={() => productId && router.push(`/editar-produto/${encodeURIComponent(productId)}/checkout`)}
                     >
                       Adicionar Checkout
                     </button>
@@ -487,18 +549,27 @@ export default function EditarProdutoView() {
                     <span className="text-right">Ação</span>
                   </div>
                   <div className="divide-y divide-foreground/10">
-                    {checkouts.map(checkout => (
+                    {checkoutsLoading && (
+                      <div className="px-4 py-4 text-sm text-muted-foreground">Carregando checkouts...</div>
+                    )}
+                    {!checkoutsLoading && checkoutsError && (
+                      <div className="px-4 py-4 text-sm text-rose-300">{checkoutsError}</div>
+                    )}
+                    {!checkoutsLoading && !checkoutsError && checkouts.length === 0 && (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum checkout cadastrado.</div>
+                    )}
+                    {!checkoutsLoading && !checkoutsError && checkouts.map(checkout => (
                       <div
-                        key={checkout.name}
+                        key={checkout.id ?? checkout.name}
                         className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground"
                       >
                         <span className="font-semibold">{checkout.name}</span>
-                        <span className="text-muted-foreground">{checkout.payment}</span>
-                        <span className="text-muted-foreground">{checkout.offers}</span>
+                        <span className="text-muted-foreground">{checkout.theme ?? "-"}</span>
+                        <span className="text-muted-foreground">{checkout.template ?? "-"}</span>
                         <div className="flex justify-end">
                           <button
                             className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/40"
-                            onClick={() => router.push('/editar-produto/checkouts')}
+                            onClick={() => productId && router.push(`/editar-produto/${encodeURIComponent(productId)}/checkout`)}
                             type="button"
                           >
                             EDITAR

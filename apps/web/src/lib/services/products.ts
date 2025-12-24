@@ -2,6 +2,8 @@ import type {
   CreateProductRequest,
   Product,
   ProductDeliverable,
+  CheckoutPayload,
+  Checkout,
   ProductListParams,
   ProductOffer,
   UpdateProductRequest,
@@ -209,5 +211,49 @@ export const productApi = {
     });
     console.log("✅ [productApi] Resposta criação de oferta:", response);
     return response;
+  },
+
+  createCheckout: async (
+    id: string,
+    payload: CheckoutPayload,
+    token?: string
+  ): Promise<CheckoutPayload> => {
+    if (!id) {
+      throw new Error("Missing product id for checkout creation");
+    }
+    if (!payload?.name) {
+      throw new Error("Missing checkout name");
+    }
+
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for checkout creation");
+    }
+
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined && value !== null)
+    );
+
+    console.log("🔄 [productApi] Enviando criação de checkout:", body);
+    const response = await request<CheckoutPayload>(`/product/${id}/checkouts`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+    console.log("✅ [productApi] Resposta criação de checkout:", response);
+    return response;
+  },
+
+  getCheckoutsByProductId: async (id: string, token?: string): Promise<Checkout[]> => {
+    const authToken = token ?? readStoredToken();
+    return request<Checkout[]>(`/product/${id}/checkouts`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    });
   },
 };

@@ -118,6 +118,36 @@ export interface ProductOffer {
   updated_at?: string;
 }
 
+export interface CheckoutPayload {
+  template?: string;
+  name: string;
+  required_address?: boolean;
+  required_phone?: boolean;
+  required_birthdate?: boolean;
+  required_document?: boolean;
+  required_email_confirmation?: boolean;
+  logo?: string;
+  position_logo?: string;
+  banner?: string;
+  theme?: string;
+  defaultColor?: string;
+  countdown?: boolean;
+  "countdown active"?: boolean;
+  countdown_expire?: string;
+  countdown_background?: string;
+  social_proofs_message?: string;
+  social_proofs_min_client?: number;
+  after_sale_title?: string;
+  after_sale_message?: string;
+}
+
+export interface Checkout extends CheckoutPayload {
+  id?: string;
+  product_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface UpdateProductRequest {
   name?: string;
   type?: string;

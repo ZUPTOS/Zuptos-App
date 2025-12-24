@@ -3,8 +3,8 @@
 import { withAuth } from "@/lib/auth-guards";
 import AdminCheckout from "@/views/AdminCheckout";
 
-function AdminCheckoutPage() {
+function CheckoutPage() {
   return <AdminCheckout />;
 }
 
-export default withAuth(AdminCheckoutPage);
+export default withAuth(CheckoutPage);

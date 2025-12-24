@@ -1,10 +1,12 @@
+'use client';
+
 import { Suspense } from "react";
 import EditarProdutoView from "@/views/EditarProduto";
 
-export default function EditarProdutoPage() {
+export default function EditarProdutoOfertasPage() {
   return (
     <Suspense fallback={null}>
-      <EditarProdutoView />
+      <EditarProdutoView initialTab="ofertas" />
     </Suspense>
   );
 }
