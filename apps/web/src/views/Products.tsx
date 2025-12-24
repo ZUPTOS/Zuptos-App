@@ -442,7 +442,7 @@ export default function Products() {
                     if (product.id) {
                       // Persist id localmente para telas subsequentes, se necessário
                       localStorage.setItem("lastProductId", product.id);
-                      router.push(`/editar-produto?id=${encodeURIComponent(product.id)}`);
+                      router.push(`/editar-produto/${encodeURIComponent(product.id)}/entregaveis`);
                     }
                   };
 
