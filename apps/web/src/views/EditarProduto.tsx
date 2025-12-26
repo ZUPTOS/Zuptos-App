@@ -6,11 +6,21 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
-import type { Product, ProductDeliverable, ProductOffer, Checkout } from "@/lib/api";
+import type {
+  Product,
+  ProductDeliverable,
+  ProductOffer,
+  Checkout,
+  ProductSettings,
+  UpdateProductSettingsRequest,
+  ProductPlan,
+  CreateProductPlanRequest,
+} from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const tabs = [
-  "Área de membros",
   "Entregável",
   "Ofertas",
   "Checkouts",
@@ -19,10 +29,6 @@ const tabs = [
   "Upsell, downsell e mais",
   "Cupons",
   "Coprodução",
-] as const;
-
-const trackingPixels = [
-  { name: "META", id: "688693e", platform: "Facebook", status: "Ativo" }
 ] as const;
 
 const upsellItems = [
@@ -47,7 +53,6 @@ const tabSlugMap: Record<string, TabLabel> = {
 };
 
 const tabToSlug: Record<TabLabel, string> = {
-  "Área de membros": "area-de-membros",
   Entregável: "entregaveis",
   Ofertas: "ofertas",
   Checkouts: "checkouts",
@@ -71,14 +76,16 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     return undefined;
   }, [params, searchParams]);
   const { token } = useAuth();
+  const { withLoading } = useLoadingOverlay();
   const [product, setProduct] = useState<Product | null>(null);
-  const [, setIsLoading] = useState(false);
+  const [productLoading, setProductLoading] = useState(false);
   const initialTabLabel = (initialTab && tabSlugMap[initialTab]) || "Entregável";
   const [activeTab, setActiveTab] = useState<TabLabel>(initialTabLabel);
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [showPixelModal, setShowPixelModal] = useState(false);
   const [showPixelFormModal, setShowPixelFormModal] = useState(false);
+  const [selectedPixelPlatform, setSelectedPixelPlatform] = useState<string | null>(null);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [showCoproductionModal, setShowCoproductionModal] = useState(false);
@@ -109,31 +116,56 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [checkoutsLoading, setCheckoutsLoading] = useState(false);
   const [checkoutsError, setCheckoutsError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<ProductSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [, setSettingsError] = useState<string | null>(null);
+  const [plans, setPlans] = useState<ProductPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [planSaving, setPlanSaving] = useState(false);
+  const [planForm, setPlanForm] = useState({
+    name: "",
+    type: "monthly",
+    status: "active",
+    plan_price: "",
+    normal_price: "",
+    discount_price: "",
+    cycles: "",
+    price_first_cycle: "",
+    default: false,
+  });
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId || !token) return;
-      setIsLoading(true);
+      setProductLoading(true);
       try {
-        const data = await productApi.getProductById(productId, token);
+        const data = await withLoading(
+          () => productApi.getProductById(productId, token),
+          "Carregando produto"
+        );
         setProduct(data);
       } catch (error) {
         console.error("Erro ao carregar produto:", error);
       } finally {
-        setIsLoading(false);
+        setProductLoading(false);
       }
     };
     void fetchProduct();
-  }, [productId, token]);
+  }, [productId, token, withLoading]);
 
   const loadDeliverables = useCallback(async () => {
     if (!productId || !token || activeTab !== "Entregável") return;
     setDeliverablesLoading(true);
     setDeliverablesError(null);
     try {
-      const data = await productApi.getDeliverablesByProductId(productId, token);
+      const data = await withLoading(
+        () => productApi.getDeliverablesByProductId(productId, token),
+        "Carregando entregáveis"
+      );
       console.log("[productApi] Entregáveis recebidos:", data);
       setDeliverables(data);
     } catch (error) {
@@ -142,7 +174,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     } finally {
       setDeliverablesLoading(false);
     }
-  }, [activeTab, productId, token]);
+  }, [activeTab, productId, token, withLoading]);
 
   useEffect(() => {
     void loadDeliverables();
@@ -153,7 +185,10 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     setOffersLoading(true);
     setOffersError(null);
     try {
-      const data = await productApi.getOffersByProductId(productId, token);
+      const data = await withLoading(
+        () => productApi.getOffersByProductId(productId, token),
+        "Carregando ofertas"
+      );
       console.log("[productApi] Ofertas recebidas:", data);
       setOffers(data);
     } catch (error) {
@@ -162,7 +197,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     } finally {
       setOffersLoading(false);
     }
-  }, [activeTab, productId, token]);
+  }, [activeTab, productId, token, withLoading]);
 
   useEffect(() => {
     void loadOffers();
@@ -173,7 +208,10 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     setCheckoutsLoading(true);
     setCheckoutsError(null);
     try {
-      const data = await productApi.getCheckoutsByProductId(productId, token);
+      const data = await withLoading(
+        () => productApi.getCheckoutsByProductId(productId, token),
+        "Carregando checkouts"
+      );
       console.log("[productApi] Checkouts recebidos:", data);
       setCheckouts(data);
     } catch (error) {
@@ -182,11 +220,55 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     } finally {
       setCheckoutsLoading(false);
     }
-  }, [activeTab, productId, token]);
+  }, [activeTab, productId, token, withLoading]);
 
   useEffect(() => {
     void loadCheckouts();
   }, [loadCheckouts]);
+
+  const loadPlans = useCallback(async () => {
+    if (!productId || !token || activeTab !== "Pixels de rastreamento") return;
+    setPlansLoading(true);
+    setPlansError(null);
+    try {
+      const data = await withLoading(
+        () => productApi.getPlansByProductId(productId, token),
+        "Carregando pixels"
+      );
+      setPlans(data);
+    } catch (error) {
+      console.error("Erro ao carregar pixels:", error);
+      setPlansError("Não foi possível carregar os pixels agora.");
+    } finally {
+      setPlansLoading(false);
+    }
+  }, [activeTab, productId, token, withLoading]);
+
+  useEffect(() => {
+    void loadPlans();
+  }, [loadPlans]);
+
+  const loadSettings = useCallback(async () => {
+    if (!productId || !token || activeTab !== "Configurações") return;
+    setSettingsLoading(true);
+    setSettingsError(null);
+    try {
+      const data = await withLoading(
+        () => productApi.getProductSettings(productId, token),
+        "Carregando configurações"
+      );
+      setSettings(data);
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error);
+      setSettingsError("Não foi possível carregar as configurações agora.");
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, [activeTab, productId, token, withLoading]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const formatSize = (size?: number) => {
     if (!size) return "-";
@@ -293,9 +375,28 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   };
 
   const headerCard = useMemo(() => {
-    const thumb = product?.image_url || "/images/produto.png";
-    const name = product?.name ?? "Produto";
-    const status = (product as Product & { status?: string })?.status ?? "Ativo";
+    if (productLoading || !product) {
+      return (
+        <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-[72px] w-[72px] rounded-[10px]" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+          <div className="space-y-2 text-right">
+            <Skeleton className="ml-auto h-4 w-28" />
+            <Skeleton className="ml-auto h-3 w-20" />
+          </div>
+        </div>
+      );
+    }
+
+    const thumb = product.image_url || "/images/produto.png";
+    const name = product.name ?? "Produto";
+    const rawStatus = (product as Product & { status?: string })?.status;
+    const displayStatus = rawStatus && rawStatus.trim() ? rawStatus : "Ativo";
     return (
       <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
@@ -310,7 +411,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
           </div>
           <div className="space-y-1">
             <p className="text-base font-semibold text-foreground">{name}</p>
-            <span className="text-xs font-semibold text-emerald-400">{status}</span>
+            <span className="text-xs font-semibold text-emerald-400">{displayStatus}</span>
           </div>
         </div>
         <div className="text-right text-sm text-muted-foreground">
@@ -319,7 +420,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
         </div>
       </div>
     );
-  }, [product]);
+  }, [product, productLoading]);
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -383,7 +484,22 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   </div>
                   <div className="divide-y divide-foreground/10">
                     {deliverablesLoading && (
-                      <div className="px-4 py-4 text-sm text-muted-foreground">Carregando entregáveis...</div>
+                      <>
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-28" />
+                              <Skeleton className="h-3 w-24" />
+                            </div>
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-4 w-16" />
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-3 w-3 rounded-full" />
+                              <Skeleton className="h-4 w-16" />
+                            </div>
+                          </div>
+                        ))}
+                      </>
                     )}
                     {!deliverablesLoading && deliverablesError && (
                       <div className="px-4 py-4 text-sm text-rose-300">{deliverablesError}</div>
@@ -473,7 +589,20 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   </div>
                   <div className="divide-y divide-foreground/10">
                     {offersLoading && (
-                      <div className="px-4 py-4 text-sm text-muted-foreground">Carregando ofertas...</div>
+                      <>
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <div key={index} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-28" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-4 w-12" />
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-8 w-24 rounded-[10px]" />
+                          </div>
+                        ))}
+                      </>
                     )}
                     {!offersLoading && offersError && (
                       <div className="px-4 py-4 text-sm text-rose-300">{offersError}</div>
@@ -550,7 +679,18 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   </div>
                   <div className="divide-y divide-foreground/10">
                     {checkoutsLoading && (
-                      <div className="px-4 py-4 text-sm text-muted-foreground">Carregando checkouts...</div>
+                      <>
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 w-20" />
+                            <div className="flex justify-end">
+                              <Skeleton className="h-8 w-24 rounded-[8px]" />
+                            </div>
+                          </div>
+                        ))}
+                      </>
                     )}
                     {!checkoutsLoading && checkoutsError && (
                       <div className="px-4 py-4 text-sm text-rose-300">{checkoutsError}</div>
@@ -618,58 +758,66 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">E-mail</span>
+                      <span className="text-foreground">E-mail de suporte</span>
                       <input
                         className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Insira o e-mail"
+                        placeholder="ex: suporte@empresa.com"
+                        value={settings?.support_email ?? ""}
+                        onChange={event =>
+                          setSettings(current => ({
+                            ...(current ?? { id: "", product_id: productId ?? "" }),
+                            support_email: event.target.value,
+                          }))
+                        }
+                        disabled={settingsLoading || settingsSaving}
                       />
                     </label>
                     <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Telefone</span>
+                      <span className="text-foreground">Telefone de suporte</span>
                       <input
                         className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Insira o e-mail"
+                        placeholder="ex: +55 11 99999-9999"
+                        value={settings?.phone_support ?? ""}
+                        onChange={event =>
+                          setSettings(current => ({
+                            ...(current ?? { id: "", product_id: productId ?? "" }),
+                            phone_support: event.target.value,
+                          }))
+                        }
+                        disabled={settingsLoading || settingsSaving}
                       />
                     </label>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Categoria</span>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Selecione a categoria"
-                      />
-                    </label>
-                    <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Formato</span>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Curso"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <label className="space-y-1 text-sm text-muted-foreground">
                       <span className="text-foreground">Idioma</span>
                       <input
                         className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Português"
+                        placeholder="pt-BR"
+                        value={settings?.language ?? ""}
+                        onChange={event =>
+                          setSettings(current => ({
+                            ...(current ?? { id: "", product_id: productId ?? "" }),
+                            language: event.target.value,
+                          }))
+                        }
+                        disabled={settingsLoading || settingsSaving}
                       />
                     </label>
                     <label className="space-y-1 text-sm text-muted-foreground">
                       <span className="text-foreground">Moeda base</span>
                       <input
                         className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Real"
-                      />
-                    </label>
-                    <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Página de vendas</span>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="www.site.com"
+                        placeholder="BRL"
+                        value={settings?.currency ?? ""}
+                        onChange={event =>
+                          setSettings(current => ({
+                            ...(current ?? { id: "", product_id: productId ?? "" }),
+                            currency: event.target.value,
+                          }))
+                        }
+                        disabled={settingsLoading || settingsSaving}
                       />
                     </label>
                   </div>
@@ -679,8 +827,24 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                       <p className="text-sm font-semibold text-foreground">Status do produto</p>
                       <p className="text-xs text-muted-foreground">Gerencie se o produto estará ou não ativo para vendas</p>
                     </div>
-                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                    <button
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${
+                        settings?.status === "active" ? "bg-primary/70" : "bg-muted"
+                      }`}
+                      onClick={() =>
+                        setSettings(current => ({
+                          ...(current ?? { id: "", product_id: productId ?? "" }),
+                          status: current?.status === "active" ? "inactive" : "active",
+                        }))
+                      }
+                      disabled={settingsLoading || settingsSaving}
+                      type="button"
+                    >
+                      <span
+                        className={`absolute h-4 w-4 rounded-full bg-white transition ${
+                          settings?.status === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"
+                        }`}
+                      />
                     </button>
                   </div>
 
@@ -695,6 +859,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                       <button
                         className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/40"
                         onClick={() => setShowRecoveryModal(true)}
+                        type="button"
                       >
                         Configurar
                       </button>
@@ -707,8 +872,35 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   <button className="rounded-[8px] border border-rose-900/60 bg-rose-900/30 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-900/50">
                     Excluir produto
                   </button>
-                  <button className="rounded-[8px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90">
-                    Salvar alterações
+                  <button
+                    className="rounded-[8px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90 disabled:opacity-60"
+                    type="button"
+                    onClick={async () => {
+                      if (!productId || !token || !settings) return;
+                      setSettingsSaving(true);
+                      setSettingsError(null);
+                      try {
+                        const payload: UpdateProductSettingsRequest = {
+                          support_email: settings.support_email || undefined,
+                          phone_support: settings.phone_support || undefined,
+                          language: settings.language || undefined,
+                          currency: settings.currency || undefined,
+                          status: settings.status || undefined,
+                        };
+                        await withLoading(
+                          () => productApi.updateProductSettings(productId, payload, token),
+                          "Salvando configurações"
+                        );
+                      } catch (error) {
+                        console.error("Erro ao salvar configurações:", error);
+                        setSettingsError("Não foi possível salvar as configurações.");
+                      } finally {
+                        setSettingsSaving(false);
+                      }
+                    }}
+                    disabled={settingsSaving || settingsLoading}
+                  >
+                    {settingsSaving ? "Salvando..." : "Salvar alterações"}
                   </button>
                 </div>
               </>
@@ -730,7 +922,10 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     <button
                       type="button"
                       className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => setShowPixelModal(true)}
+                      onClick={() => {
+                        setSelectedPixelPlatform(null);
+                        setShowPixelModal(true);
+                      }}
                     >
                       Adicionar Pixel
                     </button>
@@ -745,17 +940,37 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     <span className="text-right">Status</span>
                   </div>
                   <div className="divide-y divide-foreground/10">
-                    {trackingPixels.map(pixel => (
+                    {plansLoading && (
+                      <>
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-4 w-28" />
+                            <Skeleton className="h-4 w-24" />
+                            <div className="flex justify-end">
+                              <Skeleton className="h-6 w-20 rounded-full" />
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {!plansLoading && plansError && (
+                      <div className="px-4 py-4 text-sm text-rose-300">{plansError}</div>
+                    )}
+                    {!plansLoading && !plansError && plans.length === 0 && (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum pixel cadastrado.</div>
+                    )}
+                    {!plansLoading && !plansError && plans.map(pixel => (
                       <div
-                        key={`${pixel.name}-${pixel.id}`}
+                        key={pixel.id}
                         className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground"
                       >
-                        <span className="font-semibold uppercase">{pixel.name}</span>
+                        <span className="font-semibold uppercase">{pixel.name || pixel.platform || "PIXEL"}</span>
                         <span className="text-muted-foreground">{pixel.id}</span>
-                        <span className="flex items-center gap-2 text-muted-foreground">{pixel.platform}</span>
+                        <span className="flex items-center gap-2 text-muted-foreground">{pixel.platform ?? "-"}</span>
                         <div className="flex justify-end">
                           <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
-                            {pixel.status}
+                            {pixel.status ?? "Ativo"}
                           </span>
                         </div>
                       </div>
@@ -1404,20 +1619,40 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   { name: "Google Ads", icon: "/images/google-ads.png" },
                   { name: "Facebook", icon: "/images/facebook.png" },
                   { name: "TikTok", icon: "/images/tiktok.png" },
-                ].map(platform => (
-                  <label
-                    key={platform.name}
-                    className="flex items-center justify-between gap-3 rounded-[12px] border border-foreground/15 bg-card/80 px-4 py-3 text-sm text-muted-foreground transition hover:border-foreground/30"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-foreground/10">
-                        <Image src={platform.icon} alt={platform.name} width={32} height={32} className="object-contain" />
+                ].map(platform => {
+                  const isActive = selectedPixelPlatform === platform.name;
+                  return (
+                    <label
+                      key={platform.name}
+                      className={`flex items-center justify-between gap-3 rounded-[12px] border px-4 py-3 text-sm text-muted-foreground transition ${
+                        isActive
+                          ? "border-primary/60 bg-primary/5"
+                          : "border-foreground/15 bg-card/80 hover:border-foreground/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-foreground/10">
+                          <Image src={platform.icon} alt={platform.name} width={32} height={32} className="object-contain" />
+                        </div>
+                        <span className="text-base text-foreground">{platform.name}</span>
                       </div>
-                      <span className="text-base text-foreground">{platform.name}</span>
-                    </div>
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-foreground/25" />
-                  </label>
-                ))}
+                      <input
+                        type="radio"
+                        name="pixel-platform"
+                        className="peer sr-only"
+                        checked={isActive}
+                        onChange={() => setSelectedPixelPlatform(platform.name)}
+                      />
+                      <span
+                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                          isActive ? "border-primary bg-primary" : "border-foreground/25"
+                        }`}
+                      >
+                        {isActive && <span className="h-2.5 w-2.5 rounded-full bg-white" />}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4">
@@ -1432,9 +1667,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   type="button"
                   className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
                   onClick={() => {
+                    if (!selectedPixelPlatform) return;
                     setShowPixelModal(false);
                     setShowPixelFormModal(true);
                   }}
+                  disabled={!selectedPixelPlatform}
                 >
                   Prosseguir
                 </button>
@@ -1470,30 +1707,15 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
             <div className="mt-5 space-y-4 pb-10">
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-foreground">Tipo</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPixelType("padrao")}
-                    className={`rounded-[8px] border px-3 py-3 text-center text-sm font-semibold shadow-inner ${
-                      pixelType === "padrao"
-                        ? "border-foreground/20 bg-[#d9d9d9] text-black"
-                        : "border-foreground/10 bg-card text-muted-foreground"
-                    }`}
-                  >
-                    Padrão
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPixelType("api")}
-                    className={`rounded-[8px] border px-3 py-3 text-center text-sm font-semibold shadow-inner ${
-                      pixelType === "api"
-                        ? "border-foreground/20 bg-[#d9d9d9] text-black"
-                        : "border-foreground/10 bg-card text-muted-foreground"
-                    }`}
-                  >
-                    API
-                  </button>
-                </div>
+                <select
+                  className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
+                  value={planForm.type}
+                  onChange={event => setPlanForm(prev => ({ ...prev, type: event.target.value }))}
+                >
+                  <option value="monthly">Mensal</option>
+                  <option value="annual">Anual</option>
+                  <option value="lifetime">Vitalício</option>
+                </select>
               </div>
 
               <label className="space-y-2 text-sm text-muted-foreground">
@@ -1501,52 +1723,114 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <input
                   className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   placeholder="Digite um nome"
+                  value={planForm.name}
+                  onChange={event => setPlanForm(prev => ({ ...prev, name: event.target.value }))}
                 />
               </label>
-
-              {pixelType === "api" && (
-                <label className="space-y-2 text-sm text-muted-foreground">
-                  <span className="text-foreground">Token acesso API conversões</span>
-                  <input
-                    className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    placeholder="Digite um nome"
-                  />
-                </label>
-              )}
 
               <label className="space-y-2 text-sm text-muted-foreground">
-                <span className="text-foreground">Pixel Id</span>
+                <span className="text-foreground">Preço do plano</span>
                 <input
                   className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="Digite um nome"
+                  placeholder="ex: 19.99"
+                  inputMode="decimal"
+                  value={planForm.plan_price}
+                  onChange={event => setPlanForm(prev => ({ ...prev, plan_price: event.target.value }))}
                 />
               </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-2 text-sm text-muted-foreground">
+                  <span className="text-foreground">Preço normal</span>
+                  <input
+                    className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    placeholder="ex: 29.99"
+                    inputMode="decimal"
+                    value={planForm.normal_price}
+                    onChange={event => setPlanForm(prev => ({ ...prev, normal_price: event.target.value }))}
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-muted-foreground">
+                  <span className="text-foreground">Preço com desconto</span>
+                  <input
+                    className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    placeholder="ex: 9.99"
+                    inputMode="decimal"
+                    value={planForm.discount_price}
+                    onChange={event => setPlanForm(prev => ({ ...prev, discount_price: event.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-2 text-sm text-muted-foreground">
+                  <span className="text-foreground">Ciclos</span>
+                  <input
+                    className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    placeholder="ex: 12"
+                    inputMode="numeric"
+                    value={planForm.cycles}
+                    onChange={event => setPlanForm(prev => ({ ...prev, cycles: event.target.value }))}
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-muted-foreground">
+                  <span className="text-foreground">Preço 1º ciclo</span>
+                  <input
+                    className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    placeholder="ex: 9.99"
+                    inputMode="decimal"
+                    value={planForm.price_first_cycle}
+                    onChange={event => setPlanForm(prev => ({ ...prev, price_first_cycle: event.target.value }))}
+                  />
+                </label>
+              </div>
 
               <div className="flex items-center gap-3 pt-2 text-sm font-semibold text-foreground">
                 <span>Status</span>
-                <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                  <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                <button
+                  className={`relative inline-flex h-5 w-10 items-center rounded-full ${
+                    planForm.status === "active" ? "bg-primary/70" : "bg-muted"
+                  }`}
+                  type="button"
+                  onClick={() =>
+                    setPlanForm(prev => ({
+                      ...prev,
+                      status: prev.status === "active" ? "inactive" : "active",
+                    }))
+                  }
+                >
+                  <span
+                    className={`absolute h-4 w-4 rounded-full bg-white transition ${
+                      planForm.status === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"
+                    }`}
+                  />
                 </button>
-                <span className="text-muted-foreground">Ativo</span>
+                <span className="text-muted-foreground capitalize">{planForm.status}</span>
               </div>
 
-              <div className="space-y-2 pt-2">
-                <p className="text-sm font-semibold text-foreground">Configure eventos do pixel</p>
-                <p className="text-xs text-muted-foreground">Registro e otimização de conversões.</p>
-                {[
-                  "Adicionar um item ao carrinho (AddToCart)",
-                  "Iniciar finalização da compra (InitiateCheckout)",
-                  "Adicionar dados de pagamento (AddPaymentInfo)",
-                  "Compra (Purchase)",
-                ].map(label => (
-                  <div key={label} className="flex items-center justify-between text-sm text-foreground">
-                    <span className="text-[13px] text-muted-foreground">{label}</span>
-                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                    </button>
-                  </div>
-                ))}
+              <div className="flex items-center gap-3 pt-2 text-sm font-semibold text-foreground">
+                <span>Padrão</span>
+                <button
+                  className={`relative inline-flex h-5 w-10 items-center rounded-full ${
+                    planForm.default ? "bg-primary/70" : "bg-muted"
+                  }`}
+                  type="button"
+                  onClick={() =>
+                    setPlanForm(prev => ({
+                      ...prev,
+                      default: !prev.default,
+                    }))
+                  }
+                >
+                  <span
+                    className={`absolute h-4 w-4 rounded-full bg-white transition ${
+                      planForm.default ? "left-[calc(100%-18px)]" : "left-[6px]"
+                    }`}
+                  />
+                </button>
               </div>
+
+              {/* Configuração de eventos removida no momento */}
 
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button
@@ -1558,13 +1842,56 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 </button>
                 <button
                   type="button"
-                  className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => setShowPixelFormModal(false)}
-                >
-                  Adicionar
-                </button>
+                    className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
+                    onClick={async () => {
+                      if (!productId || !token) return;
+                      if (!planForm.name.trim() || !planForm.plan_price) {
+                        return;
+                      }
+
+                      const payload: CreateProductPlanRequest = {
+                        name: planForm.name.trim(),
+                        type: planForm.type,
+                        status: planForm.status,
+                        plan_price: Number(planForm.plan_price),
+                        normal_price: planForm.normal_price ? Number(planForm.normal_price) : undefined,
+                        discount_price: planForm.discount_price ? Number(planForm.discount_price) : undefined,
+                        cycles: planForm.cycles ? Number(planForm.cycles) : undefined,
+                        price_first_cycle: planForm.price_first_cycle ? Number(planForm.price_first_cycle) : undefined,
+                        default: planForm.default,
+                      };
+
+                      setPlanSaving(true);
+                      try {
+                        await withLoading(
+                          () => productApi.createPlan(productId, payload, token),
+                          "Criando pixel"
+                        );
+                        await loadPlans();
+                        setPlanForm({
+                          name: "",
+                          type: "monthly",
+                          status: "active",
+                          plan_price: "",
+                          normal_price: "",
+                          discount_price: "",
+                          cycles: "",
+                          price_first_cycle: "",
+                          default: false,
+                        });
+                        setShowPixelFormModal(false);
+                      } catch (error) {
+                        console.error("Erro ao criar pixel:", error);
+                      } finally {
+                        setPlanSaving(false);
+                      }
+                    }}
+                    disabled={planSaving || !planForm.name.trim() || !planForm.plan_price}
+                  >
+                    {planSaving ? "Salvando..." : "Adicionar"}
+                  </button>
+                </div>
               </div>
-            </div>
           </div>
         </div>
       )}

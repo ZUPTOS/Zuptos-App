@@ -162,6 +162,48 @@ export interface UpdateProductRequest {
   login_password?: string;
 }
 
+export interface ProductSettings {
+  id: string;
+  product_id: string;
+  support_email?: string;
+  phone_support?: string;
+  language?: string;
+  currency?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UpdateProductSettingsRequest {
+  support_email?: string;
+  phone_support?: string;
+  language?: string;
+  currency?: string;
+  status?: string;
+}
+
+export interface ProductPlan {
+  id: string;
+  name?: string;
+  platform?: string;
+  status?: string;
+  pixel_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateProductPlanRequest {
+  type: string;
+  status: string;
+  plan_price: number;
+  name: string;
+  normal_price?: number;
+  discount_price?: number;
+  default?: boolean;
+  cycles?: number;
+  price_first_cycle?: number;
+}
+
 export interface KycAddress {
   address: string;
   number: string;
