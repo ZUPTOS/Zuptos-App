@@ -25,16 +25,30 @@ export default function KycReminder() {
       }
       setStatus("loading");
       try {
-        const profileStatus = user?.status?.toLowerCase();
+        const profileStatus = user?.kyc?.status || user?.status;
         const isApproved = (status?: string) =>
-          status ? ["approved", "aprovado", "complete", "completed", "validado"].includes(status) : false;
+          status ? ["approved", "aprovado", "complete", "completed", "validado", "APPROVED"].includes(status) : false;
+        const isPendingStatus = (status?: string) =>
+          status
+            ? [
+                "in_progress",
+                "processing",
+                "waiting",
+                "pending",
+                "em_analise",
+                "in_review",
+                "review",
+                "IN_PROGRESS",
+                "PENDING",
+              ].includes(status)
+            : false;
 
         if (profileStatus) {
           if (isApproved(profileStatus)) {
             if (active) setStatus("complete");
             return;
           }
-          if (profileStatus === "in_progress" || profileStatus === "processing" || profileStatus === "waiting") {
+          if (isPendingStatus(profileStatus)) {
             if (active) setStatus("pending");
             return;
           }
@@ -43,13 +57,11 @@ export default function KycReminder() {
 
         const statusInfo = await kycApi.getStatus(token);
         if (!active) return;
-        const raw = statusInfo.rawStatus?.toLowerCase();
+        const raw = statusInfo.rawStatus ?? statusInfo.status;
         if (isApproved(raw)) {
           setStatus("complete");
-        } else if (raw === "in_progress" || raw === "processing" || raw === "waiting") {
+        } else if (isPendingStatus(raw)) {
           setStatus("pending");
-        } else if (raw === "pending") {
-          setStatus("none");
         } else if (statusInfo.exists) {
           // default: existe mas não aprovado -> tratar como em análise
           setStatus("pending");
@@ -104,7 +116,7 @@ export default function KycReminder() {
   };
 
   return (
-    <div className="sticky top-0 z-2 flex w-full items-center justify-between gap-4 border-b border-amber-500/30 bg-amber-50/90 px-4 py-3 text-amber-900 backdrop-blur dark:bg-amber-500/10 dark:text-amber-50">
+    <div className="sticky top-0 z-40 flex w-full items-center justify-between gap-4 border-b border-amber-500/30 bg-amber-50/90 px-4 py-3 text-amber-900 backdrop-blur dark:bg-amber-500/10 dark:text-amber-50">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-200/80 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300">
           {status === "loading" ? (

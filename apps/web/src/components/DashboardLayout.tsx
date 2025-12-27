@@ -2,7 +2,7 @@
 
 import Sidebar from "./Sidebar";
 import Header from "./Header";
-// import KycReminder from "./KycReminder";
+import KycReminder from "./KycReminder";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -33,10 +33,8 @@ export default function DashboardLayout({
           pageSubtitle={pageSubtitle}
         />
         <main className="relative flex-1 overflow-auto bg-background">
-          <div className="transition duration-200">
-            {/* <KycReminder /> */}
-            {children}
-          </div>
+          <KycReminder />
+          <div className="transition duration-200">{children}</div>
         </main>
       </div>
     </div>
