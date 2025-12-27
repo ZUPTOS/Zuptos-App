@@ -57,7 +57,7 @@ export default function KycReminder() {
 
         const statusInfo = await kycApi.getStatus(token);
         if (!active) return;
-        const raw = statusInfo.rawStatus ?? statusInfo.status;
+        const raw = statusInfo.rawStatus;
         if (isApproved(raw)) {
           setStatus("complete");
         } else if (isPendingStatus(raw)) {
@@ -78,7 +78,7 @@ export default function KycReminder() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, token, user?.status]);
+  }, [isAuthenticated, token, user?.status, user?.kyc?.status]);
 
   const shouldShow = useMemo(() => {
     if (isKycPage) return false;

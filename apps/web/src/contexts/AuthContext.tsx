@@ -24,6 +24,9 @@ export interface User {
   role?: 'admin' | 'default';
   isAdmin?: boolean;
   status?: string;
+  kyc?: {
+    status?: string;
+  };
 }
 
 interface AuthContextType {
