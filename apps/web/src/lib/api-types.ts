@@ -204,6 +204,21 @@ export interface CreateProductPlanRequest {
   price_first_cycle?: number;
 }
 
+export interface ProductStrategy {
+  id: string;
+  name?: string;
+  type?: string;
+  offer?: string;
+  value?: string | number;
+  script?: string;
+  status?: string;
+}
+
+export interface CreateProductStrategyRequest {
+  type: string;
+  offer_id: string;
+}
+
 export interface KycAddress {
   address: string;
   number: string;

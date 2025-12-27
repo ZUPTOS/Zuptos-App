@@ -15,6 +15,7 @@ import type {
   UpdateProductSettingsRequest,
   ProductPlan,
   CreateProductPlanRequest,
+  ProductStrategy,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
@@ -29,10 +30,6 @@ const tabs = [
   "Upsell, downsell e mais",
   "Cupons",
   "Coprodução",
-] as const;
-
-const upsellItems = [
-  { name: "META", type: "Upsell", offer: "Oferta 01", value: "R$00,00", script: "<script>" }
 ] as const;
 
 const coupons = [
@@ -50,6 +47,11 @@ const tabSlugMap: Record<string, TabLabel> = {
   entregaveis: "Entregável",
   ofertas: "Ofertas",
   checkouts: "Checkouts",
+  configuracoes: "Configurações",
+  pixels: "Pixels de rastreamento",
+  upsell: "Upsell, downsell e mais",
+  cupons: "Cupons",
+  coproducao: "Coprodução",
 };
 
 const tabToSlug: Record<TabLabel, string> = {
@@ -134,6 +136,9 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     price_first_cycle: "",
     default: false,
   });
+  const [strategies, setStrategies] = useState<ProductStrategy[]>([]);
+  const [strategiesLoading, setStrategiesLoading] = useState(false);
+  const [strategiesError, setStrategiesError] = useState<string | null>(null);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -246,6 +251,28 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   useEffect(() => {
     void loadPlans();
   }, [loadPlans]);
+
+  const loadStrategies = useCallback(async () => {
+    if (!productId || !token || activeTab !== "Upsell, downsell e mais") return;
+    setStrategiesLoading(true);
+    setStrategiesError(null);
+    try {
+      const data = await withLoading(
+        () => productApi.getProductStrategy(productId, token),
+        "Carregando upsells"
+      );
+      setStrategies(data);
+    } catch (error) {
+      console.error("Erro ao carregar upsells:", error);
+      setStrategiesError("Não foi possível carregar as estratégias agora.");
+    } finally {
+      setStrategiesLoading(false);
+    }
+  }, [activeTab, productId, token, withLoading]);
+
+  useEffect(() => {
+    void loadStrategies();
+  }, [loadStrategies]);
 
   const loadSettings = useCallback(async () => {
     if (!productId || !token || activeTab !== "Configurações") return;
@@ -1011,22 +1038,50 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     <span className="text-right">Script</span>
                   </div>
                   <div className="divide-y divide-foreground/10">
-                    {upsellItems.map(item => (
-                      <div
-                        key={`${item.name}-${item.offer}`}
-                        className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-sm text-foreground"
-                      >
-                        <span className="font-semibold uppercase">{item.name}</span>
-                        <span className="text-muted-foreground">{item.type}</span>
-                        <span className="text-muted-foreground">{item.offer}</span>
-                        <span className="font-semibold">{item.value}</span>
-                        <div className="flex justify-end">
-                          <span className="inline-flex items-center rounded-full bg-muted/60 px-3 py-[6px] text-[11px] font-semibold text-muted-foreground">
-                            {item.script}
+                    {strategiesLoading && (
+                      <>
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <div key={index} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
+                            <div className="space-y-2">
+                              <div className="h-4 w-28 rounded bg-muted/50" />
+                              <div className="h-3 w-20 rounded bg-muted/40" />
+                            </div>
+                            <div className="h-4 w-16 rounded bg-muted/50" />
+                            <div className="h-4 w-24 rounded bg-muted/50" />
+                            <div className="h-4 w-16 rounded bg-muted/50" />
+                            <div className="flex justify-end">
+                              <div className="h-6 w-24 rounded-full bg-muted/60" />
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {!strategiesLoading && strategiesError && (
+                      <div className="px-4 py-4 text-sm text-rose-300">{strategiesError}</div>
+                    )}
+                    {!strategiesLoading && !strategiesError && strategies.length === 0 && (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhuma estratégia cadastrada.</div>
+                    )}
+                    {!strategiesLoading &&
+                      !strategiesError &&
+                      strategies.map(item => (
+                        <div
+                          key={item.id}
+                          className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-sm text-foreground"
+                        >
+                          <span className="font-semibold uppercase">{item.name || item.type || "Estrategia"}</span>
+                          <span className="text-muted-foreground">{item.type ?? "-"}</span>
+                          <span className="text-muted-foreground">{item.offer ?? "-"}</span>
+                          <span className="font-semibold">
+                            {item.value !== undefined && item.value !== null ? item.value : "-"}
                           </span>
+                          <div className="flex justify-end">
+                            <span className="inline-flex items-center rounded-full bg-muted/60 px-3 py-[6px] text-[11px] font-semibold text-muted-foreground">
+                              {item.script ?? "-"}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               </>
@@ -1615,9 +1670,9 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
               <div className="space-y-3">
                 {[
-                  { name: "Google Ads", icon: "/images/google-ads.png" },
-                  { name: "Facebook", icon: "/images/facebook.png" },
-                  { name: "TikTok", icon: "/images/tiktok.png" },
+                  { name: "Google Ads", icon: "/images/editar-produtos/pixel/googleAds.png" },
+                  { name: "Facebook", icon: "/images/editar-produtos/pixel/facebook.png" },
+                  { name: "TikTok", icon: "/images/editar-produtos/pixel/tiktok.png" },
                 ].map(platform => {
                   const isActive = selectedPixelPlatform === platform.name;
                   return (

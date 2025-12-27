@@ -528,7 +528,7 @@ export default function Sales() {
       <SalesDetailPanel sale={selectedSale} onClose={() => setSelectedSale(null)} />
     )}
     {isLoading && (
-      <div className="p-4 text-sm text-muted-foreground">Carregando vendas...</div>
+                    <div className="p-4 text-sm text-muted-foreground" aria-live="polite" />
     )}
     {fetchError && !isLoading && (
       <div className="p-4 text-sm text-red-400">{fetchError}</div>
