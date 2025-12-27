@@ -110,7 +110,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [offerStatus, setOfferStatus] = useState<"active" | "inactive">("active");
   const [offerFree, setOfferFree] = useState(false);
   const [savingOffer, setSavingOffer] = useState(false);
-  const [pixelType, setPixelType] = useState<"padrao" | "api">("padrao");
   const [couponUnit, setCouponUnit] = useState<"valor" | "percent">("valor");
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);

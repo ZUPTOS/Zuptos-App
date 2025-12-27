@@ -266,20 +266,11 @@ export const productApi = {
     if (!authToken) {
       throw new Error("Missing authentication token for product settings");
     }
-    try {
-      return await request<ProductSettings>(`/product/${id}/settings`, {
-        method: "GET",
-        baseUrl: PRODUCTS_BASE,
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-    } catch (error) {
-      // Fallback to legacy path if available
-      return request<ProductSettings>(`/product/${id}/settings`, {
-        method: "GET",
-        baseUrl: PRODUCTS_BASE,
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-    }
+    return request<ProductSettings>(`/product/${id}/settings`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
   },
 
   updateProductSettings: async (

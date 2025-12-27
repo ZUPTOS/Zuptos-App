@@ -29,6 +29,10 @@ export function LoadingOverlayProvider({ children }: PropsWithChildren) {
   const counterRef = useRef(0);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
+  const isAuthRoute =
+    pathname === "/" ||
+    pathname?.startsWith("/nova-senha") ||
+    pathname?.startsWith("/recuperar-senha");
 
   const start = useCallback((nextLabel?: string) => {
     if (hideTimeoutRef.current) {
@@ -109,7 +113,7 @@ export function LoadingOverlayProvider({ children }: PropsWithChildren) {
   return (
     <LoadingOverlayContext.Provider value={value}>
       {children}
-      {isLoading && <LoadingScreen label={label} fullscreen />}
+      {isLoading && isAuthRoute && <LoadingScreen label={label} fullscreen />}
     </LoadingOverlayContext.Provider>
   );
 }
