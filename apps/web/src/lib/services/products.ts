@@ -11,6 +11,8 @@ import type {
   UpdateProductSettingsRequest,
   ProductPlan,
   CreateProductPlanRequest,
+  ProductStrategy,
+  CreateProductStrategyRequest,
 } from "../api-types";
 import { API_BASE_URL, buildQuery, readStoredToken, request } from "../request";
 
@@ -329,6 +331,38 @@ export const productApi = {
       throw new Error("Missing authentication token for product plans");
     }
     return request<ProductPlan>(`/product/${id}/plans`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getProductStrategy: async (id: string, token?: string): Promise<ProductStrategy[]> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product strategy");
+    }
+    return request<ProductStrategy[]>(`/product/${id}/strategies`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  },
+
+  createProductStrategy: async (
+    id: string,
+    payload: CreateProductStrategyRequest,
+    token?: string
+  ): Promise<{ id: string; message?: string; status?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product strategy creation");
+    }
+    return request<{ id: string; message?: string; status?: string }>(`/v1/product/${id}/strategies`, {
       method: "POST",
       baseUrl: PRODUCTS_BASE,
       headers: {
