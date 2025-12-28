@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next build apps/web && next dev apps/web",
+    "dev": "next dev apps/web",
     "build": "next build apps/web && echo 'Build completed' && next dev apps/web",
     "start": "next start apps/web",
     "lint": "next lint apps/web",
