@@ -13,6 +13,8 @@ import type {
   CreateProductPlanRequest,
   ProductStrategy,
   CreateProductStrategyRequest,
+  ProductCoupon,
+  CreateProductCouponRequest,
 } from "../api-types";
 import { API_BASE_URL, buildQuery, readStoredToken, request } from "../request";
 
@@ -363,6 +365,38 @@ export const productApi = {
       throw new Error("Missing authentication token for product strategy creation");
     }
     return request<{ id: string; message?: string; status?: string }>(`/v1/product/${id}/strategies`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getProductCoupons: async (id: string, token?: string): Promise<ProductCoupon[]> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product coupons");
+    }
+    return request<ProductCoupon[]>(`/product/${id}/coupons`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  },
+
+  createProductCoupon: async (
+    id: string,
+    payload: CreateProductCouponRequest,
+    token?: string
+  ): Promise<{ id: string; message?: string; status?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product coupons");
+    }
+    return request<{ id: string; message?: string; status?: string }>(`/product/${id}/coupons`, {
       method: "POST",
       baseUrl: PRODUCTS_BASE,
       headers: {

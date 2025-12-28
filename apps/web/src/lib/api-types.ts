@@ -219,6 +219,27 @@ export interface CreateProductStrategyRequest {
   offer_id: string;
 }
 
+export interface ProductCoupon {
+  id: string;
+  name?: string;
+  discount?: number | string;
+  code?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateProductCouponRequest {
+  coupon_code: string;
+  discount_amount: number;
+  status: "active" | "inactive";
+  is_percentage?: boolean;
+  internal_name?: string;
+  expires_at?: string;
+  minimum_purchase_amount?: number;
+  limit_usage?: number;
+}
+
 export interface KycAddress {
   address: string;
   number: string;
