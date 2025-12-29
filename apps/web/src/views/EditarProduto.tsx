@@ -18,6 +18,9 @@ import type {
   ProductStrategy,
   ProductCoupon,
   CreateProductCouponRequest,
+  OrderBump,
+  Coproducer,
+  CreateCoproducerRequest,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
@@ -32,10 +35,6 @@ const tabs = [
   "Upsell, downsell e mais",
   "Cupons",
   "Coprodução",
-] as const;
-
-const coproductions = [
-  { name: "BÁSICO", start: "dd/mm/aaaa", commission: "0%", duration: "Vitalícia", status: "Aprovado" },
 ] as const;
 
 type TabLabel = (typeof tabs)[number];
@@ -108,9 +107,35 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [offerNextRedirect, setOfferNextRedirect] = useState("");
   const [offerStatus, setOfferStatus] = useState<"active" | "inactive">("active");
   const [offerFree, setOfferFree] = useState(false);
+  const [orderBumps, setOrderBumps] = useState<OrderBump[]>([]);
+  const [orderBumpForm, setOrderBumpForm] = useState({
+    product: "",
+    offer: "",
+    title: "",
+    tag: "",
+    price: "",
+    description: "",
+  });
+  const [editingOrderBumpIndex, setEditingOrderBumpIndex] = useState<number | null>(null);
   const [savingOffer, setSavingOffer] = useState(false);
   const [couponUnit, setCouponUnit] = useState<"valor" | "percent">("valor");
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
+  const [coproducers, setCoproducers] = useState<Coproducer[]>([]);
+  const [coproducersLoading, setCoproducersLoading] = useState(false);
+  const [coproducersError, setCoproducersError] = useState<string | null>(null);
+  const [selectedCoproducer, setSelectedCoproducer] = useState<Coproducer | null>(null);
+  const [coproducerSaving, setCoproducerSaving] = useState(false);
+  const [coproducerForm, setCoproducerForm] = useState({
+    name: "",
+    email: "",
+    commission: "",
+    durationMonths: "",
+    lifetime: false,
+    shareSalesDetails: false,
+    extendProductStrategies: false,
+    splitInvoice: false,
+  });
+  const [coproducerFormError, setCoproducerFormError] = useState<string | null>(null);
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [checkoutsLoading, setCheckoutsLoading] = useState(false);
   const [checkoutsError, setCheckoutsError] = useState<string | null>(null);
@@ -306,6 +331,76 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   useEffect(() => {
     void loadCoupons();
   }, [loadCoupons]);
+
+  const loadCoproducers = useCallback(async () => {
+    if (!productId || !token || activeTab !== "Coprodução") return;
+    setCoproducersLoading(true);
+    setCoproducersError(null);
+    try {
+      const data = await withLoading(
+        () => productApi.getCoproducersByProductId(productId, token),
+        "Carregando coprodutores"
+      );
+      setCoproducers(data);
+    } catch (error) {
+      console.error("Erro ao carregar coprodutores:", error);
+      setCoproducersError("Não foi possível carregar os coprodutores agora.");
+    } finally {
+      setCoproducersLoading(false);
+    }
+  }, [activeTab, productId, token, withLoading]);
+
+  useEffect(() => {
+    void loadCoproducers();
+  }, [loadCoproducers]);
+
+  const handleCreateCoproducer = async () => {
+    if (!productId || !token) return;
+    setCoproducerFormError(null);
+
+    const commissionValue = Number(coproducerForm.commission);
+    if (Number.isNaN(commissionValue)) {
+      setCoproducerFormError("Informe uma comissão válida.");
+      return;
+    }
+
+    const payload: CreateCoproducerRequest = {
+      name: coproducerForm.name.trim(),
+      email: coproducerForm.email.trim(),
+      duration_months: coproducerForm.lifetime ? 0 : Number(coproducerForm.durationMonths || 0),
+      revenue_share_percentage: commissionValue,
+      share_sales_details: Boolean(coproducerForm.shareSalesDetails),
+      extend_product_strategies: Boolean(coproducerForm.extendProductStrategies),
+      split_invoice: Boolean(coproducerForm.splitInvoice),
+    };
+
+    setCoproducerSaving(true);
+    try {
+      console.log("[coproducer] Enviando criação:", payload);
+      const response = await withLoading(
+        () => productApi.createCoproducer(productId, payload, token),
+        "Criando coprodutor"
+      );
+      console.log("[coproducer] Resposta do servidor:", response);
+      await loadCoproducers();
+      setCoproducerForm({
+        name: "",
+        email: "",
+        commission: "",
+        durationMonths: "",
+        lifetime: false,
+        shareSalesDetails: false,
+        extendProductStrategies: false,
+        splitInvoice: false,
+      });
+      setShowCoproductionModal(false);
+    } catch (error) {
+      console.error("Erro ao criar coprodutor:", error);
+      setCoproducerFormError("Não foi possível criar o coprodutor.");
+    } finally {
+      setCoproducerSaving(false);
+    }
+  };
 
   const loadSettings = useCallback(async () => {
     if (!productId || !token || activeTab !== "Configurações") return;
@@ -1308,30 +1403,73 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     <span className="text-right">Status</span>
                   </div>
                   <div className="divide-y divide-foreground/10">
-                    {coproductions.map(item => (
-                      <button
-                        key={item.name}
-                        type="button"
-                        onClick={() => setShowCoproductionDetailModal(true)}
-                        className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-left text-sm text-foreground transition hover:bg-card/60"
-                      >
-                        <span className="font-semibold uppercase">{item.name}</span>
-                        <div className="space-y-1 text-muted-foreground">
-                          <p className="font-semibold text-foreground">{item.start}</p>
-                          <p className="text-[11px] uppercase tracking-wide">00h00</p>
+                    {coproducersLoading &&
+                      Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
+                          <Skeleton className="h-4 w-28" />
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-24" />
+                          <div className="flex justify-end">
+                            <Skeleton className="h-6 w-20 rounded-full" />
+                          </div>
                         </div>
-                        <div className="space-y-1 text-muted-foreground">
-                          <p className="font-semibold text-foreground">{item.commission}</p>
-                          <p className="text-[11px]">Vendas produtor</p>
-                        </div>
-                        <span className="font-semibold">{item.duration}</span>
-                        <div className="flex justify-end">
-                          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
-                            {item.status}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
+                      ))}
+                    {!coproducersLoading && coproducersError && (
+                      <div className="px-4 py-4 text-sm text-rose-300">{coproducersError}</div>
+                    )}
+                    {!coproducersLoading && !coproducersError && coproducers.length === 0 && (
+                      <div className="px-4 py-4 text-sm text-muted-foreground">Nenhum coprodutor encontrado.</div>
+                    )}
+                    {!coproducersLoading &&
+                      !coproducersError &&
+                      coproducers.map(item => {
+                        const name = item.name || item.email || "—";
+                        const startDate = item.start_at || item.start || item.created_at || "";
+                        const commissionValue =
+                          item.commission ??
+                          item.commission_percentage ??
+                          (typeof item.status === "number" ? item.status : undefined);
+                        const commission =
+                          commissionValue !== undefined
+                            ? typeof commissionValue === "number"
+                              ? `${commissionValue}%`
+                              : String(commissionValue)
+                            : "—";
+                        const duration = item.duration || "—";
+                        const status = item.status || "—";
+                        return (
+                          <button
+                            key={item.id ?? `${name}-${status}`}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCoproducer(item);
+                              setShowCoproductionDetailModal(true);
+                            }}
+                            className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-left text-sm text-foreground transition hover:bg-card/60"
+                          >
+                            <span className="font-semibold uppercase">{name}</span>
+                            <div className="space-y-1 text-muted-foreground">
+                              <p className="font-semibold text-foreground">
+                                {startDate
+                                  ? new Date(startDate).toLocaleDateString("pt-BR")
+                                  : "—"}
+                              </p>
+                              <p className="text-[11px] uppercase tracking-wide"> </p>
+                            </div>
+                            <div className="space-y-1 text-muted-foreground">
+                              <p className="font-semibold text-foreground">{commission}</p>
+                              <p className="text-[11px]">Vendas produtor</p>
+                            </div>
+                            <span className="font-semibold">{duration}</span>
+                            <div className="flex justify-end">
+                              <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
+                                {status}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
               </>
@@ -1542,9 +1680,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-base font-semibold text-foreground">Order Bumps</p>
-                  <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                    <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                  </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Complete as informações para adicionar produtos complementares ao seu plano de assinatura durante o processo de pagamento.
@@ -1555,81 +1690,177 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     <input
                       className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                       placeholder="Produto"
+                      value={orderBumpForm.product}
+                      onChange={event => setOrderBumpForm(prev => ({ ...prev, product: event.target.value }))}
                     />
                     <input
                       className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                       placeholder="Oferta"
+                      value={orderBumpForm.offer}
+                      onChange={event => setOrderBumpForm(prev => ({ ...prev, offer: event.target.value }))}
                     />
                     <input
                       className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                       placeholder="Título"
+                      value={orderBumpForm.title}
+                      onChange={event => setOrderBumpForm(prev => ({ ...prev, title: event.target.value }))}
                     />
                     <input
                       className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                       placeholder="Tag em destaque"
+                      value={orderBumpForm.tag}
+                      onChange={event => setOrderBumpForm(prev => ({ ...prev, tag: event.target.value }))}
+                    />
+                    <input
+                      className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                      placeholder="Preço"
+                      value={orderBumpForm.price}
+                      onChange={event => setOrderBumpForm(prev => ({ ...prev, price: event.target.value }))}
                     />
                   </div>
                   <label className="space-y-2 text-xs text-muted-foreground">
                     <span>Descrição do order bump (opcional)</span>
                     <textarea
                       className="min-h-[70px] rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Digite um nome"
+                      placeholder="Digite uma descrição"
+                      value={orderBumpForm.description}
+                      onChange={event => setOrderBumpForm(prev => ({ ...prev, description: event.target.value }))}
                     />
                   </label>
-                  <button
-                    type="button"
-                    className="w-full rounded-[8px] bg-muted px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/80"
-                  >
-                    Adicionar Order Bump
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="flex-1 rounded-[8px] bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90 disabled:opacity-60"
+                      disabled={!orderBumpForm.title.trim()}
+                      onClick={() => {
+                        const next: OrderBump = {
+                          title: orderBumpForm.title.trim(),
+                          tag: orderBumpForm.tag.trim() || undefined,
+                          product: orderBumpForm.product.trim() || undefined,
+                          offer: orderBumpForm.offer.trim() || undefined,
+                          description: orderBumpForm.description.trim() || undefined,
+                          price: orderBumpForm.price ? Number(orderBumpForm.price) : undefined,
+                        };
+                        if (editingOrderBumpIndex !== null) {
+                          setOrderBumps(prev =>
+                            prev.map((item, idx) => (idx === editingOrderBumpIndex ? next : item))
+                          );
+                        } else {
+                          setOrderBumps(prev => [...prev, next]);
+                        }
+                        setOrderBumpForm({
+                          product: "",
+                          offer: "",
+                          title: "",
+                          tag: "",
+                          price: "",
+                          description: "",
+                        });
+                        setEditingOrderBumpIndex(null);
+                      }}
+                    >
+                      {editingOrderBumpIndex !== null ? "Salvar Order Bump" : "Adicionar Order Bump"}
+                    </button>
+                    {editingOrderBumpIndex !== null && (
+                      <button
+                        type="button"
+                        className="rounded-[8px] border border-foreground/20 bg-card px-4 py-3 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                        onClick={() => {
+                          setOrderBumpForm({
+                            product: "",
+                            offer: "",
+                            title: "",
+                            tag: "",
+                            price: "",
+                            description: "",
+                          });
+                          setEditingOrderBumpIndex(null);
+                        }}
+                      >
+                        Cancelar edição
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                      <div className="space-y-3 rounded-[10px] border border-dashed border-primary/70 p-4">
-                      {[1, 2].map(idx => (
-                        <div key={idx} className="space-y-3 rounded-[10px] border border-foreground/15 bg-card p-4">
-                          <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                            <span className="text-base">0{idx}</span>
-                            <div className="flex items-center gap-2">
-                              <button className="rounded-[6px] border border-foreground/20 bg-card px-2.5 py-1 text-xs font-semibold text-foreground transition hover:border-foreground/40">
-                                Editar
-                              </button>
-                              <button className="rounded-[6px] border border-foreground/20 bg-card px-2.5 py-1 text-xs font-semibold text-rose-300 transition hover:border-rose-300/60">
-                                Excluir
-                              </button>
-                            </div>
+                <div className="space-y-3 rounded-[10px] border border-dashed border-primary/70 p-4">
+                  {orderBumps.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhum Order Bump adicionado ainda.</p>
+                  )}
+                  {orderBumps.map((item, idx) => (
+                    <div key={idx} className="overflow-hidden rounded-[12px] border border-foreground/15 bg-card/90">
+                      <div className="flex items-center justify-between bg-foreground/5 px-4 py-3 text-sm font-semibold text-foreground">
+                        <span className="text-lg font-semibold">{String(idx + 1).padStart(2, "0")}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="inline-flex items-center gap-2 rounded-[8px] border border-foreground/15 bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40"
+                            onClick={() => {
+                              setEditingOrderBumpIndex(idx);
+                              setOrderBumpForm({
+                                product: item.product ?? "",
+                                offer: item.offer ?? "",
+                                title: item.title ?? "",
+                                tag: item.tag ?? "",
+                                price: item.price !== undefined ? String(item.price) : "",
+                                description: item.description ?? "",
+                              });
+                            }}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            className="inline-flex items-center gap-2 rounded-[8px] border border-rose-900/50 bg-rose-900/20 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:border-rose-400/60"
+                            onClick={() =>
+                              setOrderBumps(prev => prev.filter((_, bumpIdx) => bumpIdx !== idx))
+                            }
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-foreground/10">
+                        <div className="flex items-start gap-4 px-4 py-4">
+                          <div className="overflow-hidden rounded-[12px] bg-foreground/10">
+                            <Image
+                              src="/images/produto.png"
+                              alt={item.title || "Order bump"}
+                              width={120}
+                              height={120}
+                              className="h-[120px] w-[120px] object-cover"
+                            />
                           </div>
-                          <div className="space-y-3 rounded-[10px] border border-foreground/10 bg-card/70 p-3">
-                            <div className="flex items-start gap-4">
-                              <div className="overflow-hidden rounded-[10px] bg-foreground/10">
-                                <Image
-                                  src="/images/produto.png"
-                                  alt="Order bump"
-                                  width={120}
-                                  height={120}
-                                  className="h-[120px] w-[120px] object-cover"
-                                />
-                              </div>
-                              <div className="space-y-2 pt-2">
-                                <p className="text-lg font-semibold text-foreground">Order Bump 0{idx}</p>
-                                <p className="text-lg font-semibold text-foreground">R$ 97,00</p>
-                              </div>
+                          <div className="flex-1 space-y-2 pt-1">
+                            <div className="flex flex-col text-xs text-muted-foreground">
+                              <span className="px-2 py-1 text-foreground">{item.product || "—"}</span>
+                              <span className="mt-1 px-2 py-1 text-foreground">{item.offer || "—"}</span>
                             </div>
-                            <div className="space-y-2 pt-2">
-                              <div className="flex items-center gap-3">
-                                <p className="text-sm font-semibold text-foreground">Título</p>
-                                <div className="inline-flex rounded-full bg-emerald-700/25 px-3 py-1 text-[11px] font-semibold text-emerald-300">
-                                  NOVIDADE
-                                </div>
-                              </div>
-                              <p className="text-sm text-muted-foreground leading-snug">
-                                Lorem Ipsum é simplesmente uma simulação de texto da indústria tipográfica e de impressos, e vem sendo utilizado
-                                desde o século XVI,
+                            <div className="space-y-1">
+                              <p className="text-xl font-semibold text-foreground">{item.title || "Título"}</p>
+                              <p className="text-lg font-semibold text-foreground">
+                                {item.price !== undefined
+                                  ? Number(item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                                  : "Preço não informado"}
                               </p>
                             </div>
                           </div>
                         </div>
-                      ))}
+
+                        <div className="space-y-3 px-4 py-4">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <p className="text-base font-semibold text-foreground">Título</p>
+                            <div className="inline-flex rounded-full bg-emerald-700/25 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+                              {item.tag?.toUpperCase() || "SEM TAG"}
+                            </div>
+                          </div>
+                          {item.description && (
+                            <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  ))}
+                </div>
               </div>
 
                 <div className="space-y-4">
@@ -2383,6 +2614,8 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <input
                   className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   placeholder="Nome"
+                  value={coproducerForm.name}
+                  onChange={event => setCoproducerForm(prev => ({ ...prev, name: event.target.value }))}
                 />
               </label>
 
@@ -2391,6 +2624,8 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <input
                   className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   placeholder="E-mail"
+                  value={coproducerForm.email}
+                  onChange={event => setCoproducerForm(prev => ({ ...prev, email: event.target.value }))}
                 />
               </label>
 
@@ -2399,6 +2634,8 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <input
                   className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   placeholder="10%"
+                  value={coproducerForm.commission}
+                  onChange={event => setCoproducerForm(prev => ({ ...prev, commission: event.target.value }))}
                 />
               </label>
 
@@ -2406,15 +2643,32 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <p className="text-sm font-semibold text-foreground">Duração do contrato</p>
                 <div className="flex flex-col gap-2 text-sm text-foreground">
                   <label className="flex items-center gap-2 text-muted-foreground">
-                    <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border border-foreground/30 bg-card"
+                      checked={coproducerForm.lifetime}
+                      onChange={event =>
+                        setCoproducerForm(prev => ({ ...prev, lifetime: event.target.checked }))
+                      }
+                    />
                     Vitalício
                   </label>
                   <label className="flex items-center gap-2 text-muted-foreground">
-                    <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border border-foreground/30 bg-card"
+                      checked={!coproducerForm.lifetime}
+                      onChange={event =>
+                        setCoproducerForm(prev => ({ ...prev, lifetime: !event.target.checked }))
+                      }
+                    />
                     Período determinado
                     <input
                       className="h-10 w-16 rounded-[8px] border border-foreground/15 bg-card px-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                       placeholder="0"
+                      value={coproducerForm.durationMonths}
+                      onChange={event => setCoproducerForm(prev => ({ ...prev, durationMonths: event.target.value }))}
+                      disabled={coproducerForm.lifetime}
                     />
                     <span>mês(es)</span>
                   </label>
@@ -2424,18 +2678,56 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-foreground">Preferências</p>
                 {[
-                  "Compartilhar os dados do comprador com o coprodutor",
-                  "Estender comissões: Order Bumps, Upsells e downsell",
-                  "Dividir responsabilidades de emissão de notas fiscais",
-                ].map(label => (
-                  <div key={label} className="flex items-center justify-between text-sm text-foreground">
-                    <span className="text-[13px] text-muted-foreground">{label}</span>
-                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                  {
+                    key: "shareSalesDetails",
+                    label: "Compartilhar os dados do comprador com o coprodutor",
+                    value: coproducerForm.shareSalesDetails,
+                  },
+                  {
+                    key: "extendProductStrategies",
+                    label: "Estender comissões: Order Bumps, Upsells e downsell",
+                    value: coproducerForm.extendProductStrategies,
+                  },
+                  {
+                    key: "splitInvoice",
+                    label: "Dividir responsabilidades de emissão de notas fiscais",
+                    value: coproducerForm.splitInvoice,
+                  },
+                ].map(field => (
+                  <div key={field.key} className="flex items-center justify-between text-sm text-foreground">
+                    <span className="text-[13px] text-muted-foreground">{field.label}</span>
+                    <button
+                      type="button"
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${
+                        field.value ? "bg-primary/70" : "bg-muted"
+                      }`}
+                      onClick={() =>
+                        setCoproducerForm(prev => ({
+                          ...prev,
+                          [field.key]:
+                            field.key === "shareSalesDetails"
+                              ? !prev.shareSalesDetails
+                              : field.key === "extendProductStrategies"
+                                ? !prev.extendProductStrategies
+                                : !prev.splitInvoice,
+                        }))
+                      }
+                    >
+                      <span
+                        className={`absolute h-4 w-4 rounded-full bg-white transition ${
+                          field.value ? "left-[calc(100%-18px)]" : "left-[6px]"
+                        }`}
+                      />
                     </button>
                   </div>
                 ))}
               </div>
+
+              {coproducerFormError && (
+                <div className="rounded-[8px] border border-rose-900/40 bg-rose-900/20 px-3 py-2 text-sm text-rose-200">
+                  {coproducerFormError}
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button
@@ -2448,9 +2740,15 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => setShowCoproductionModal(false)}
+                  onClick={() => void handleCreateCoproducer()}
+                  disabled={
+                    coproducerSaving ||
+                    !coproducerForm.name.trim() ||
+                    !coproducerForm.email.trim() ||
+                    !coproducerForm.commission
+                  }
                 >
-                  Adicionar
+                  {coproducerSaving ? "Salvando..." : "Adicionar"}
                 </button>
               </div>
             </div>
@@ -2458,19 +2756,27 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
         </div>
       )}
 
-      {showCoproductionDetailModal && (
+      {showCoproductionDetailModal && selectedCoproducer && (
         <div className="fixed inset-0 z-50 flex">
           <div
             className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowCoproductionDetailModal(false)}
+            onClick={() => {
+              setSelectedCoproducer(null);
+              setShowCoproductionDetailModal(false);
+            }}
             aria-label="Fechar detalhes coprodução"
           />
           <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <h2 className="text-2xl font-semibold text-foreground">Coprodutor 1</h2>
+              <h2 className="text-2xl font-semibold text-foreground">
+                {selectedCoproducer.name || selectedCoproducer.email || "Coprodutor"}
+              </h2>
               <button
                 type="button"
-                onClick={() => setShowCoproductionDetailModal(false)}
+                onClick={() => {
+                  setSelectedCoproducer(null);
+                  setShowCoproductionDetailModal(false);
+                }}
                 className="text-lg text-muted-foreground transition hover:text-foreground"
                 aria-label="Fechar"
               >
@@ -2480,45 +2786,42 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
             <div className="mt-5 space-y-4 pb-10">
               <div className="space-y-2 text-sm text-muted-foreground">
-                {[
-                  { label: "Nome do convidado", value: "-" },
-                  { label: "E-mail", value: "-" },
-                  { label: "Porcentagem de comissão", value: "0%" },
-                  { label: "Início", value: "dd/mm/aaaa" },
-                  { label: "Duração do contrato", value: "vitalício" },
-                ].map(field => (
-                  <div key={field.label} className="flex items-center justify-between">
-                    <span className="text-foreground">{field.label}</span>
-                    <span className="text-muted-foreground">{field.value}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground">Preferências</p>
-                {[
-                  "Compartilhar os dados do comprador com o coprodutor",
-                  "Estender comissões: Order Bumps, Upsells e downsell",
-                  "Dividir responsabilidades de emissão de notas fiscais",
-                ].map(label => (
-                  <div key={label} className="flex items-center justify-between text-sm text-foreground">
-                    <span className="text-[13px] text-muted-foreground">{label}</span>
-                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                    </button>
-                  </div>
-                ))}
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground">Nome</span>
+                  <span className="text-muted-foreground">
+                    {selectedCoproducer.name || selectedCoproducer.email || "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground">E-mail</span>
+                  <span className="text-muted-foreground">{selectedCoproducer.email || "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground">Porcentagem de comissão</span>
+                  <span className="text-muted-foreground">
+                    {selectedCoproducer.commission_percentage !== undefined
+                      ? `${selectedCoproducer.commission_percentage}%`
+                      : selectedCoproducer.commission ?? "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground">Início</span>
+                  <span className="text-muted-foreground">
+                    {selectedCoproducer.start_at || selectedCoproducer.start || selectedCoproducer.created_at || "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-foreground">Duração</span>
+                  <span className="text-muted-foreground">{selectedCoproducer.duration || "—"}</span>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-foreground">Status:</p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
-                    Aprovado
+                    {selectedCoproducer.status || "—"}
                   </span>
-                  <button className="rounded-[8px] border border-rose-900/40 bg-rose-900/20 px-3 py-2 text-xs font-semibold text-rose-200">
-                    Solicitar cancelamento
-                  </button>
                 </div>
               </div>
 
@@ -2526,9 +2829,12 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => setShowCoproductionDetailModal(false)}
+                  onClick={() => {
+                    setSelectedCoproducer(null);
+                    setShowCoproductionDetailModal(false);
+                  }}
                 >
-                  Salvar
+                  Fechar
                 </button>
               </div>
             </div>

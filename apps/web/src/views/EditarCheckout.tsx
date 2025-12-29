@@ -1,13 +1,16 @@
 'use client';
 
-import Image from "next/image";
 import { useMemo, useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import CheckoutPreview from "@/components/CheckoutPreview";
 import type { CheckoutPayload, Product } from "@/lib/api";
+import { CheckoutTemplate } from "@/lib/api";
+import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const fieldClass =
   "h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
@@ -51,12 +54,14 @@ export default function EditarCheckoutView() {
   const searchParams = useSearchParams();
   const productId = useMemo(() => params?.id ?? searchParams?.get("id") ?? localStorage.getItem("lastProductId") ?? "", [params, searchParams]);
   const { token } = useAuth();
+  const { withLoading } = useLoadingOverlay();
   const [product, setProduct] = useState<Product | null>(null);
+  const [productLoading, setProductLoading] = useState(false);
   const [checkoutName, setCheckoutName] = useState("Checkout");
-  const [requiredAddress, setRequiredAddress] = useState(false);
-  const [requiredPhone, setRequiredPhone] = useState(false);
-  const [requiredBirthdate, setRequiredBirthdate] = useState(false);
-  const [requiredDocument, setRequiredDocument] = useState(false);
+  const [requiredAddress] = useState(true);
+  const [requiredPhone] = useState(true);
+  const [requiredBirthdate] = useState(true);
+  const [requiredDocument] = useState(true);
   const [requiredEmailConfirmation, setRequiredEmailConfirmation] = useState(false);
   const [showLogo, setShowLogo] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
@@ -78,31 +83,41 @@ export default function EditarCheckoutView() {
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId || !token) return;
+      setProductLoading(true);
       try {
-        const data = await productApi.getProductById(productId, token);
+        const data = await withLoading(
+          () => productApi.getProductById(productId, token),
+          "Carregando produto"
+        );
         setProduct(data);
       } catch (error) {
         console.error("Erro ao carregar produto do checkout:", error);
+      } finally {
+        setProductLoading(false);
       }
     };
     void fetchProduct();
-  }, [productId, token]);
+  }, [productId, token, withLoading]);
 
   const handleSave = async () => {
     if (!productId || !token) return;
     const payload: CheckoutPayload = {
       name: checkoutName.trim() || "Checkout",
-      template: "default",
-      theme,
+      template: CheckoutTemplate.DEFAULT,
+      // Campos obrigatórios sempre presentes
+      required_address: true,
+      required_phone: true,
+      required_birthdate: true,
+      required_document: true,
+      required_email_confirmation: Boolean(requiredEmailConfirmation),
     };
-    if (requiredAddress) payload.required_address = true;
-    if (requiredPhone) payload.required_phone = true;
-    if (requiredBirthdate) payload.required_birthdate = true;
-    if (requiredDocument) payload.required_document = true;
-    if (requiredEmailConfirmation) payload.required_email_confirmation = true;
+    // Campos opcionais só entram quando habilitados
+    payload.theme = theme.toLowerCase();
+    payload.defaultColor = accentColor;
+
     if (countdownEnabled) {
       payload.countdown = true;
-      payload["countdown active"] = true;
+      payload.countdown_active = true;
       payload.countdown_background = counterBgColor;
     }
     if (showLogo && logoFile) payload.logo = URL.createObjectURL(logoFile);
@@ -113,6 +128,7 @@ export default function EditarCheckoutView() {
       console.log("[checkout] Payload enviado:", payload);
       const response = await productApi.createCheckout(productId, payload, token);
       console.log("[checkout] Resposta do servidor:", response);
+      router.push(`/editar-produto/${encodeURIComponent(productId)}/checkouts`);
     } catch (error) {
       console.error("Erro ao salvar checkout:", error);
     } finally {
@@ -144,28 +160,52 @@ export default function EditarCheckoutView() {
             <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-4">
                 <div className="overflow-hidden rounded-[10px] bg-foreground/10">
-                  <Image
-                    src={product?.image_url || "/images/produto.png"}
-                    alt={product?.name || "Produto"}
-                    width={72}
-                    height={72}
-                    className="h-[72px] w-[72px] object-cover"
-                  />
+                  {productLoading ? (
+                    <Skeleton className="h-[72px] w-[72px]" />
+                  ) : (
+                    <Image
+                      src={product?.image_url || "/images/produto.png"}
+                      alt={product?.name || "Produto"}
+                      width={72}
+                      height={72}
+                      className="h-[72px] w-[72px] object-cover"
+                    />
+                  )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-foreground">{product?.name ?? "-----"}</p>
-                  <p className="text-xs font-semibold text-emerald-400">{product?.status ?? "-----"}</p>
+                  {productLoading ? (
+                    <>
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-16" />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-base font-semibold text-foreground">{product?.name ?? "-----"}</p>
+                      <p className="text-xs font-semibold text-emerald-400">
+                        {product?.status && product.status.trim() ? product.status : "Ativo"}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="text-right text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground">
-                  {product?.total_invoiced !== undefined
-                    ? `${currencyFormatter.format(Number(product.total_invoiced))} faturados`
-                    : "R$ ----- faturados"}
-                </p>
-                <p>
-                  {product?.total_sold !== undefined ? `${product.total_sold} vendas realizadas` : "-- vendas realizadas"}
-                </p>
+                {productLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-28 ml-auto" />
+                    <Skeleton className="h-3 w-24 ml-auto" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="font-semibold text-foreground">
+                      {product?.total_invoiced !== undefined
+                        ? `${currencyFormatter.format(Number(product.total_invoiced))} faturados`
+                        : "R$ ----- faturados"}
+                    </p>
+                    <p>
+                      {product?.total_sold !== undefined ? `${product.total_sold} vendas realizadas` : "-- vendas realizadas"}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -186,36 +226,23 @@ export default function EditarCheckoutView() {
                   <SectionCard title="Campos obrigatórios no Checkout" iconSrc="/images/editar-produtos/warning.svg">
                     <div className="space-y-2 text-xs text-muted-foreground">
                       <p className="font-semibold text-foreground">Itens Obrigatórios</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: "Endereço", active: requiredAddress },
+                        { label: "Telefone", active: requiredPhone },
+                        { label: "Data de nascimento", active: requiredBirthdate },
+                        { label: "CPF", active: requiredDocument },
+                      ].map(field => (
                         <button
+                          key={field.label}
                           type="button"
-                          onClick={() => setRequiredAddress(prev => !prev)}
-                          className={`rounded-[6px] px-3 py-2 text-[11px] font-semibold ${requiredAddress ? "bg-primary text-primary-foreground" : "border border-foreground/20 bg-card text-foreground"}`}
+                          disabled
+                          className="rounded-[6px] px-3 py-2 text-[11px] font-semibold bg-primary text-primary-foreground cursor-not-allowed opacity-90"
                         >
-                          Endereço
+                          {field.label}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setRequiredPhone(prev => !prev)}
-                          className={`rounded-[6px] px-3 py-2 text-[11px] font-semibold ${requiredPhone ? "bg-primary text-primary-foreground" : "border border-foreground/20 bg-card text-foreground"}`}
-                        >
-                          Telefone
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRequiredBirthdate(prev => !prev)}
-                          className={`rounded-[6px] px-3 py-2 text-[11px] font-semibold ${requiredBirthdate ? "bg-primary text-primary-foreground" : "border border-foreground/20 bg-card text-foreground"}`}
-                        >
-                          Data de nascimento
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRequiredDocument(prev => !prev)}
-                          className={`rounded-[6px] px-3 py-2 text-[11px] font-semibold ${requiredDocument ? "bg-primary text-primary-foreground" : "border border-foreground/20 bg-card text-foreground"}`}
-                        >
-                          CPF
-                        </button>
-                      </div>
+                      ))}
+                    </div>
                     </div>
                     <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                       <span>Confirmação de email</span>
