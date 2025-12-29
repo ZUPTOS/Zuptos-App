@@ -154,7 +154,9 @@ export const productApi = {
     if (!payload?.type) {
       throw new Error("Missing deliverable type");
     }
-    if (payload.type.toLowerCase() === "link" && !payload.content) {
+    const normalizedType = payload.type.toLowerCase();
+    const normalizedStatus = payload.status ?? "active";
+    if (normalizedType === "link" && !payload.content) {
       throw new Error("Missing deliverable content for link");
     }
     const authToken = token ?? readStoredToken();
@@ -163,7 +165,11 @@ export const productApi = {
     }
 
     const body = Object.fromEntries(
-      Object.entries(payload).filter(([, value]) => value !== undefined && value !== null)
+      Object.entries({
+        ...payload,
+        type: normalizedType,
+        status: normalizedStatus,
+      }).filter(([, value]) => value !== undefined && value !== null)
     );
 
     console.log("🔄 [productApi] Enviando criação de entregável:", body);

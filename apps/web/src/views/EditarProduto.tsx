@@ -169,9 +169,10 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
           }
         : {
             name: trimmedName,
-            type: "File",
+            type: "file",
             status: "active",
             size: deliverableFile?.size,
+            content: trimmedContent || undefined,
           };
 
     setSavingDeliverable(true);
