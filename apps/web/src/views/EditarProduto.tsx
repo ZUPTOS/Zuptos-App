@@ -1,30 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
 import type {
   Product,
-  ProductDeliverable,
   ProductOffer,
-  Checkout,
-  ProductSettings,
-  UpdateProductSettingsRequest,
-  ProductPlan,
   CreateProductPlanRequest,
-  ProductStrategy,
-  ProductCoupon,
-  CreateProductCouponRequest,
   OrderBump,
-  Coproducer,
-  CreateCoproducerRequest,
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CoproducaoTab } from "./editar-produto/CoproducaoTab";
+import { CuponsTab } from "./editar-produto/CuponsTab";
+import { UpsellTab } from "./editar-produto/UpsellTab";
+import { PixelsTab } from "./editar-produto/PixelsTab";
+import { ConfiguracoesTab } from "./editar-produto/ConfiguracoesTab";
+import { CheckoutsTab } from "./editar-produto/CheckoutsTab";
+import { OfertasTab } from "./editar-produto/OfertasTab";
+import { EntregavelTab } from "./editar-produto/EntregavelTab";
 
 const tabs = [
   "Entregável",
@@ -84,23 +81,17 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [showPixelModal, setShowPixelModal] = useState(false);
   const [showPixelFormModal, setShowPixelFormModal] = useState(false);
   const [selectedPixelPlatform, setSelectedPixelPlatform] = useState<string | null>(null);
+  const [pixelsRefreshKey, setPixelsRefreshKey] = useState(0);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
-  const [showCouponModal, setShowCouponModal] = useState(false);
-  const [showCoproductionModal, setShowCoproductionModal] = useState(false);
-  const [showCoproductionDetailModal, setShowCoproductionDetailModal] = useState(false);
   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
   const [deliverableTab, setDeliverableTab] = useState<"arquivo" | "link">("arquivo");
-  const [deliverables, setDeliverables] = useState<ProductDeliverable[]>([]);
-  const [deliverablesLoading, setDeliverablesLoading] = useState(false);
-  const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
+  const [deliverablesRefreshKey, setDeliverablesRefreshKey] = useState(0);
   const [deliverableName, setDeliverableName] = useState("");
   const [deliverableContent, setDeliverableContent] = useState("");
   const [deliverableFile, setDeliverableFile] = useState<File | null>(null);
   const [deliverableFormError, setDeliverableFormError] = useState<string | null>(null);
   const [savingDeliverable, setSavingDeliverable] = useState(false);
-  const [offers, setOffers] = useState<ProductOffer[]>([]);
-  const [offersLoading, setOffersLoading] = useState(false);
-  const [offersError, setOffersError] = useState<string | null>(null);
+  const [offersRefreshKey, setOffersRefreshKey] = useState(0);
   const [offerName, setOfferName] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
   const [offerBackRedirect, setOfferBackRedirect] = useState("");
@@ -118,34 +109,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   });
   const [editingOrderBumpIndex, setEditingOrderBumpIndex] = useState<number | null>(null);
   const [savingOffer, setSavingOffer] = useState(false);
-  const [couponUnit, setCouponUnit] = useState<"valor" | "percent">("valor");
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
-  const [coproducers, setCoproducers] = useState<Coproducer[]>([]);
-  const [coproducersLoading, setCoproducersLoading] = useState(false);
-  const [coproducersError, setCoproducersError] = useState<string | null>(null);
-  const [selectedCoproducer, setSelectedCoproducer] = useState<Coproducer | null>(null);
-  const [coproducerSaving, setCoproducerSaving] = useState(false);
-  const [coproducerForm, setCoproducerForm] = useState({
-    name: "",
-    email: "",
-    commission: "",
-    durationMonths: "",
-    lifetime: false,
-    shareSalesDetails: false,
-    extendProductStrategies: false,
-    splitInvoice: false,
-  });
-  const [coproducerFormError, setCoproducerFormError] = useState<string | null>(null);
-  const [checkouts, setCheckouts] = useState<Checkout[]>([]);
-  const [checkoutsLoading, setCheckoutsLoading] = useState(false);
-  const [checkoutsError, setCheckoutsError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<ProductSettings | null>(null);
-  const [settingsLoading, setSettingsLoading] = useState(false);
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [, setSettingsError] = useState<string | null>(null);
-  const [plans, setPlans] = useState<ProductPlan[]>([]);
-  const [plansLoading, setPlansLoading] = useState(false);
-  const [plansError, setPlansError] = useState<string | null>(null);
   const [planSaving, setPlanSaving] = useState(false);
   const [planForm, setPlanForm] = useState({
     name: "",
@@ -157,23 +121,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     cycles: "",
     price_first_cycle: "",
     default: false,
-  });
-  const [strategies, setStrategies] = useState<ProductStrategy[]>([]);
-  const [strategiesLoading, setStrategiesLoading] = useState(false);
-  const [strategiesError, setStrategiesError] = useState<string | null>(null);
-  const [coupons, setCoupons] = useState<ProductCoupon[]>([]);
-  const [couponsLoading, setCouponsLoading] = useState(false);
-  const [couponsError, setCouponsError] = useState<string | null>(null);
-  const [couponSaving, setCouponSaving] = useState(false);
-  const [couponForm, setCouponForm] = useState({
-    coupon_code: "",
-    discount_amount: "",
-    is_percentage: false,
-    internal_name: "",
-    expires_at: "",
-    minimum_purchase_amount: "",
-    limit_usage: "",
-    status: "active" as "active" | "inactive",
   });
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -196,297 +143,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     };
     void fetchProduct();
   }, [productId, token, withLoading]);
-
-  const loadDeliverables = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Entregável") return;
-    setDeliverablesLoading(true);
-    setDeliverablesError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getDeliverablesByProductId(productId, token),
-        "Carregando entregáveis"
-      );
-      console.log("[productApi] Entregáveis recebidos:", data);
-      setDeliverables(data);
-    } catch (error) {
-      console.error("Erro ao carregar entregáveis:", error);
-      setDeliverablesError("Não foi possível carregar os entregáveis agora.");
-    } finally {
-      setDeliverablesLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadDeliverables();
-  }, [loadDeliverables]);
-
-  const loadOffers = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Ofertas") return;
-    setOffersLoading(true);
-    setOffersError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getOffersByProductId(productId, token),
-        "Carregando ofertas"
-      );
-      console.log("[productApi] Ofertas recebidas:", data);
-      setOffers(data);
-    } catch (error) {
-      console.error("Erro ao carregar ofertas:", error);
-      setOffersError("Não foi possível carregar as ofertas agora.");
-    } finally {
-      setOffersLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadOffers();
-  }, [loadOffers]);
-
-  const loadCheckouts = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Checkouts") return;
-    setCheckoutsLoading(true);
-    setCheckoutsError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getCheckoutsByProductId(productId, token),
-        "Carregando checkouts"
-      );
-      console.log("[productApi] Checkouts recebidos:", data);
-      setCheckouts(data);
-    } catch (error) {
-      console.error("Erro ao carregar checkouts:", error);
-      setCheckoutsError("Não foi possível carregar os checkouts agora.");
-    } finally {
-      setCheckoutsLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadCheckouts();
-  }, [loadCheckouts]);
-
-  const loadPlans = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Pixels de rastreamento") return;
-    setPlansLoading(true);
-    setPlansError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getPlansByProductId(productId, token),
-        "Carregando pixels"
-      );
-      setPlans(data);
-    } catch (error) {
-      console.error("Erro ao carregar pixels:", error);
-      setPlansError("Não foi possível carregar os pixels agora.");
-    } finally {
-      setPlansLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadPlans();
-  }, [loadPlans]);
-
-  const loadStrategies = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Upsell, downsell e mais") return;
-    setStrategiesLoading(true);
-    setStrategiesError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getProductStrategy(productId, token),
-        "Carregando upsells"
-      );
-      setStrategies(data);
-    } catch (error) {
-      console.error("Erro ao carregar upsells:", error);
-      setStrategiesError("Não foi possível carregar as estratégias agora.");
-    } finally {
-      setStrategiesLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadStrategies();
-  }, [loadStrategies]);
-
-  const loadCoupons = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Cupons") return;
-    setCouponsLoading(true);
-    setCouponsError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getProductCoupons(productId, token),
-        "Carregando cupons"
-      );
-      setCoupons(data);
-    } catch (error) {
-      console.error("Erro ao carregar cupons:", error);
-      setCouponsError("Não foi possível carregar os cupons agora.");
-    } finally {
-      setCouponsLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadCoupons();
-  }, [loadCoupons]);
-
-  const loadCoproducers = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Coprodução") return;
-    setCoproducersLoading(true);
-    setCoproducersError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getCoproducersByProductId(productId, token),
-        "Carregando coprodutores"
-      );
-      setCoproducers(data);
-    } catch (error) {
-      console.error("Erro ao carregar coprodutores:", error);
-      setCoproducersError("Não foi possível carregar os coprodutores agora.");
-    } finally {
-      setCoproducersLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadCoproducers();
-  }, [loadCoproducers]);
-
-  const handleCreateCoproducer = async () => {
-    if (!productId || !token) return;
-    setCoproducerFormError(null);
-
-    const commissionValue = Number(coproducerForm.commission);
-    if (Number.isNaN(commissionValue)) {
-      setCoproducerFormError("Informe uma comissão válida.");
-      return;
-    }
-
-    const payload: CreateCoproducerRequest = {
-      name: coproducerForm.name.trim(),
-      email: coproducerForm.email.trim(),
-      duration_months: coproducerForm.lifetime ? 0 : Number(coproducerForm.durationMonths || 0),
-      revenue_share_percentage: commissionValue,
-      share_sales_details: Boolean(coproducerForm.shareSalesDetails),
-      extend_product_strategies: Boolean(coproducerForm.extendProductStrategies),
-      split_invoice: Boolean(coproducerForm.splitInvoice),
-    };
-
-    setCoproducerSaving(true);
-    try {
-      console.log("[coproducer] Enviando criação:", payload);
-      const response = await withLoading(
-        () => productApi.createCoproducer(productId, payload, token),
-        "Criando coprodutor"
-      );
-      console.log("[coproducer] Resposta do servidor:", response);
-      await loadCoproducers();
-      setCoproducerForm({
-        name: "",
-        email: "",
-        commission: "",
-        durationMonths: "",
-        lifetime: false,
-        shareSalesDetails: false,
-        extendProductStrategies: false,
-        splitInvoice: false,
-      });
-      setShowCoproductionModal(false);
-    } catch (error) {
-      console.error("Erro ao criar coprodutor:", error);
-      setCoproducerFormError("Não foi possível criar o coprodutor.");
-    } finally {
-      setCoproducerSaving(false);
-    }
-  };
-
-  const loadSettings = useCallback(async () => {
-    if (!productId || !token || activeTab !== "Configurações") return;
-    setSettingsLoading(true);
-    setSettingsError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getProductSettings(productId, token),
-        "Carregando configurações"
-      );
-      setSettings(data);
-    } catch (error) {
-      console.error("Erro ao carregar configurações:", error);
-      setSettingsError("Não foi possível carregar as configurações agora.");
-    } finally {
-      setSettingsLoading(false);
-    }
-  }, [activeTab, productId, token, withLoading]);
-
-  useEffect(() => {
-    void loadSettings();
-  }, [loadSettings]);
-
-  const formatSize = (size?: number) => {
-    if (!size) return "-";
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const handleCreateCoupon = useCallback(async () => {
-    if (!productId || !token) {
-      console.warn("[coupon] missing productId or token", { productId, tokenPresent: Boolean(token) });
-      setCouponsError("Sessão expirada. Faça login novamente.");
-      return;
-    }
-
-    const discountValue = Number(couponForm.discount_amount);
-    if (Number.isNaN(discountValue)) {
-      setCouponsError("Informe um valor de desconto válido.");
-      return;
-    }
-
-    const minimumPurchase = couponForm.minimum_purchase_amount
-      ? Number(couponForm.minimum_purchase_amount)
-      : undefined;
-    if (minimumPurchase !== undefined && Number.isNaN(minimumPurchase)) {
-      setCouponsError("Informe um valor mínimo de compra válido.");
-      return;
-    }
-
-    const limitUsage = couponForm.limit_usage ? Number(couponForm.limit_usage) : undefined;
-    if (limitUsage !== undefined && Number.isNaN(limitUsage)) {
-      setCouponsError("Informe um limite de uso válido.");
-      return;
-    }
-
-    const payload: CreateProductCouponRequest = {
-      coupon_code: couponForm.coupon_code.trim(),
-      discount_amount: discountValue,
-      status: couponForm.status,
-      is_percentage: couponUnit === "percent",
-      internal_name: couponForm.internal_name || undefined,
-      expires_at: couponForm.expires_at || undefined,
-      minimum_purchase_amount: minimumPurchase,
-      limit_usage: limitUsage,
-    };
-
-    setCouponsError(null);
-    setCouponSaving(true);
-    try {
-      console.log("[coupon] Enviando criação de cupom:", payload);
-      const response = await withLoading(
-        () => productApi.createProductCoupon(productId, payload, token),
-        "Criando cupom"
-      );
-      console.log("[coupon] Resposta do servidor:", response);
-      await loadCoupons();
-      setShowCouponModal(false);
-    } catch (error) {
-      console.error("Erro ao criar cupom:", error);
-      setCouponsError("Não foi possível criar o cupom.");
-    } finally {
-      setCouponSaving(false);
-    }
-  }, [productId, token, couponForm, couponUnit, withLoading, loadCoupons]);
 
   const handleCreateDeliverable = async () => {
     if (!productId || !token) return;
@@ -524,7 +180,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       console.log("[productApi] Enviando criação de entregável:", payload);
       const response = await productApi.createDeliverable(productId, payload, token);
       console.log("[productApi] Resposta do servidor (entregável):", response);
-      await loadDeliverables();
+      setDeliverablesRefreshKey(prev => prev + 1);
       setShowDeliverableModal(false);
       setDeliverableName("");
       setDeliverableContent("");
@@ -557,7 +213,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       console.log("[productApi] Enviando criação de oferta:", payload);
       const response = await productApi.createOffer(productId, payload, token);
       console.log("[productApi] Resposta do servidor (oferta):", response);
-      await loadOffers();
+      setOffersRefreshKey(prev => prev + 1);
       setShowOfferModal(false);
       setOfferName("");
       setOfferPrice("");
@@ -567,7 +223,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       setOfferStatus("active");
     } catch (error) {
       console.error("Erro ao criar oferta:", error);
-      setOffersError("Não foi possível salvar a oferta.");
     } finally {
       setSavingOffer(false);
     }
@@ -663,821 +318,64 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
           <div className="flex-1 space-y-6">
             {headerCard}
 
-            {activeTab === "Entregável" && (
-              <>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Entregável</h2>
-                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
-                    <div className="flex w-full max-w-md items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
-                      <Search className="h-4 w-4" aria-hidden />
-                      <input
-                        type="text"
-                        placeholder="Buscar arquivo"
-                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => setShowDeliverableModal(true)}
-                    >
-                      Adicionar arquivo
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[12px] border border-foreground/10 bg-card/70 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-                  <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-                    <span>Nome</span>
-                    <span>Entregável</span>
-                    <span>Tamanho</span>
-                    <span>Status</span>
-                  </div>
-                  <div className="divide-y divide-foreground/10">
-                    {deliverablesLoading && (
-                      <>
-                        {Array.from({ length: 3 }).map((_, index) => (
-                          <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
-                            <div className="space-y-2">
-                              <Skeleton className="h-4 w-28" />
-                              <Skeleton className="h-3 w-24" />
-                            </div>
-                            <Skeleton className="h-4 w-40" />
-                            <Skeleton className="h-4 w-16" />
-                            <div className="flex items-center gap-2">
-                              <Skeleton className="h-3 w-3 rounded-full" />
-                              <Skeleton className="h-4 w-16" />
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                    {!deliverablesLoading && deliverablesError && (
-                      <div className="px-4 py-4 text-sm text-rose-300">{deliverablesError}</div>
-                    )}
-                    {!deliverablesLoading && !deliverablesError && deliverables.length === 0 && (
-                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum entregável cadastrado.</div>
-                    )}
-                    {!deliverablesLoading && !deliverablesError && deliverables.map(deliverable => {
-                      const linkLabel = deliverable.content?.replace(/^https?:\/\//, "") ?? deliverable.content ?? "-";
-                      const isActive = deliverable.status?.toLowerCase() === "active";
-                      return (
-                        <div key={deliverable.id} className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium capitalize">{deliverable.name || deliverable.type || "Entregável"}</p>
-                            <p className="text-xs text-muted-foreground break-all">ID: {deliverable.id}</p>
-                          </div>
-                          <div>
-                            {deliverable.content ? (
-                              <div className="flex items-center gap-2">
-                                <a
-                                  href={deliverable.content}
-                                  className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  {linkLabel}
-                                </a>
-                                <button
-                                  type="button"
-                                  className="h-8 w-8 rounded-[6px] border border-foreground/15 bg-card text-sm text-foreground transition hover:border-foreground/30"
-                                  aria-label="Baixar"
-                                >
-                                  📎
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground">{formatSize(deliverable.size)}</div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <span
-                              className={`h-2.5 w-2.5 rounded-full ${isActive ? "bg-primary" : "bg-muted-foreground/50"}`}
-                              aria-hidden
-                            />
-                            <span className="font-medium text-foreground">{deliverable.status ?? "-"}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
+                        {activeTab === "Entregável" && (
+              <EntregavelTab
+                productId={productId}
+                token={token ?? undefined}
+                withLoading={withLoading}
+                onOpenCreate={() => setShowDeliverableModal(true)}
+                refreshKey={deliverablesRefreshKey}
+              />
             )}
 
-            {activeTab === "Ofertas" && (
-              <>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Ofertas</h2>
-                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
-                    <div className="flex w-full max-w-md items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
-                      <Search className="h-4 w-4" aria-hidden />
-                      <input
-                        type="text"
-                        placeholder="Buscar por código"
-                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => setShowOfferModal(true)}
-                    >
-                      Adicionar oferta
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-                  <div className="grid grid-cols-6 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-                    <span>Nome</span>
-                    <span>Checkout</span>
-                    <span>Tipo</span>
-                    <span>Valor</span>
-                    <span>Acesso</span>
-                    <span>Status</span>
-                  </div>
-                  <div className="divide-y divide-foreground/10">
-                    {offersLoading && (
-                      <>
-                        {Array.from({ length: 3 }).map((_, index) => (
-                          <div key={index} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
-                            <div className="space-y-2">
-                              <Skeleton className="h-4 w-28" />
-                              <Skeleton className="h-3 w-20" />
-                            </div>
-                            <Skeleton className="h-4 w-16" />
-                            <Skeleton className="h-4 w-12" />
-                            <Skeleton className="h-4 w-16" />
-                            <Skeleton className="h-8 w-24 rounded-[10px]" />
-                          </div>
-                        ))}
-                      </>
-                    )}
-                    {!offersLoading && offersError && (
-                      <div className="px-4 py-4 text-sm text-rose-300">{offersError}</div>
-                    )}
-                    {!offersLoading && !offersError && offers.length === 0 && (
-                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhuma oferta cadastrada.</div>
-                    )}
-                    {!offersLoading && !offersError && offers.map(offer => {
-                      const isActive = offer.status?.toLowerCase() === "active";
-                      return (
-                        <div key={offer.id ?? offer.name} className="grid grid-cols-6 items-center gap-4 px-4 py-4 text-sm text-foreground">
-                          <span className="font-semibold uppercase break-words">{offer.name}</span>
-                          <span className="font-semibold text-muted-foreground">-</span>
-                          <span className="text-muted-foreground">{offer.type}</span>
-                          <span className="font-semibold">
-                            {offer.free ? "Grátis" : offer.offer_price != null ? `R$ ${offer.offer_price}` : "-"}
-                          </span>
-                          <div className="flex items-center">
-                            <button
-                              type="button"
-                              className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
-                            >
-                              {offer.next_redirect_url?.replace(/^https?:\/\//, "") || "-"}
-                            </button>
-                          </div>
-                          <div className="flex items-center justify-start">
-                            <span
-                              className={`inline-flex items-center rounded-full px-3 py-[6px] text-xs font-semibold ${
-                                isActive
-                                  ? "bg-emerald-500/15 text-emerald-300"
-                                  : "bg-muted/40 text-muted-foreground"
-                              }`}
-                            >
-                              {offer.status}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
+{activeTab === "Ofertas" && (
+              <OfertasTab
+                productId={productId}
+                token={token ?? undefined}
+                withLoading={withLoading}
+                onOpenOfferModal={() => setShowOfferModal(true)}
+                refreshKey={offersRefreshKey}
+              />
             )}
 
             {activeTab === "Checkouts" && (
-              <>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Checkouts</h2>
-                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
-                    <div className="flex w-full max-w-md items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
-                      <Search className="h-4 w-4" aria-hidden />
-                      <input
-                        type="text"
-                        placeholder="Buscar por código"
-                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => productId && router.push(`/editar-produto/${encodeURIComponent(productId)}/checkout`)}
-                    >
-                      Adicionar Checkout
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-                  <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-                    <span>Nome</span>
-                    <span>Pagamento</span>
-                    <span>Ofertas</span>
-                    <span className="text-right">Ação</span>
-                  </div>
-                  <div className="divide-y divide-foreground/10">
-                    {checkoutsLoading && (
-                      <>
-                        {Array.from({ length: 3 }).map((_, index) => (
-                          <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-4 w-20" />
-                            <Skeleton className="h-4 w-20" />
-                            <div className="flex justify-end">
-                              <Skeleton className="h-8 w-24 rounded-[8px]" />
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                    {!checkoutsLoading && checkoutsError && (
-                      <div className="px-4 py-4 text-sm text-rose-300">{checkoutsError}</div>
-                    )}
-                    {!checkoutsLoading && !checkoutsError && checkouts.length === 0 && (
-                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum checkout cadastrado.</div>
-                    )}
-                    {!checkoutsLoading && !checkoutsError && checkouts.map(checkout => (
-                      <div
-                        key={checkout.id ?? checkout.name}
-                        className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground"
-                      >
-                        <span className="font-semibold">{checkout.name}</span>
-                        <span className="text-muted-foreground">{checkout.theme ?? "-"}</span>
-                        <span className="text-muted-foreground">{checkout.template ?? "-"}</span>
-                        <div className="flex justify-end">
-                          <button
-                            className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/40"
-                            onClick={() => productId && router.push(`/editar-produto/${encodeURIComponent(productId)}/checkout`)}
-                            type="button"
-                          >
-                            EDITAR
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
+              <CheckoutsTab productId={productId} token={token ?? undefined} withLoading={withLoading} />
             )}
 
             {activeTab === "Configurações" && (
-              <>
-                <h2 className="text-lg font-semibold text-foreground">Configurações</h2>
-
-                <div className="space-y-6 rounded-[12px] border border-foreground/10 bg-card/80 p-6 shadow-[0_14px_36px_rgba(0,0,0,0.35)]">
-                  <div className="grid grid-cols-[200px_1fr] items-start gap-4">
-                    <div className="flex items-center justify-center rounded-[12px] border border-foreground/10 bg-card/70 p-3">
-                      <Image
-                        src="/images/produto.png"
-                        alt="Produto"
-                        width={160}
-                        height={160}
-                        className="h-[160px] w-[160px] object-cover rounded-[10px]"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="space-y-1 text-sm text-muted-foreground">
-                        <span className="text-foreground">Nome do produto</span>
-                        <input
-                          className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Nome do produto"
-                        />
-                      </label>
-                      <label className="space-y-1 text-sm text-muted-foreground">
-                        <span className="text-foreground">Descrição breve</span>
-                        <textarea
-                          className="min-h-[80px] w-full rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Descrição do produto"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">E-mail de suporte</span>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="ex: suporte@empresa.com"
-                        value={settings?.support_email ?? ""}
-                        onChange={event =>
-                          setSettings(current => ({
-                            ...(current ?? { id: "", product_id: productId ?? "" }),
-                            support_email: event.target.value,
-                          }))
-                        }
-                        disabled={settingsLoading || settingsSaving}
-                      />
-                    </label>
-                    <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Telefone de suporte</span>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="ex: +55 11 99999-9999"
-                        value={settings?.phone_support ?? ""}
-                        onChange={event =>
-                          setSettings(current => ({
-                            ...(current ?? { id: "", product_id: productId ?? "" }),
-                            phone_support: event.target.value,
-                          }))
-                        }
-                        disabled={settingsLoading || settingsSaving}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Idioma</span>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="pt-BR"
-                        value={settings?.language ?? ""}
-                        onChange={event =>
-                          setSettings(current => ({
-                            ...(current ?? { id: "", product_id: productId ?? "" }),
-                            language: event.target.value,
-                          }))
-                        }
-                        disabled={settingsLoading || settingsSaving}
-                      />
-                    </label>
-                    <label className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Moeda base</span>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="BRL"
-                        value={settings?.currency ?? ""}
-                        onChange={event =>
-                          setSettings(current => ({
-                            ...(current ?? { id: "", product_id: productId ?? "" }),
-                            currency: event.target.value,
-                          }))
-                        }
-                        disabled={settingsLoading || settingsSaving}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-[10px] border border-foreground/15 bg-card px-4 py-3">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Status do produto</p>
-                      <p className="text-xs text-muted-foreground">Gerencie se o produto estará ou não ativo para vendas</p>
-                    </div>
-                    <button
-                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${
-                        settings?.status === "active" ? "bg-primary/70" : "bg-muted"
-                      }`}
-                      onClick={() =>
-                        setSettings(current => ({
-                          ...(current ?? { id: "", product_id: productId ?? "" }),
-                          status: current?.status === "active" ? "inactive" : "active",
-                        }))
-                      }
-                      disabled={settingsLoading || settingsSaving}
-                      type="button"
-                    >
-                      <span
-                        className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                          settings?.status === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="rounded-[10px] border border-foreground/15 bg-card px-4 py-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">Recuperação ativa</p>
-                        <p className="text-xs text-muted-foreground">
-                          Com esse recurso reconquiste o cliente que está prestes a cancelar a compra ou recupere uma venda não finalizada.
-                        </p>
-                      </div>
-                      <button
-                        className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/40"
-                        onClick={() => setShowRecoveryModal(true)}
-                        type="button"
-                      >
-                        Configurar
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <button className="rounded-[8px] border border-rose-900/60 bg-rose-900/30 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-900/50">
-                    Excluir produto
-                  </button>
-                  <button
-                    className="rounded-[8px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90 disabled:opacity-60"
-                    type="button"
-                    onClick={async () => {
-                      if (!productId || !token || !settings) return;
-                      setSettingsSaving(true);
-                      setSettingsError(null);
-                      try {
-                        const payload: UpdateProductSettingsRequest = {
-                          support_email: settings.support_email || undefined,
-                          phone_support: settings.phone_support || undefined,
-                          language: settings.language || undefined,
-                          currency: settings.currency || undefined,
-                          status: settings.status || undefined,
-                        };
-                        await withLoading(
-                          () => productApi.updateProductSettings(productId, payload, token),
-                          "Salvando configurações"
-                        );
-                      } catch (error) {
-                        console.error("Erro ao salvar configurações:", error);
-                        setSettingsError("Não foi possível salvar as configurações.");
-                      } finally {
-                        setSettingsSaving(false);
-                      }
-                    }}
-                    disabled={settingsSaving || settingsLoading}
-                  >
-                    {settingsSaving ? "Salvando..." : "Salvar alterações"}
-                  </button>
-                </div>
-              </>
+              <ConfiguracoesTab
+                productId={productId}
+                token={token ?? undefined}
+                withLoading={withLoading}
+                onOpenRecoveryModal={() => setShowRecoveryModal(true)}
+              />
             )}
 
             {activeTab === "Pixels de rastreamento" && (
-              <>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Pixel de rastreamento</h2>
-                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
-                    <div className="flex w-full max-w-md items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
-                      <Search className="h-4 w-4" aria-hidden />
-                      <input
-                        type="text"
-                        placeholder="Buscar por código"
-                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => {
-                        setSelectedPixelPlatform(null);
-                        setShowPixelModal(true);
-                      }}
-                    >
-                      Adicionar Pixel
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-                  <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-                    <span>Nome</span>
-                    <span>ID</span>
-                    <span>Plataforma</span>
-                    <span className="text-right">Status</span>
-                  </div>
-                  <div className="divide-y divide-foreground/10">
-                    {plansLoading && (
-                      <>
-                        {Array.from({ length: 3 }).map((_, index) => (
-                          <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-4 w-28" />
-                            <Skeleton className="h-4 w-24" />
-                            <div className="flex justify-end">
-                              <Skeleton className="h-6 w-20 rounded-full" />
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                    {!plansLoading && plansError && (
-                      <div className="px-4 py-4 text-sm text-rose-300">{plansError}</div>
-                    )}
-                    {!plansLoading && !plansError && plans.length === 0 && (
-                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum pixel cadastrado.</div>
-                    )}
-                    {!plansLoading && !plansError && plans.map(pixel => (
-                      <div
-                        key={pixel.id}
-                        className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground"
-                      >
-                        <span className="font-semibold uppercase">{pixel.name || pixel.platform || "PIXEL"}</span>
-                        <span className="text-muted-foreground">{pixel.id}</span>
-                        <span className="flex items-center gap-2 text-muted-foreground">{pixel.platform ?? "-"}</span>
-                        <div className="flex justify-end">
-                          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
-                            {pixel.status ?? "Ativo"}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
+              <PixelsTab
+                productId={productId}
+                token={token ?? undefined}
+                withLoading={withLoading}
+                onOpenPixelForm={() => setShowPixelModal(true)}
+                refreshKey={pixelsRefreshKey}
+              />
             )}
 
-            {activeTab === "Upsell, downsell e mais" && (
-              <>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Upsell, downsell e mais</h2>
-                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
-                    <div className="flex w-full max-w-md items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
-                      <Search className="h-4 w-4" aria-hidden />
-                      <input
-                        type="text"
-                        placeholder="Buscar por código"
-                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => setShowUpsellModal(true)}
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
 
-                <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-                  <div className="grid grid-cols-5 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-                    <span>Nome</span>
-                    <span>Tipo</span>
-                    <span>Oferta</span>
-                    <span>Valor</span>
-                    <span className="text-right">Script</span>
-                  </div>
-                  <div className="divide-y divide-foreground/10">
-                    {strategiesLoading && (
-                      <>
-                        {Array.from({ length: 3 }).map((_, index) => (
-                          <div key={index} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
-                            <div className="space-y-2">
-                              <div className="h-4 w-28 rounded bg-muted/50" />
-                              <div className="h-3 w-20 rounded bg-muted/40" />
-                            </div>
-                            <div className="h-4 w-16 rounded bg-muted/50" />
-                            <div className="h-4 w-24 rounded bg-muted/50" />
-                            <div className="h-4 w-16 rounded bg-muted/50" />
-                            <div className="flex justify-end">
-                              <div className="h-6 w-24 rounded-full bg-muted/60" />
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                    {!strategiesLoading && strategiesError && (
-                      <div className="px-4 py-4 text-sm text-rose-300">{strategiesError}</div>
-                    )}
-                    {!strategiesLoading && !strategiesError && strategies.length === 0 && (
-                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhuma estratégia cadastrada.</div>
-                    )}
-                    {!strategiesLoading &&
-                      !strategiesError &&
-                      strategies.map(item => (
-                        <div
-                          key={item.id}
-                          className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-sm text-foreground"
-                        >
-                          <span className="font-semibold uppercase">{item.name || item.type || "Estrategia"}</span>
-                          <span className="text-muted-foreground">{item.type ?? "-"}</span>
-                          <span className="text-muted-foreground">{item.offer ?? "-"}</span>
-                          <span className="font-semibold">
-                            {item.value !== undefined && item.value !== null ? item.value : "-"}
-                          </span>
-                          <div className="flex justify-end">
-                            <span className="inline-flex items-center rounded-full bg-muted/60 px-3 py-[6px] text-[11px] font-semibold text-muted-foreground">
-                              {item.script ?? "-"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </>
+            {activeTab === "Upsell, downsell e mais" && (
+              <UpsellTab productId={productId} token={token ?? undefined} withLoading={withLoading} />
             )}
 
             {activeTab === "Cupons" && (
-              <>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Cupom</h2>
-                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
-                    <div className="flex w-full max-w-md items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
-                      <Search className="h-4 w-4" aria-hidden />
-                      <input
-                        type="text"
-                        placeholder="Buscar por código"
-                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => {
-                        setCouponForm({
-                          coupon_code: "",
-                          discount_amount: "",
-                          is_percentage: false,
-                          internal_name: "",
-                          expires_at: "",
-                          minimum_purchase_amount: "",
-                          limit_usage: "",
-                          status: "active",
-                        });
-                        setShowCouponModal(true);
-                      }}
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-                  <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-                    <span>Nome</span>
-                    <span>Desconto</span>
-                    <span>Código</span>
-                    <span className="text-right">Status</span>
-                  </div>
-                  <div className="divide-y divide-foreground/10">
-                    {couponsLoading && (
-                      <>
-                        {Array.from({ length: 3 }).map((_, index) => (
-                          <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
-                            <div className="space-y-2">
-                              <div className="h-4 w-28 rounded bg-muted/50" />
-                              <div className="h-3 w-24 rounded bg-muted/40" />
-                            </div>
-                            <div className="h-4 w-16 rounded bg-muted/50" />
-                            <div className="h-4 w-24 rounded bg-muted/50" />
-                            <div className="flex justify-end">
-                              <div className="h-6 w-20 rounded-full bg-muted/60" />
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                    {!couponsLoading && couponsError && (
-                      <div className="px-4 py-4 text-sm text-rose-300">{couponsError}</div>
-                    )}
-                    {!couponsLoading && !couponsError && coupons.length === 0 && (
-                      <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum cupom cadastrado.</div>
-                    )}
-                    {!couponsLoading &&
-                      !couponsError &&
-                      coupons.map(coupon => (
-                        <div
-                          key={coupon.id}
-                          className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground"
-                        >
-                          <div className="space-y-1">
-                            <span className="font-semibold uppercase">{coupon.name ?? "Cupom"}</span>
-                            <span className="text-xs text-muted-foreground break-all">{coupon.id}</span>
-                          </div>
-                          <span className="font-semibold">
-                            {coupon.discount !== undefined && coupon.discount !== null ? coupon.discount : "-"}
-                          </span>
-                          <span className="text-muted-foreground">{coupon.code ?? "-"}</span>
-                          <div className="flex justify-end">
-                            <span
-                              className={`inline-flex items-center rounded-full px-3 py-[6px] text-xs font-semibold ${
-                                coupon.status?.toLowerCase() === "active"
-                                  ? "bg-emerald-500/15 text-emerald-300"
-                                  : "bg-muted/60 text-muted-foreground"
-                              }`}
-                            >
-                              {coupon.status ?? "-"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </>
+              <CuponsTab productId={productId} token={token ?? undefined} withLoading={withLoading} />
             )}
 
             {activeTab === "Coprodução" && (
-              <>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Coprodução</h2>
-                  <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
-                    <div className="flex w-full max-w-md items-center gap-2 rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
-                      <Search className="h-4 w-4" aria-hidden />
-                      <input
-                        type="text"
-                        placeholder="Buscar por código"
-                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                      onClick={() => setShowCoproductionModal(true)}
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-                  <div className="grid grid-cols-5 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-                    <span>Nome</span>
-                    <span>Início</span>
-                    <span>Comissão</span>
-                    <span>Duração</span>
-                    <span className="text-right">Status</span>
-                  </div>
-                  <div className="divide-y divide-foreground/10">
-                    {coproducersLoading &&
-                      Array.from({ length: 3 }).map((_, idx) => (
-                        <div key={idx} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
-                          <Skeleton className="h-4 w-28" />
-                          <Skeleton className="h-4 w-20" />
-                          <Skeleton className="h-4 w-16" />
-                          <Skeleton className="h-4 w-24" />
-                          <div className="flex justify-end">
-                            <Skeleton className="h-6 w-20 rounded-full" />
-                          </div>
-                        </div>
-                      ))}
-                    {!coproducersLoading && coproducersError && (
-                      <div className="px-4 py-4 text-sm text-rose-300">{coproducersError}</div>
-                    )}
-                    {!coproducersLoading && !coproducersError && coproducers.length === 0 && (
-                      <div className="px-4 py-4 text-sm text-muted-foreground">Nenhum coprodutor encontrado.</div>
-                    )}
-                    {!coproducersLoading &&
-                      !coproducersError &&
-                      coproducers.map(item => {
-                        const name = item.name || item.email || "—";
-                        const startDate = item.start_at || item.start || item.created_at || "";
-                        const commissionValue =
-                          item.commission ??
-                          item.commission_percentage ??
-                          (typeof item.status === "number" ? item.status : undefined);
-                        const commission =
-                          commissionValue !== undefined
-                            ? typeof commissionValue === "number"
-                              ? `${commissionValue}%`
-                              : String(commissionValue)
-                            : "—";
-                        const duration = item.duration || "—";
-                        const status = item.status || "—";
-                        return (
-                          <button
-                            key={item.id ?? `${name}-${status}`}
-                            type="button"
-                            onClick={() => {
-                              setSelectedCoproducer(item);
-                              setShowCoproductionDetailModal(true);
-                            }}
-                            className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-left text-sm text-foreground transition hover:bg-card/60"
-                          >
-                            <span className="font-semibold uppercase">{name}</span>
-                            <div className="space-y-1 text-muted-foreground">
-                              <p className="font-semibold text-foreground">
-                                {startDate
-                                  ? new Date(startDate).toLocaleDateString("pt-BR")
-                                  : "—"}
-                              </p>
-                              <p className="text-[11px] uppercase tracking-wide"> </p>
-                            </div>
-                            <div className="space-y-1 text-muted-foreground">
-                              <p className="font-semibold text-foreground">{commission}</p>
-                              <p className="text-[11px]">Vendas produtor</p>
-                            </div>
-                            <span className="font-semibold">{duration}</span>
-                            <div className="flex justify-end">
-                              <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
-                                {status}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              </>
+              <CoproducaoTab productId={productId} token={token ?? undefined} withLoading={withLoading} />
             )}
           </div>
         </div>
       </div>
-
       {showOfferModal && (
         <div className="fixed inset-0 z-50 flex">
           <div
@@ -2284,7 +1182,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                           () => productApi.createPlan(productId, payload, token),
                           "Criando pixel"
                         );
-                        await loadPlans();
+                        setPixelsRefreshKey(prev => prev + 1);
                         setPlanForm({
                           name: "",
                           type: "monthly",
@@ -2297,6 +1195,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                           default: false,
                         });
                         setShowPixelFormModal(false);
+                        setSelectedPixelPlatform(null);
                       } catch (error) {
                         console.error("Erro ao criar pixel:", error);
                       } finally {
@@ -2424,417 +1323,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   onClick={() => setShowUpsellModal(false)}
                 >
                   Adicionar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCouponModal && (
-        <div className="fixed inset-0 z-50 flex">
-          <div
-            className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowCouponModal(false)}
-            aria-label="Fechar modal cupom"
-          />
-          <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
-            <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <div>
-                <h2 className="text-2xl font-semibold text-foreground">Novo Desconto</h2>
-                <p className="text-sm text-muted-foreground">
-                  Configure um cupom de desconto e aumente as conversões da sua loja, capte novos compradores e incentive a conclusão da compra.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCouponModal(false)}
-                className="text-lg text-muted-foreground transition hover:text-foreground"
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-4 pb-10">
-              <label className="space-y-3 text-sm text-muted-foreground">
-                <span className="text-foreground">Nome</span>
-                <input
-                  className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="Digite um nome"
-                  value={couponForm.internal_name}
-                  onChange={event => setCouponForm(prev => ({ ...prev, internal_name: event.target.value }))}
-                />
-              </label>
-
-              <label className="space-y-3 text-sm text-muted-foreground">
-                <span className="text-foreground">Código de Cupom</span>
-                <input
-                  className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="Selecione um produto"
-                  value={couponForm.coupon_code}
-                  onChange={event => setCouponForm(prev => ({ ...prev, coupon_code: event.target.value }))}
-                />
-              </label>
-
-              <div className="space-y-3 rounded-[12px] border border-foreground/15 bg-card/80 p-4">
-                <p className="text-sm font-semibold text-foreground">Regras para aplicação de cupom</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    className={`h-11 rounded-[8px] border px-3 text-sm font-semibold ${
-                      couponUnit === "valor"
-                        ? "border-foreground/25 bg-foreground/10 text-foreground"
-                        : "border-foreground/20 bg-card text-foreground"
-                    }`}
-                    onClick={() => setCouponUnit("valor")}
-                  >
-                    Valor em R$
-                  </button>
-                  <button
-                    className={`h-11 rounded-[8px] border px-3 text-sm font-semibold ${
-                      couponUnit === "percent"
-                        ? "border-foreground/25 bg-foreground/10 text-foreground"
-                        : "border-foreground/20 bg-card text-foreground"
-                    }`}
-                    onClick={() => setCouponUnit("percent")}
-                  >
-                    Porcentagem
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    placeholder={couponUnit === "percent" ? "% desconto" : "R$ desconto"}
-                    value={couponForm.discount_amount}
-                    onChange={event => setCouponForm(prev => ({ ...prev, discount_amount: event.target.value }))}
-                  />
-                  <input
-                    className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    placeholder="Compra mínima"
-                    value={couponForm.minimum_purchase_amount}
-                    onChange={event => setCouponForm(prev => ({ ...prev, minimum_purchase_amount: event.target.value }))}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="date"
-                    className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    value={couponForm.expires_at ? couponForm.expires_at.slice(0, 10) : ""}
-                    onChange={event =>
-                      setCouponForm(prev => ({
-                        ...prev,
-                        expires_at: event.target.value ? `${event.target.value}T00:00:00Z` : "",
-                      }))
-                    }
-                  />
-                  <input
-                    className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    placeholder="Limite de uso"
-                    value={couponForm.limit_usage}
-                    onChange={event => setCouponForm(prev => ({ ...prev, limit_usage: event.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                <span>Status</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground capitalize">{couponForm.status}</span>
-                  <button
-                    className={`relative inline-flex h-5 w-10 items-center rounded-full ${
-                      couponForm.status === "active" ? "bg-primary/70" : "bg-muted"
-                    }`}
-                    type="button"
-                    onClick={() =>
-                      setCouponForm(prev => ({
-                        ...prev,
-                        status: prev.status === "active" ? "inactive" : "active",
-                      }))
-                    }
-                  >
-                    <span
-                      className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                        couponForm.status === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
-                  onClick={() => setShowCouponModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => void handleCreateCoupon()}
-                  disabled={
-                    couponSaving ||
-                    !couponForm.coupon_code.trim() ||
-                    !couponForm.discount_amount ||
-                    Number.isNaN(Number(couponForm.discount_amount))
-                  }
-                >
-                  {couponSaving ? "Salvando..." : "Adicionar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCoproductionModal && (
-        <div className="fixed inset-0 z-50 flex">
-          <div
-            className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowCoproductionModal(false)}
-            aria-label="Fechar modal coprodução"
-          />
-          <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
-            <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <h2 className="text-2xl font-semibold text-foreground">Convite de coprodução</h2>
-              <button
-                type="button"
-                onClick={() => setShowCoproductionModal(false)}
-                className="text-lg text-muted-foreground transition hover:text-foreground"
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-4 pb-10">
-              <label className="space-y-3 text-sm text-muted-foreground">
-                <span className="text-foreground">Nome</span>
-                <input
-                  className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="Nome"
-                  value={coproducerForm.name}
-                  onChange={event => setCoproducerForm(prev => ({ ...prev, name: event.target.value }))}
-                />
-              </label>
-
-              <label className="space-y-3 text-sm text-muted-foreground">
-                <span className="text-foreground">E-mail</span>
-                <input
-                  className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="E-mail"
-                  value={coproducerForm.email}
-                  onChange={event => setCoproducerForm(prev => ({ ...prev, email: event.target.value }))}
-                />
-              </label>
-
-              <label className="space-y-3 text-sm text-muted-foreground">
-                <span className="text-foreground">Porcentagem de comissão</span>
-                <input
-                  className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="10%"
-                  value={coproducerForm.commission}
-                  onChange={event => setCoproducerForm(prev => ({ ...prev, commission: event.target.value }))}
-                />
-              </label>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground">Duração do contrato</p>
-                <div className="flex flex-col gap-2 text-sm text-foreground">
-                  <label className="flex items-center gap-2 text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border border-foreground/30 bg-card"
-                      checked={coproducerForm.lifetime}
-                      onChange={event =>
-                        setCoproducerForm(prev => ({ ...prev, lifetime: event.target.checked }))
-                      }
-                    />
-                    Vitalício
-                  </label>
-                  <label className="flex items-center gap-2 text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border border-foreground/30 bg-card"
-                      checked={!coproducerForm.lifetime}
-                      onChange={event =>
-                        setCoproducerForm(prev => ({ ...prev, lifetime: !event.target.checked }))
-                      }
-                    />
-                    Período determinado
-                    <input
-                      className="h-10 w-16 rounded-[8px] border border-foreground/15 bg-card px-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="0"
-                      value={coproducerForm.durationMonths}
-                      onChange={event => setCoproducerForm(prev => ({ ...prev, durationMonths: event.target.value }))}
-                      disabled={coproducerForm.lifetime}
-                    />
-                    <span>mês(es)</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground">Preferências</p>
-                {[
-                  {
-                    key: "shareSalesDetails",
-                    label: "Compartilhar os dados do comprador com o coprodutor",
-                    value: coproducerForm.shareSalesDetails,
-                  },
-                  {
-                    key: "extendProductStrategies",
-                    label: "Estender comissões: Order Bumps, Upsells e downsell",
-                    value: coproducerForm.extendProductStrategies,
-                  },
-                  {
-                    key: "splitInvoice",
-                    label: "Dividir responsabilidades de emissão de notas fiscais",
-                    value: coproducerForm.splitInvoice,
-                  },
-                ].map(field => (
-                  <div key={field.key} className="flex items-center justify-between text-sm text-foreground">
-                    <span className="text-[13px] text-muted-foreground">{field.label}</span>
-                    <button
-                      type="button"
-                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${
-                        field.value ? "bg-primary/70" : "bg-muted"
-                      }`}
-                      onClick={() =>
-                        setCoproducerForm(prev => ({
-                          ...prev,
-                          [field.key]:
-                            field.key === "shareSalesDetails"
-                              ? !prev.shareSalesDetails
-                              : field.key === "extendProductStrategies"
-                                ? !prev.extendProductStrategies
-                                : !prev.splitInvoice,
-                        }))
-                      }
-                    >
-                      <span
-                        className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                          field.value ? "left-[calc(100%-18px)]" : "left-[6px]"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {coproducerFormError && (
-                <div className="rounded-[8px] border border-rose-900/40 bg-rose-900/20 px-3 py-2 text-sm text-rose-200">
-                  {coproducerFormError}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
-                  onClick={() => setShowCoproductionModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => void handleCreateCoproducer()}
-                  disabled={
-                    coproducerSaving ||
-                    !coproducerForm.name.trim() ||
-                    !coproducerForm.email.trim() ||
-                    !coproducerForm.commission
-                  }
-                >
-                  {coproducerSaving ? "Salvando..." : "Adicionar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCoproductionDetailModal && selectedCoproducer && (
-        <div className="fixed inset-0 z-50 flex">
-          <div
-            className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => {
-              setSelectedCoproducer(null);
-              setShowCoproductionDetailModal(false);
-            }}
-            aria-label="Fechar detalhes coprodução"
-          />
-          <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
-            <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <h2 className="text-2xl font-semibold text-foreground">
-                {selectedCoproducer.name || selectedCoproducer.email || "Coprodutor"}
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCoproducer(null);
-                  setShowCoproductionDetailModal(false);
-                }}
-                className="text-lg text-muted-foreground transition hover:text-foreground"
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-4 pb-10">
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground">Nome</span>
-                  <span className="text-muted-foreground">
-                    {selectedCoproducer.name || selectedCoproducer.email || "—"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground">E-mail</span>
-                  <span className="text-muted-foreground">{selectedCoproducer.email || "—"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground">Porcentagem de comissão</span>
-                  <span className="text-muted-foreground">
-                    {selectedCoproducer.commission_percentage !== undefined
-                      ? `${selectedCoproducer.commission_percentage}%`
-                      : selectedCoproducer.commission ?? "—"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground">Início</span>
-                  <span className="text-muted-foreground">
-                    {selectedCoproducer.start_at || selectedCoproducer.start || selectedCoproducer.created_at || "—"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground">Duração</span>
-                  <span className="text-muted-foreground">{selectedCoproducer.duration || "—"}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground">Status:</p>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
-                    {selectedCoproducer.status || "—"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end pt-4">
-                <button
-                  type="button"
-                  className="rounded-[8px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => {
-                    setSelectedCoproducer(null);
-                    setShowCoproductionDetailModal(false);
-                  }}
-                >
-                  Fechar
                 </button>
               </div>
             </div>
