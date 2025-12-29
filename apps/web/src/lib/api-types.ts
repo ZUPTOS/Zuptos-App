@@ -116,10 +116,11 @@ export interface ProductOffer {
   next_redirect_url?: string;
   created_at?: string;
   updated_at?: string;
+  order_bumps?: OrderBump[];
 }
 
 export interface CheckoutPayload {
-  template?: string;
+  template?: CheckoutTemplate | string;
   name: string;
   required_address?: boolean;
   required_phone?: boolean;
@@ -133,12 +134,52 @@ export interface CheckoutPayload {
   defaultColor?: string;
   countdown?: boolean;
   "countdown active"?: boolean;
+  countdown_active?: boolean;
   countdown_expire?: string;
   countdown_background?: string;
   social_proofs_message?: string;
   social_proofs_min_client?: number;
   after_sale_title?: string;
   after_sale_message?: string;
+}
+
+export enum CheckoutTemplate {
+  DEFAULT = "default",
+  VEGA = "vega",
+  AFILIA = "afilia",
+}
+
+export interface OrderBump {
+  id?: string;
+  title: string;
+  tag?: string;
+  description?: string;
+  product?: string;
+  offer?: string;
+  price?: number;
+}
+
+export interface Coproducer {
+  id?: string;
+  name?: string;
+  email?: string;
+  commission?: number | string;
+  commission_percentage?: number;
+  status?: string;
+  start?: string;
+  start_at?: string;
+  created_at?: string;
+  duration?: string;
+}
+
+export interface CreateCoproducerRequest {
+  name: string;
+  email: string;
+  duration_months?: number;
+  revenue_share_percentage: number;
+  share_sales_details?: boolean;
+  extend_product_strategies?: boolean;
+  split_invoice?: boolean;
 }
 
 export interface Checkout extends CheckoutPayload {

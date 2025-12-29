@@ -15,6 +15,8 @@ import type {
   CreateProductStrategyRequest,
   ProductCoupon,
   CreateProductCouponRequest,
+  Coproducer,
+  CreateCoproducerRequest,
 } from "../api-types";
 import { API_BASE_URL, buildQuery, readStoredToken, request } from "../request";
 
@@ -364,7 +366,39 @@ export const productApi = {
     if (!authToken) {
       throw new Error("Missing authentication token for product strategy creation");
     }
-    return request<{ id: string; message?: string; status?: string }>(`/v1/product/${id}/strategies`, {
+    return request<{ id: string; message?: string; status?: string }>(`/product/${id}/strategies`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getCoproducersByProductId: async (id: string, token?: string): Promise<Coproducer[]> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for coproducers");
+    }
+    return request<Coproducer[]>(`/product/${id}/coproducers`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  },
+
+  createCoproducer: async (
+    id: string,
+    payload: CreateCoproducerRequest,
+    token?: string
+  ): Promise<{ id: string; message?: string; status?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for coproducer creation");
+    }
+    return request<{ id: string; message?: string; status?: string }>(`/product/${id}/coproducers`, {
       method: "POST",
       baseUrl: PRODUCTS_BASE,
       headers: {
