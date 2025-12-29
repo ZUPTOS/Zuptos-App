@@ -106,7 +106,7 @@ export function EntregavelTab({ productId, token, withLoading, onOpenCreate, ref
             !error &&
             deliverables.map(deliverable => {
               const linkLabel = deliverable.content?.replace(/^https?:\/\//, "") ?? deliverable.content ?? "-";
-              const isActive = deliverable.status?.toLowerCase() === "active";
+              const isActive = (deliverable.status ?? "active").toLowerCase() === "active";
               return (
                 <div key={deliverable.id} className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground">
                   <div className="space-y-1">
@@ -142,7 +142,7 @@ export function EntregavelTab({ productId, token, withLoading, onOpenCreate, ref
                       className={`h-2.5 w-2.5 rounded-full ${isActive ? "bg-primary" : "bg-muted-foreground/50"}`}
                       aria-hidden
                     />
-                    <span className="font-medium text-foreground">{deliverable.status ?? "-"}</span>
+                    <span className="font-medium text-foreground">{isActive ? "Ativo" : deliverable.status ?? "-"}</span>
                   </div>
                 </div>
               );
