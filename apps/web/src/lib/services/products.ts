@@ -273,6 +273,15 @@ export const productApi = {
     });
   },
 
+  getCheckoutById: async (productId: string, checkoutId: string, token?: string): Promise<Checkout> => {
+    const authToken = token ?? readStoredToken();
+    return request<Checkout>(`/product/${productId}/checkouts/${checkoutId}`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    });
+  },
+
   getProductSettings: async (id: string, token?: string): Promise<ProductSettings> => {
     const authToken = token ?? readStoredToken();
     if (!authToken) {

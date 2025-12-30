@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FilterDrawer } from "@/components/FilterDrawer";
-import { productApi } from "@/lib/api";
+import { ProductType, productApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Check,
@@ -59,9 +59,9 @@ const statusConfig: Record<ProductStatus, { label: string; badgeClass: string }>
 };
 
 const filterTypeOptions = [
-  { label: "Curso", value: "course" },
-  { label: "E-BOOK ou arquivo", value: "ebook" },
-  { label: "Serviço", value: "service" }
+  { label: "Curso", value: ProductType.COURSE },
+  { label: "E-BOOK ou arquivo", value: ProductType.BOOK },
+  { label: "Serviço", value: ProductType.SERVICE }
 ];
 
 const filterStatusOptions = [
@@ -102,9 +102,9 @@ const formInputClasses =
   "w-full rounded-[7px] border border-foreground/25 bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0";
 
 const typeLabelMap: Record<string, string> = {
-  course: "Curso",
-  ebook: "E-BOOK ou arquivo",
-  service: "Serviço",
+  [ProductType.COURSE]: "Curso",
+  [ProductType.BOOK]: "E-BOOK ou arquivo",
+  [ProductType.SERVICE]: "Serviço",
 };
 
 const buildPaginationItems = (totalPages: number): (number | string)[] => {
@@ -139,7 +139,7 @@ export default function Products() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
-  const [newProductType, setNewProductType] = useState<string>("course");
+  const [newProductType, setNewProductType] = useState<ProductType>(ProductType.COURSE);
   const [newProductName, setNewProductName] = useState("");
   const [newProductDescription, setNewProductDescription] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("");
@@ -255,7 +255,7 @@ export default function Products() {
   };
 
   const resetNewProductForm = () => {
-    setNewProductType("course");
+    setNewProductType(ProductType.COURSE);
     setNewProductName("");
     setNewProductDescription("");
     setNewProductCategory("");
@@ -286,7 +286,7 @@ export default function Products() {
     }
     const payload = {
       name: newProductName.trim() || "Novo produto",
-      type: newProductType || "course",
+      type: newProductType || ProductType.COURSE,
       description: description || undefined,
       category: newProductCategory || "Outros",
       internal_description: internalDescription || undefined,

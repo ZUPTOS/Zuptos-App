@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
 import type {
   Product,
+  Checkout,
   ProductOffer,
   CreateProductPlanRequest,
   OrderBump,
@@ -14,6 +16,7 @@ import type {
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import ToggleActive from "@/components/ToggleActive";
 import { CoproducaoTab } from "./editar-produto/CoproducaoTab";
 import { CuponsTab } from "./editar-produto/CuponsTab";
 import { UpsellTab } from "./editar-produto/UpsellTab";
@@ -98,6 +101,16 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [offerNextRedirect, setOfferNextRedirect] = useState("");
   const [offerStatus, setOfferStatus] = useState<"active" | "inactive">("active");
   const [offerFree, setOfferFree] = useState(false);
+  const [backRedirectEnabled, setBackRedirectEnabled] = useState(true);
+  const [nextRedirectEnabled, setNextRedirectEnabled] = useState(true);
+  const [firstChargePriceEnabled, setFirstChargePriceEnabled] = useState(true);
+  const [fixedChargesEnabled, setFixedChargesEnabled] = useState(true);
+  const [selectedCheckoutId, setSelectedCheckoutId] = useState("");
+  const [checkoutOptions, setCheckoutOptions] = useState<Checkout[]>([]);
+  const [checkoutOptionsLoading, setCheckoutOptionsLoading] = useState(false);
+  const [orderBumpEnabled, setOrderBumpEnabled] = useState(false);
+  const [orderBumpOffers, setOrderBumpOffers] = useState<ProductOffer[]>([]);
+  const [orderBumpOffersLoading, setOrderBumpOffersLoading] = useState(false);
   const [orderBumps, setOrderBumps] = useState<OrderBump[]>([]);
   const [orderBumpForm, setOrderBumpForm] = useState({
     product: "",
@@ -203,10 +216,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       name: offerName.trim() || "Oferta",
       type: offerType === "assinatura" ? "subscription" : "single",
       status: offerStatus === "inactive" ? "inactive" : "active",
-      offer_price: offerPrice ? Number(offerPrice) : undefined,
+      offer_price: offerFree ? undefined : offerPrice ? Number(offerPrice) : undefined,
       free: offerFree,
       back_redirect_url: offerBackRedirect || undefined,
       next_redirect_url: offerNextRedirect || undefined,
+      checkout_id: selectedCheckoutId || undefined,
     };
 
     setSavingOffer(true);
@@ -222,6 +236,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       setOfferNextRedirect("");
       setOfferFree(false);
       setOfferStatus("active");
+      setSelectedCheckoutId("");
     } catch (error) {
       console.error("Erro ao criar oferta:", error);
     } finally {
@@ -232,6 +247,52 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   useEffect(() => {
     setActiveTab((initialTab && tabSlugMap[initialTab]) || "Entregável");
   }, [initialTab]);
+
+  useEffect(() => {
+    const loadCheckoutOptions = async () => {
+      if (!productId || !token || !showOfferModal) return;
+      setCheckoutOptionsLoading(true);
+      try {
+        const data = await withLoading(
+          () => productApi.getCheckoutsByProductId(productId, token),
+          "Carregando checkouts"
+        );
+        setCheckoutOptions(data);
+        // Preenche back redirect padrão com o primeiro checkout disponível
+        if (data.length > 0 && typeof window !== "undefined") {
+          const origin = window.location.origin;
+          const fallbackCheckoutId = data[0]?.id ?? "";
+          setOfferBackRedirect(prev =>
+            prev || `${origin}/checkout/${productId}/${fallbackCheckoutId}`
+          );
+        }
+      } catch (error) {
+        console.error("Erro ao carregar checkouts para oferta:", error);
+      } finally {
+        setCheckoutOptionsLoading(false);
+      }
+    };
+    void loadCheckoutOptions();
+  }, [productId, token, showOfferModal, withLoading]);
+
+  useEffect(() => {
+    const loadOrderBumpOffers = async () => {
+      if (!productId || !token || !showOfferModal) return;
+      setOrderBumpOffersLoading(true);
+      try {
+        const data = await withLoading(
+          () => productApi.getOffersByProductId(productId, token),
+          "Carregando ofertas"
+        );
+        setOrderBumpOffers(data);
+      } catch (error) {
+        console.error("Erro ao carregar ofertas para order bump:", error);
+      } finally {
+        setOrderBumpOffersLoading(false);
+      }
+    };
+    void loadOrderBumpOffers();
+  }, [productId, token, showOfferModal, withLoading]);
 
   const navigateToTab = (tab: TabLabel) => {
     setActiveTab(tab);
@@ -429,15 +490,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                     <span>Status da oferta</span>
-                    <button
-                      type="button"
-                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${offerStatus === "active" ? "bg-primary/70" : "bg-muted"}`}
-                      onClick={() => setOfferStatus(prev => (prev === "active" ? "inactive" : "active"))}
-                    >
-                      <span
-                        className={`absolute h-4 w-4 rounded-full bg-white transition ${offerStatus === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"}`}
-                      />
-                    </button>
+                    <ToggleActive
+                      checked={offerStatus === "active"}
+                      onCheckedChange={checked => setOfferStatus(checked ? "active" : "inactive")}
+                      aria-label="Alternar status da oferta"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="space-y-2 text-sm text-muted-foreground">
@@ -454,31 +511,55 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
               {offerType === "preco_unico" && (
                 <div className="space-y-2">
-                  <label className="space-y-2 text-sm text-muted-foreground">
-                    <span>Checkout</span>
-                    <input
-                      className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Selecione um checkout"
-                    />
-                  </label>
+                    <div className="space-y-1 text-sm">
+                      <p className="text-foreground font-semibold">Checkout</p>
+                      <p className="text-xs text-muted-foreground">
+                        Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
+                      </p>
+                      <div className="relative">
+                        <select
+                          className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none disabled:opacity-60"
+                          value={selectedCheckoutId}
+                          onChange={event => {
+                            const value = event.target.value;
+                            setSelectedCheckoutId(value);
+                            if (value && typeof window !== "undefined" && productId) {
+                              setOfferBackRedirect(`${window.location.origin}/checkout/${productId}/${value}`);
+                            }
+                          }}
+                          disabled={checkoutOptionsLoading || checkoutOptions.length === 0}
+                        >
+                          <option value="">{checkoutOptionsLoading ? "Carregando checkouts..." : "Selecione um checkout"}</option>
+                          {checkoutOptions.map(checkout => (
+                            <option key={checkout.id} value={checkout.id ?? ""}>
+                              {checkout.name || checkout.id}
+                            </option>
+                          ))}
+                      </select>
+                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                        <ChevronDown className="h-4 w-4" aria-hidden />
+                      </span>
+                    </div>
+                  </div>
                   <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                     <span>Oferta gratuita</span>
-                    <button
-                      type="button"
-                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${offerFree ? "bg-primary/70" : "bg-muted"}`}
-                      onClick={() => setOfferFree(prev => !prev)}
-                    >
-                      <span
-                        className={`absolute h-4 w-4 rounded-full bg-white transition ${offerFree ? "left-[calc(100%-18px)]" : "left-[6px]"}`}
-                      />
-                    </button>
+                    <ToggleActive
+                      checked={offerFree}
+                      onCheckedChange={checked => {
+                        setOfferFree(checked);
+                        if (checked) setOfferPrice("");
+                      }}
+                      aria-label="Alternar oferta gratuita"
+                    />
                   </div>
-                  <input
-                    className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    placeholder="R$ 0,00"
-                    value={offerPrice}
-                    onChange={event => setOfferPrice(event.target.value)}
-                  />
+                  {!offerFree && (
+                    <input
+                      className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                      placeholder="R$ 0,00"
+                      value={offerPrice}
+                      onChange={event => setOfferPrice(event.target.value)}
+                    />
+                  )}
                 </div>
               )}
 
@@ -543,9 +624,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                         <span>Preço diferente na primeira cobrança</span>
-                        <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                          <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                        </button>
+                        <ToggleActive
+                          checked={firstChargePriceEnabled}
+                          onCheckedChange={setFirstChargePriceEnabled}
+                          aria-label="Ativar preço diferente na primeira cobrança"
+                        />
                       </div>
                       <input
                         className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
@@ -554,9 +637,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
                       <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                         <span>Número fixo de cobranças</span>
-                        <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                          <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                        </button>
+                        <ToggleActive
+                          checked={fixedChargesEnabled}
+                          onCheckedChange={setFixedChargesEnabled}
+                          aria-label="Ativar número fixo de cobranças"
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <input
@@ -577,94 +662,122 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
               )}
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-base font-semibold text-foreground">Order Bumps</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Complete as informações para adicionar produtos complementares ao seu plano de assinatura durante o processo de pagamento.
-                </p>
-
-                <div className="space-y-3 rounded-[10px] border border-foreground/15 bg-card/70 p-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Produto"
-                      value={orderBumpForm.product}
-                      onChange={event => setOrderBumpForm(prev => ({ ...prev, product: event.target.value }))}
-                    />
-                    <input
-                      className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Oferta"
-                      value={orderBumpForm.offer}
-                      onChange={event => setOrderBumpForm(prev => ({ ...prev, offer: event.target.value }))}
-                    />
-                    <input
-                      className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Título"
-                      value={orderBumpForm.title}
-                      onChange={event => setOrderBumpForm(prev => ({ ...prev, title: event.target.value }))}
-                    />
-                    <input
-                      className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Tag em destaque"
-                      value={orderBumpForm.tag}
-                      onChange={event => setOrderBumpForm(prev => ({ ...prev, tag: event.target.value }))}
-                    />
-                    <input
-                      className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Preço"
-                      value={orderBumpForm.price}
-                      onChange={event => setOrderBumpForm(prev => ({ ...prev, price: event.target.value }))}
-                    />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-semibold text-foreground">Order Bumps</p>
+                    <p className="text-xs text-muted-foreground">
+                      Complete as informações para adicionar produtos complementares ao seu plano de assinatura durante o processo de pagamento.
+                    </p>
                   </div>
-                  <label className="space-y-2 text-xs text-muted-foreground">
-                    <span>Descrição do order bump (opcional)</span>
-                    <textarea
-                      className="min-h-[70px] rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="Digite uma descrição"
-                      value={orderBumpForm.description}
-                      onChange={event => setOrderBumpForm(prev => ({ ...prev, description: event.target.value }))}
-                    />
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className="flex-1 rounded-[8px] bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90 disabled:opacity-60"
-                      disabled={!orderBumpForm.title.trim()}
-                      onClick={() => {
-                        const next: OrderBump = {
-                          title: orderBumpForm.title.trim(),
-                          tag: orderBumpForm.tag.trim() || undefined,
-                          product: orderBumpForm.product.trim() || undefined,
-                          offer: orderBumpForm.offer.trim() || undefined,
-                          description: orderBumpForm.description.trim() || undefined,
-                          price: orderBumpForm.price ? Number(orderBumpForm.price) : undefined,
-                        };
-                        if (editingOrderBumpIndex !== null) {
-                          setOrderBumps(prev =>
-                            prev.map((item, idx) => (idx === editingOrderBumpIndex ? next : item))
-                          );
-                        } else {
-                          setOrderBumps(prev => [...prev, next]);
-                        }
-                        setOrderBumpForm({
-                          product: "",
-                          offer: "",
-                          title: "",
-                          tag: "",
-                          price: "",
-                          description: "",
-                        });
-                        setEditingOrderBumpIndex(null);
-                      }}
-                    >
-                      {editingOrderBumpIndex !== null ? "Salvar Order Bump" : "Adicionar Order Bump"}
-                    </button>
-                    {editingOrderBumpIndex !== null && (
+                  <ToggleActive
+                    checked={orderBumpEnabled}
+                    onCheckedChange={setOrderBumpEnabled}
+                    aria-label="Ativar Order Bumps"
+                  />
+                </div>
+
+                {orderBumpEnabled && (
+                  <div className="space-y-4 rounded-[10px] border border-foreground/15 bg-card/70 p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="space-y-1 text-xs text-muted-foreground">
+                        <span className="text-foreground">Produto</span>
+                        <div className="relative">
+                          <select
+                            className="h-10 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
+                            value={orderBumpForm.product}
+                            onChange={event => setOrderBumpForm(prev => ({ ...prev, product: event.target.value }))}
+                          >
+                            <option value="">{product?.name || "Selecione"}</option>
+                            {product?.id && <option value={product.id}>{product.name || product.id}</option>}
+                          </select>
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                            <ChevronDown className="h-4 w-4" aria-hidden />
+                          </span>
+                        </div>
+                      </label>
+
+                      <label className="space-y-1 text-xs text-muted-foreground">
+                        <span className="text-foreground">Oferta</span>
+                        <div className="relative">
+                          <select
+                            className="h-10 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none disabled:opacity-60"
+                            value={orderBumpForm.offer}
+                            onChange={event => setOrderBumpForm(prev => ({ ...prev, offer: event.target.value }))}
+                            disabled={orderBumpOffersLoading || orderBumpOffers.length === 0}
+                          >
+                            <option value="">{orderBumpOffersLoading ? "Carregando..." : "Selecione"}</option>
+                            {orderBumpOffers.map(offer => (
+                              <option key={offer.id ?? offer.name} value={offer.id ?? ""}>
+                                {offer.name}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                            <ChevronDown className="h-4 w-4" aria-hidden />
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="space-y-1 text-xs text-muted-foreground">
+                        <span className="text-foreground">Título</span>
+                        <input
+                          className="h-10 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          placeholder="Digite um título"
+                          value={orderBumpForm.title}
+                          onChange={event => setOrderBumpForm(prev => ({ ...prev, title: event.target.value }))}
+                        />
+                      </label>
+
+                      <label className="space-y-1 text-xs text-muted-foreground">
+                        <span className="text-foreground">Tag em destaque</span>
+                        <div className="relative">
+                          <select
+                            className="h-10 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
+                            value={orderBumpForm.tag}
+                            onChange={event => setOrderBumpForm(prev => ({ ...prev, tag: event.target.value }))}
+                          >
+                            <option value="">Selecione</option>
+                            <option value="novidade">Novidade</option>
+                            <option value="desconto">Desconto</option>
+                            <option value="recomendado">Recomendado</option>
+                          </select>
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                            <ChevronDown className="h-4 w-4" aria-hidden />
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+
+                    <label className="space-y-1 text-xs text-muted-foreground">
+                      <span className="text-foreground">Descrição do order bump (opcional)</span>
+                      <textarea
+                        className="min-h-[70px] rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        placeholder="Digite uma descrição"
+                        value={orderBumpForm.description}
+                        onChange={event => setOrderBumpForm(prev => ({ ...prev, description: event.target.value }))}
+                      />
+                    </label>
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        className="rounded-[8px] border border-foreground/20 bg-card px-4 py-3 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                        className="flex-1 rounded-[8px] bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90 disabled:opacity-60"
+                        disabled={!orderBumpForm.product || !orderBumpForm.offer || !orderBumpForm.title.trim()}
                         onClick={() => {
+                          const next: OrderBump = {
+                            title: orderBumpForm.title.trim(),
+                            tag: orderBumpForm.tag.trim() || undefined,
+                            product: orderBumpForm.product.trim() || undefined,
+                            offer: orderBumpForm.offer.trim() || undefined,
+                            description: orderBumpForm.description.trim() || undefined,
+                            price: undefined,
+                          };
+                          if (editingOrderBumpIndex !== null) {
+                            setOrderBumps(prev => prev.map((item, idx) => (idx === editingOrderBumpIndex ? next : item)));
+                          } else {
+                            setOrderBumps(prev => [...prev, next]);
+                          }
                           setOrderBumpForm({
                             product: "",
                             offer: "",
@@ -676,123 +789,146 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                           setEditingOrderBumpIndex(null);
                         }}
                       >
-                        Cancelar edição
+                        {editingOrderBumpIndex !== null ? "Salvar Order Bump" : "Adicionar Order Bump"}
                       </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3 rounded-[10px] border border-dashed border-primary/70 p-4">
-                  {orderBumps.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Nenhum Order Bump adicionado ainda.</p>
-                  )}
-                  {orderBumps.map((item, idx) => (
-                    <div key={idx} className="overflow-hidden rounded-[12px] border border-foreground/15 bg-card/90">
-                      <div className="flex items-center justify-between bg-foreground/5 px-4 py-3 text-sm font-semibold text-foreground">
-                        <span className="text-lg font-semibold">{String(idx + 1).padStart(2, "0")}</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="inline-flex items-center gap-2 rounded-[8px] border border-foreground/15 bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40"
-                            onClick={() => {
-                              setEditingOrderBumpIndex(idx);
-                              setOrderBumpForm({
-                                product: item.product ?? "",
-                                offer: item.offer ?? "",
-                                title: item.title ?? "",
-                                tag: item.tag ?? "",
-                                price: item.price !== undefined ? String(item.price) : "",
-                                description: item.description ?? "",
-                              });
-                            }}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className="inline-flex items-center gap-2 rounded-[8px] border border-rose-900/50 bg-rose-900/20 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:border-rose-400/60"
-                            onClick={() =>
-                              setOrderBumps(prev => prev.filter((_, bumpIdx) => bumpIdx !== idx))
-                            }
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="divide-y divide-foreground/10">
-                        <div className="flex items-start gap-4 px-4 py-4">
-                          <div className="overflow-hidden rounded-[12px] bg-foreground/10">
-                            <Image
-                              src="/images/produto.png"
-                              alt={item.title || "Order bump"}
-                              width={120}
-                              height={120}
-                              className="h-[120px] w-[120px] object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 space-y-2 pt-1">
-                            <div className="flex flex-col text-xs text-muted-foreground">
-                              <span className="px-2 py-1 text-foreground">{item.product || "—"}</span>
-                              <span className="mt-1 px-2 py-1 text-foreground">{item.offer || "—"}</span>
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-xl font-semibold text-foreground">{item.title || "Título"}</p>
-                              <p className="text-lg font-semibold text-foreground">
-                                {item.price !== undefined
-                                  ? Number(item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                                  : "Preço não informado"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3 px-4 py-4">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <p className="text-base font-semibold text-foreground">Título</p>
-                            <div className="inline-flex rounded-full bg-emerald-700/25 px-3 py-1 text-[11px] font-semibold text-emerald-300">
-                              {item.tag?.toUpperCase() || "SEM TAG"}
-                            </div>
-                          </div>
-                          {item.description && (
-                            <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-                          )}
-                        </div>
-                      </div>
+                      {editingOrderBumpIndex !== null && (
+                        <button
+                          type="button"
+                          className="rounded-[8px] border border-foreground/20 bg-card px-4 py-3 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                          onClick={() => {
+                            setOrderBumpForm({
+                              product: "",
+                              offer: "",
+                              title: "",
+                              tag: "",
+                              price: "",
+                              description: "",
+                            });
+                            setEditingOrderBumpIndex(null);
+                          }}
+                        >
+                          Cancelar edição
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {orderBumpEnabled && (
+                  <div className="space-y-3 rounded-[10px] border border-dashed border-primary/70 p-4">
+                    {orderBumps.length === 0 && (
+                      <p className="text-sm text-muted-foreground">Nenhum Order Bump adicionado ainda.</p>
+                    )}
+                    {orderBumps.map((item, idx) => (
+                      <div key={idx} className="overflow-hidden rounded-[12px] border border-foreground/15 bg-card/90">
+                        <div className="flex items-center justify-between bg-foreground/5 px-4 py-3 text-sm font-semibold text-foreground">
+                          <span className="text-lg font-semibold">{String(idx + 1).padStart(2, "0")}</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="inline-flex items-center gap-2 rounded-[8px] border border-foreground/15 bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-foreground/40"
+                              onClick={() => {
+                                setEditingOrderBumpIndex(idx);
+                                setOrderBumpForm({
+                                  product: item.product ?? "",
+                                  offer: item.offer ?? "",
+                                  title: item.title ?? "",
+                                  tag: item.tag ?? "",
+                                  price: item.price !== undefined ? String(item.price) : "",
+                                  description: item.description ?? "",
+                                });
+                              }}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="inline-flex items-center gap-2 rounded-[8px] border border-rose-900/50 bg-rose-900/20 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:border-rose-400/60"
+                              onClick={() => setOrderBumps(prev => prev.filter((_, bumpIdx) => bumpIdx !== idx))}
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="divide-y divide-foreground/10">
+                          <div className="flex items-start gap-4 px-4 py-4">
+                            <div className="overflow-hidden rounded-[12px] bg-foreground/10">
+                              <Image
+                                src="/images/produto.png"
+                                alt={item.title || "Order bump"}
+                                width={120}
+                                height={120}
+                                className="h-[120px] w-[120px] object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 space-y-2 pt-1">
+                              <div className="flex flex-col text-xs text-muted-foreground">
+                                <span className="px-2 py-1 text-foreground">{item.product || "—"}</span>
+                                <span className="mt-1 px-2 py-1 text-foreground">{item.offer || "—"}</span>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xl font-semibold text-foreground">{item.title || "Título"}</p>
+                                <p className="text-lg font-semibold text-foreground">
+                                  {item.price !== undefined
+                                    ? Number(item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                                    : "Preço não informado"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3 px-4 py-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <p className="text-base font-semibold text-foreground">Título</p>
+                              <div className="inline-flex rounded-full bg-emerald-700/25 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+                                {item.tag?.toUpperCase() || "SEM TAG"}
+                              </div>
+                            </div>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground">Back Redirect</p>
                       <p className="text-xs text-muted-foreground">
                         Redirecione o comprador para URL cadastrada automaticamente ao sair do checkout.
                       </p>
                     </div>
-                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                    </button>
+                    <ToggleActive
+                      checked={backRedirectEnabled}
+                      onCheckedChange={setBackRedirectEnabled}
+                      aria-label="Ativar back redirect"
+                    />
                   </div>
                   <input
                     className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    placeholder="Insira o link"
+                    placeholder="Insira o link de back redirect"
                     value={offerBackRedirect}
                     onChange={event => setOfferBackRedirect(event.target.value)}
                   />
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Ir para outra página após aprovado</p>
-                    <p className="text-xs text-muted-foreground">
-                      Você pode redirecionar o comprador para uma página de upsell ou de obrigado personalizada.
-                    </p>
-                  </div>
-                  <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                    <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
-                  </button>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Ir para outra página após aprovado</p>
+                      <p className="text-xs text-muted-foreground">
+                        Você pode redirecionar o comprador para uma página de upsell ou de obrigado personalizada.
+                      </p>
+                    </div>
+                    <ToggleActive
+                      checked={nextRedirectEnabled}
+                      onCheckedChange={setNextRedirectEnabled}
+                      aria-label="Ativar redirecionamento após aprovado"
+                    />
                   </div>
                   <input
                     className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"

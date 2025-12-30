@@ -16,13 +16,13 @@ var mockProducts: {
 jest.mock("@/lib/api", () => {
   const productsFixture = [
     { id: "1", name: "Produto A", type: "course", image_url: "/custom-a.png", total_invoiced: 1000, total_sold: 500 },
-    { id: "2", name: "Produto B", type: "ebook", image_url: "/custom-b.png", total_invoiced: 800, total_sold: 300 },
+    { id: "2", name: "Produto B", type: "book", image_url: "/custom-b.png", total_invoiced: 800, total_sold: 300 },
     { id: "3", name: "Produto C", type: "service", image_url: "/custom-c.png", total_invoiced: 1200, total_sold: 600 },
     { id: "4", name: "Produto D", type: "course", image_url: "/custom-d.png", total_invoiced: 900, total_sold: 200 },
-    { id: "5", name: "Produto E", type: "ebook", image_url: "/custom-e.png", total_invoiced: 400, total_sold: 120 },
+    { id: "5", name: "Produto E", type: "book", image_url: "/custom-e.png", total_invoiced: 400, total_sold: 120 },
     { id: "6", name: "Produto F", type: "service", image_url: "/custom-f.png", total_invoiced: 700, total_sold: 220 },
     { id: "7", name: "Produto G", type: "course", image_url: "/custom-g.png", total_invoiced: 500, total_sold: 80 },
-    { id: "8", name: "Produto H", type: "ebook", image_url: "/custom-h.png", total_invoiced: 300, total_sold: 50 },
+    { id: "8", name: "Produto H", type: "book", image_url: "/custom-h.png", total_invoiced: 300, total_sold: 50 },
     { id: "9", name: "Produto I", type: "service", image_url: "/custom-i.png", total_invoiced: 250, total_sold: 40 },
   ];
   mockProducts = productsFixture;
@@ -153,9 +153,9 @@ describe("Products view", () => {
     await user.type(descricaoTextarea, "Descrição breve produto");
     await user.type(complementoTextarea, "Informações internas para análise");
     await user.type(paginaVendasInput, "https://exemplo.com");
-    const ebookCheckbox = within(modal).getByLabelText(/^E-BOOK ou arquivo$/i);
-    await user.click(ebookCheckbox);
-    expect(ebookCheckbox).toBeChecked();
+    const bookCheckbox = within(modal).getByLabelText(/E-BOOK ou arquivo/i);
+    await user.click(bookCheckbox);
+    expect(bookCheckbox).toBeChecked();
   });
 
   it("filtra por busca e navega na paginação", async () => {

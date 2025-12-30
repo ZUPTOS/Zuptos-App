@@ -60,7 +60,7 @@ export interface CreateSaleRequest {
 export interface Product {
   id: string;
   name: string;
-  type: string;
+  type: ProductType | string;
   image_url?: string;
   total_invoiced?: number;
   total_sold?: number;
@@ -71,6 +71,12 @@ export interface Product {
   sale_url?: string;
   login_username?: string;
   login_password?: string;
+}
+
+export enum ProductType {
+  COURSE = "course",
+  BOOK = "book",
+  SERVICE = "service",
 }
 
 export interface ProductDeliverable {
@@ -93,7 +99,7 @@ export interface ProductListParams {
 
 export interface CreateProductRequest {
   name: string;
-  type: string;
+  type: ProductType;
   image_url?: string;
   total_invoiced?: number;
   total_sold?: number;
@@ -114,6 +120,7 @@ export interface ProductOffer {
   free?: boolean;
   back_redirect_url?: string;
   next_redirect_url?: string;
+  checkout_id?: string;
   created_at?: string;
   updated_at?: string;
   order_bumps?: OrderBump[];

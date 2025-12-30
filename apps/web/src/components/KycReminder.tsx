@@ -116,7 +116,7 @@ export default function KycReminder() {
   };
 
   return (
-    <div className="sticky top-0 z-40 flex w-full items-center justify-between gap-4 border-b border-amber-500/30 bg-amber-50/90 px-4 py-3 text-amber-900 backdrop-blur dark:bg-amber-500/10 dark:text-amber-50">
+    <div className="sticky top-0 z-30 flex w-full items-center justify-between gap-4 border-b border-amber-500/30 bg-amber-50/90 px-4 py-3 text-amber-900 backdrop-blur dark:bg-amber-500/10 dark:text-amber-50">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-200/80 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300">
           {status === "loading" ? (

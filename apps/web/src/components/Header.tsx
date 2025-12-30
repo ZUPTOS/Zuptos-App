@@ -107,7 +107,7 @@ export default function Header({
   }
 
   return (
-    <header className="bg-background sticky top-0 z-30 transition-colors border-b">
+    <header className="bg-background sticky top-0 z-50 transition-colors border-b">
       <div className="flex items-center justify-between py-2" style={{ paddingInline: "var(--header-padding-x)" }}>
         <div className="flex flex-col gap-1">
           {pageSubtitle && (
@@ -118,7 +118,7 @@ export default function Header({
           <h1 className="text-2xl font-semibold text-foreground">{pageTitle || ""}</h1>
         </div>
         <div className="flex items-center gap-4 ml-6">
-          <div className="relative" ref={profileRef}>
+          <div className="relative z-50" ref={profileRef}>
             <button
               type="button"
               onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -154,7 +154,7 @@ export default function Header({
 
             {/* Dropdown Menu */}
             {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-none dark:shadow-lg overflow-hidden transition-colors">
+              <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-none dark:shadow-lg overflow-hidden transition-colors z-50">
                 <Link
                   href="/minha-conta"
                   className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-b border-border/60"
