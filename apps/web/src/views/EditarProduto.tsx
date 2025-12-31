@@ -103,8 +103,16 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [offerFree, setOfferFree] = useState(false);
   const [backRedirectEnabled, setBackRedirectEnabled] = useState(true);
   const [nextRedirectEnabled, setNextRedirectEnabled] = useState(true);
-  const [firstChargePriceEnabled, setFirstChargePriceEnabled] = useState(true);
-  const [fixedChargesEnabled, setFixedChargesEnabled] = useState(true);
+  const [firstChargePriceEnabled, setFirstChargePriceEnabled] = useState(false);
+  const [fixedChargesEnabled, setFixedChargesEnabled] = useState(false);
+  const [subscriptionFrequency, setSubscriptionFrequency] = useState<"" | "mensal" | "trimestral" | "anual">("");
+  const [subscriptionTitle, setSubscriptionTitle] = useState("");
+  const [subscriptionTag, setSubscriptionTag] = useState("");
+  const [subscriptionPrice, setSubscriptionPrice] = useState("");
+  const [subscriptionPromoPrice, setSubscriptionPromoPrice] = useState("");
+  const [subscriptionFirstChargePrice, setSubscriptionFirstChargePrice] = useState("");
+  const [subscriptionChargesCount, setSubscriptionChargesCount] = useState("");
+  const [subscriptionDefault, setSubscriptionDefault] = useState(false);
   const [selectedCheckoutId, setSelectedCheckoutId] = useState("");
   const [checkoutOptions, setCheckoutOptions] = useState<Checkout[]>([]);
   const [checkoutOptionsLoading, setCheckoutOptionsLoading] = useState(false);
@@ -574,92 +582,189 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-foreground">Defina a frequência da assinatura que deseja adicionar</p>
                     <div className="flex items-center gap-2">
-                      <input
-                        className="h-11 flex-1 rounded-[10px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Anual"
-                      />
-                      <button className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-foreground/20 bg-card text-foreground">
+                      <div className="relative flex-1">
+                        <select
+                          className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none"
+                          value={subscriptionFrequency}
+                          onChange={event =>
+                            setSubscriptionFrequency(event.target.value as "" | "mensal" | "trimestral" | "anual")
+                          }
+                        >
+                          <option value="">Escolher frequência</option>
+                          <option value="anual">Anual</option>
+                          <option value="mensal">Mensal</option>
+                          <option value="trimestral">Trimestral</option>
+                        </select>
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                          <ChevronDown className="h-4 w-4" aria-hidden />
+                        </span>
+                      </div>
+                      <button
+                        className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-foreground/20 bg-card text-foreground"
+                        type="button"
+                        onClick={() => setSubscriptionFrequency(prev => prev || "mensal")}
+                        aria-label="Adicionar plano"
+                      >
                         +
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-4 rounded-[10px] border border-foreground/15 bg-card/80 p-4">
-                    <p className="text-sm font-semibold text-foreground">Plano anual</p>
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
-                      Definir como padrão
-                    </label>
-                    <div className="grid grid-cols-1 gap-3">
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Título"
-                      />
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="Tag em destaque"
-                      />
-                      <div className="grid grid-cols-2 gap-3">
+                  {subscriptionFrequency && (
+                    <div className="space-y-4 rounded-[10px] border border-foreground/15 bg-card/80 p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        {`Plano ${subscriptionFrequency === "anual" ? "anual" : subscriptionFrequency === "mensal" ? "mensal" : "trimestral"}`}
+                      </p>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border border-foreground/30 bg-card"
+                          checked={subscriptionDefault}
+                          onChange={event => setSubscriptionDefault(event.target.checked)}
+                        />
+                        Definir como padrão
+                      </label>
+                      <div className="grid grid-cols-1 gap-3">
                         <input
                           className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Preço normal"
+                          placeholder="Título"
+                          value={subscriptionTitle}
+                          onChange={event => setSubscriptionTitle(event.target.value)}
                         />
                         <input
                           className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Preço promocional"
+                          placeholder="Tag em destaque"
+                          value={subscriptionTag}
+                          onChange={event => setSubscriptionTag(event.target.value)}
                         />
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                            placeholder="Preço normal"
+                            value={subscriptionPrice}
+                            onChange={event => setSubscriptionPrice(event.target.value)}
+                          />
+                          <input
+                            className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                            placeholder="Preço promocional"
+                            value={subscriptionPromoPrice}
+                            onChange={event => setSubscriptionPromoPrice(event.target.value)}
+                          />
+                        </div>
+                        <div className="rounded-[8px] border border-foreground/15 bg-card px-3 py-3 text-xs text-muted-foreground">
+                          <p className="text-sm font-semibold text-foreground">Pré-visualização do seu comprador:</p>
+                          <div className="mt-2 rounded-[6px] border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-foreground">
+                            <p className="font-semibold">
+                              {subscriptionTitle.trim() ||
+                                `Plano ${subscriptionFrequency === "anual" ? "anual" : subscriptionFrequency === "mensal" ? "mensal" : "trimestral"}`}
+                            </p>
+                            <p>
+                              {subscriptionFrequency === "anual"
+                                ? "Anual"
+                                : subscriptionFrequency === "trimestral"
+                                ? "Trimestral"
+                                : "Mensal"}{" "}
+                              - R$ {subscriptionPrice || "0,00"}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-center text-[11px] text-muted-foreground">
+                          Por conta da frequência, o limite de parcelamento é de 12x.
+                        </p>
                       </div>
-                      <div className="rounded-[8px] border border-foreground/15 bg-card px-3 py-3 text-xs text-muted-foreground">
-                        <p className="text-sm font-semibold text-foreground">Pré-visualização do seu comprador:</p>
-                        <div className="mt-2 rounded-[6px] border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-foreground">
-                          <p className="font-semibold">Plano Anual</p>
-                          <p>Anual - R$ 0,00</p>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                          <span>Preço diferente na primeira cobrança</span>
+                          <ToggleActive
+                            checked={firstChargePriceEnabled}
+                            onCheckedChange={setFirstChargePriceEnabled}
+                            aria-label="Ativar preço diferente na primeira cobrança"
+                          />
+                        </div>
+                        <input
+                          className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          placeholder="R$ 0,00"
+                          value={subscriptionFirstChargePrice}
+                          onChange={event => setSubscriptionFirstChargePrice(event.target.value)}
+                          disabled={!firstChargePriceEnabled}
+                        />
+
+                        <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                          <span>Número fixo de cobranças</span>
+                          <ToggleActive
+                            checked={fixedChargesEnabled}
+                            onCheckedChange={setFixedChargesEnabled}
+                            aria-label="Ativar número fixo de cobranças"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            className="h-10 w-20 rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                            placeholder="00"
+                            value={subscriptionChargesCount}
+                            onChange={event => setSubscriptionChargesCount(event.target.value)}
+                            disabled={!fixedChargesEnabled}
+                          />
+                          <span className="text-sm text-muted-foreground">cobranças</span>
                         </div>
                       </div>
-                      <p className="rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-center text-[11px] text-muted-foreground">
-                        Por conta da frequência, o limite de parcelamento é de 12x.
-                      </p>
-                    </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                        <span>Preço diferente na primeira cobrança</span>
-                        <ToggleActive
-                          checked={firstChargePriceEnabled}
-                          onCheckedChange={setFirstChargePriceEnabled}
-                          aria-label="Ativar preço diferente na primeira cobrança"
-                        />
-                      </div>
-                      <input
-                        className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                        placeholder="R$ 0,00"
-                      />
-
-                      <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                        <span>Número fixo de cobranças</span>
-                        <ToggleActive
-                          checked={fixedChargesEnabled}
-                          onCheckedChange={setFixedChargesEnabled}
-                          aria-label="Ativar número fixo de cobranças"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          className="h-10 w-20 rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="00"
-                        />
-                        <span className="text-sm text-muted-foreground">cobranças</span>
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          className="w-1/2 min-w-[140px] rounded-[8px] bg-rose-900/40 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-900/60"
+                          type="button"
+                          onClick={() => {
+                            setSubscriptionFrequency("");
+                            setSubscriptionTitle("");
+                            setSubscriptionTag("");
+                            setSubscriptionPrice("");
+                            setSubscriptionPromoPrice("");
+                            setSubscriptionFirstChargePrice("");
+                            setSubscriptionChargesCount("");
+                            setSubscriptionDefault(false);
+                            setFirstChargePriceEnabled(false);
+                            setFixedChargesEnabled(false);
+                          }}
+                        >
+                          Excluir plano
+                        </button>
                       </div>
                     </div>
-
-                    <div className="pt-2 flex justify-end">
-                      <button className="w-1/2 min-w-[140px] rounded-[8px] bg-rose-900/40 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-900/60">
-                        Excluir plano
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
+
+              <div className="space-y-1 text-sm">
+                <p className="text-foreground font-semibold">Checkout</p>
+                <p className="text-xs text-muted-foreground">
+                  Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
+                </p>
+                <div className="relative">
+                  <select
+                    className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none disabled:opacity-60"
+                    value={selectedCheckoutId}
+                    onChange={event => {
+                      const value = event.target.value;
+                      setSelectedCheckoutId(value);
+                      if (value && typeof window !== "undefined" && productId) {
+                        setOfferBackRedirect(`${window.location.origin}/checkout/${productId}/${value}`);
+                      }
+                    }}
+                    disabled={checkoutOptionsLoading || checkoutOptions.length === 0}
+                  >
+                    <option value="">{checkoutOptionsLoading ? "Carregando checkouts..." : "Selecione um checkout"}</option>
+                    {checkoutOptions.map(checkout => (
+                      <option key={checkout.id} value={checkout.id ?? ""}>
+                        {checkout.name || checkout.id}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                    <ChevronDown className="h-4 w-4" aria-hidden />
+                  </span>
+                </div>
+              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
