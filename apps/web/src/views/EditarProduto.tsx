@@ -6,13 +6,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
-import type {
-  Product,
-  Checkout,
-  ProductOffer,
-  CreateProductPlanRequest,
-  OrderBump,
-} from "@/lib/api";
+import type { Product, Checkout, ProductOffer, CreateProductPlanRequest, OrderBump } from "@/lib/api";
+import { ProductOfferType } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -220,15 +215,21 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
   const handleCreateOffer = async () => {
     if (!productId || !token) return;
+    const selectedCheckout = checkoutOptions.find(checkout => checkout.id === selectedCheckoutId);
+    const templateToSend = selectedCheckout ?? "default";
+    const mappedType =
+      offerType === "assinatura" ? ProductOfferType.SUBSCRIPTION : ProductOfferType.SINGLE_PURCHASE;
     const payload: ProductOffer = {
       name: offerName.trim() || "Oferta",
-      type: offerType === "assinatura" ? "subscription" : "single",
+      type: mappedType,
       status: offerStatus === "inactive" ? "inactive" : "active",
-      offer_price: offerFree ? undefined : offerPrice ? Number(offerPrice) : undefined,
+      offer_price: offerFree ? 0 : offerPrice ? Number(offerPrice) : undefined,
       free: offerFree,
       back_redirect_url: offerBackRedirect || undefined,
       next_redirect_url: offerNextRedirect || undefined,
       checkout_id: selectedCheckoutId || undefined,
+      checkout: selectedCheckout ?? undefined,
+      template: templateToSend, // sem checkout, envia default
     };
 
     setSavingOffer(true);
@@ -265,11 +266,13 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
           () => productApi.getCheckoutsByProductId(productId, token),
           "Carregando checkouts"
         );
+        console.log("[productApi] Checkouts carregados:", data);
         setCheckoutOptions(data);
         // Preenche back redirect padrão com o primeiro checkout disponível
         if (data.length > 0 && typeof window !== "undefined") {
           const origin = window.location.origin;
-          const fallbackCheckoutId = data[0]?.id ?? "";
+          const fallbackCheckout = data[0];
+          const fallbackCheckoutId = fallbackCheckout?.id ?? "";
           setOfferBackRedirect(prev =>
             prev || `${origin}/checkout/${productId}/${fallbackCheckoutId}`
           );
@@ -288,10 +291,12 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       if (!productId || !token || !showOfferModal) return;
       setOrderBumpOffersLoading(true);
       try {
+        console.log("[offerApi] Buscando ofertas para order bump:", { productId, showOfferModal });
         const data = await withLoading(
           () => productApi.getOffersByProductId(productId, token),
           "Carregando ofertas"
         );
+        console.log("[offerApi] Ofertas carregadas:", data);
         setOrderBumpOffers(data);
       } catch (error) {
         console.error("Erro ao carregar ofertas para order bump:", error);
@@ -518,56 +523,59 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 </div>
 
               {offerType === "preco_unico" && (
-                <div className="space-y-2">
-                    <div className="space-y-1 text-sm">
-                      <p className="text-foreground font-semibold">Checkout</p>
-                      <p className="text-xs text-muted-foreground">
-                        Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
-                      </p>
-                      <div className="relative">
-                        <select
-                          className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none disabled:opacity-60"
-                          value={selectedCheckoutId}
-                          onChange={event => {
-                            const value = event.target.value;
-                            setSelectedCheckoutId(value);
-                            if (value && typeof window !== "undefined" && productId) {
-                              setOfferBackRedirect(`${window.location.origin}/checkout/${productId}/${value}`);
-                            }
-                          }}
-                          disabled={checkoutOptionsLoading || checkoutOptions.length === 0}
-                        >
-                          <option value="">{checkoutOptionsLoading ? "Carregando checkouts..." : "Selecione um checkout"}</option>
-                          {checkoutOptions.map(checkout => (
-                            <option key={checkout.id} value={checkout.id ?? ""}>
-                              {checkout.name || checkout.id}
-                            </option>
-                          ))}
+                <div className="space-y-3">
+                  <div className="space-y-1 text-sm">
+                    <p className="text-foreground font-semibold">Checkout</p>
+                    <p className="text-xs text-muted-foreground">
+                      Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
+                    </p>
+                    <div className="relative">
+                      <select
+                        className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none disabled:opacity-60"
+                        value={selectedCheckoutId}
+                        onChange={event => {
+                          const value = event.target.value;
+                          setSelectedCheckoutId(value);
+                          if (value && typeof window !== "undefined" && productId) {
+                            setOfferBackRedirect(`${window.location.origin}/checkout/${productId}/${value}`);
+                          }
+                        }}
+                        disabled={checkoutOptionsLoading || checkoutOptions.length === 0}
+                      >
+                        <option value="">{checkoutOptionsLoading ? "Carregando checkouts..." : "Selecione um checkout"}</option>
+                        {checkoutOptions.map(checkout => (
+                          <option key={checkout.id} value={checkout.id ?? ""}>
+                            {checkout.name || checkout.id}
+                          </option>
+                        ))}
                       </select>
                       <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
                         <ChevronDown className="h-4 w-4" aria-hidden />
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                    <span>Oferta gratuita</span>
-                    <ToggleActive
-                      checked={offerFree}
-                      onCheckedChange={checked => {
-                        setOfferFree(checked);
-                        if (checked) setOfferPrice("");
-                      }}
-                      aria-label="Alternar oferta gratuita"
-                    />
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                      <span>Oferta gratuita</span>
+                      <ToggleActive
+                        checked={offerFree}
+                        onCheckedChange={checked => {
+                          setOfferFree(checked);
+                          if (checked) setOfferPrice("");
+                        }}
+                        aria-label="Alternar oferta gratuita"
+                      />
+                    </div>
+                    {!offerFree && (
+                      <input
+                        className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        placeholder="R$ 0,00"
+                        value={offerPrice}
+                        onChange={event => setOfferPrice(event.target.value)}
+                      />
+                    )}
                   </div>
-                  {!offerFree && (
-                    <input
-                      className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                      placeholder="R$ 0,00"
-                      value={offerPrice}
-                      onChange={event => setOfferPrice(event.target.value)}
-                    />
-                  )}
                 </div>
               )}
 
@@ -734,37 +742,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                   )}
                 </div>
               )}
-
-              <div className="space-y-1 text-sm">
-                <p className="text-foreground font-semibold">Checkout</p>
-                <p className="text-xs text-muted-foreground">
-                  Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
-                </p>
-                <div className="relative">
-                  <select
-                    className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none disabled:opacity-60"
-                    value={selectedCheckoutId}
-                    onChange={event => {
-                      const value = event.target.value;
-                      setSelectedCheckoutId(value);
-                      if (value && typeof window !== "undefined" && productId) {
-                        setOfferBackRedirect(`${window.location.origin}/checkout/${productId}/${value}`);
-                      }
-                    }}
-                    disabled={checkoutOptionsLoading || checkoutOptions.length === 0}
-                  >
-                    <option value="">{checkoutOptionsLoading ? "Carregando checkouts..." : "Selecione um checkout"}</option>
-                    {checkoutOptions.map(checkout => (
-                      <option key={checkout.id} value={checkout.id ?? ""}>
-                        {checkout.name || checkout.id}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
-                    <ChevronDown className="h-4 w-4" aria-hidden />
-                  </span>
-                </div>
-              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">

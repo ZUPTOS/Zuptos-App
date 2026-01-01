@@ -99,21 +99,58 @@ export function OfertasTab({ productId, token, withLoading, onOpenOfferModal, re
             !error &&
             offers.map(offer => {
               const isActive = offer.status?.toLowerCase() === "active";
+              const normalizedType = offer.type?.toLowerCase();
+              const typeLabel =
+                normalizedType === "subscription"
+                  ? "Assinatura"
+                  : normalizedType === "single_purchase" || normalizedType === "single"
+                  ? "Preço único"
+                  : offer.type ?? "-";
+              const checkoutObj = offer.checkout as unknown as { name?: string; id?: string } | undefined;
+              const t = offer.template as unknown as { checkout?: { name?: string; id?: string }; name?: string; id?: string };
+              const checkoutName =
+                checkoutObj?.name ||
+                checkoutObj?.id ||
+                t?.checkout?.name ||
+                t?.name ||
+                t?.checkout?.id ||
+                t?.id ||
+                (typeof offer.template === "string" ? offer.template : offer.checkout_id ?? "default");
+              const accessUrl = offer.next_redirect_url ?? "-";
+              const accessLabel =
+                accessUrl && accessUrl !== "-"
+                  ? accessUrl.replace(/^https?:\/\//, "").slice(0, 6)
+                  : "-";
+
+              const handleCopyAccess = async () => {
+                if (!accessUrl || accessUrl === "-") return;
+                try {
+                  await navigator.clipboard?.writeText(accessUrl);
+                } catch (err) {
+                  console.error("Não foi possível copiar o link de acesso:", err);
+                }
+              };
+
+              const formatBRL = (value: number) =>
+                new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
               return (
                 <div key={offer.id ?? offer.name} className="grid grid-cols-6 items-center gap-4 px-4 py-4 text-sm text-foreground">
                   <span className="break-words font-semibold uppercase">{offer.name}</span>
-                  <span className="font-semibold text-muted-foreground">-</span>
-                  <span className="text-muted-foreground">{offer.type}</span>
+                  <span className="font-semibold text-muted-foreground">{checkoutName}</span>
+                  <span className="text-muted-foreground">{typeLabel}</span>
                   <span className="font-semibold">
-                    {offer.free ? "Grátis" : offer.offer_price != null ? `R$ ${offer.offer_price}` : "-"}
+                    {offer.free ? "Gratuito" : offer.offer_price != null ? formatBRL(Number(offer.offer_price)) : "-"}
                   </span>
                   <div className="flex items-center">
                     <button
                       type="button"
-                      className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
-                      disabled
+                      className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30 disabled:opacity-60"
+                      disabled={!accessUrl || accessUrl === "-"}
+                      onClick={handleCopyAccess}
+                      title={accessUrl && accessUrl !== "-" ? "Copiar link de acesso" : "Sem link"}
                     >
-                      {offer.next_redirect_url?.replace(/^https?:\/\//, "") || "-"}
+                      {accessLabel}
                     </button>
                   </div>
                   <div className="flex items-center justify-start">

@@ -114,16 +114,18 @@ export interface CreateProductRequest {
 export interface ProductOffer {
   id?: string;
   name: string;
-  type: string;
+  type: ProductOfferType | string;
   status: string;
   offer_price?: number;
   free?: boolean;
   back_redirect_url?: string;
   next_redirect_url?: string;
   checkout_id?: string;
+  checkout?: Checkout;
   created_at?: string;
   updated_at?: string;
   order_bumps?: OrderBump[];
+  template?: Checkout | string;
 }
 
 export interface CheckoutPayload {
@@ -154,6 +156,11 @@ export enum CheckoutTemplate {
   DEFAULT = "default",
   VEGA = "vega",
   AFILIA = "afilia",
+}
+
+export enum ProductOfferType {
+  SUBSCRIPTION = "subscription",
+  SINGLE_PURCHASE = "single_purchase",
 }
 
 export interface OrderBump {
