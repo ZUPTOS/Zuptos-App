@@ -126,6 +126,7 @@ export interface ProductOffer {
   updated_at?: string;
   order_bumps?: OrderBump[];
   template?: Checkout | string;
+  subscription_plan?: SubscriptionPlanPayload;
 }
 
 export interface CheckoutPayload {
@@ -161,6 +162,18 @@ export enum CheckoutTemplate {
 export enum ProductOfferType {
   SUBSCRIPTION = "subscription",
   SINGLE_PURCHASE = "single_purchase",
+}
+
+export interface SubscriptionPlanPayload {
+  type: "monthly" | "yearly" | "quarterly";
+  status: "active" | "inactive";
+  plan_price: number;
+  name: string;
+  normal_price?: number;
+  discount_price?: number;
+  default?: boolean;
+  cycles?: number;
+  price_first_cycle?: number;
 }
 
 export interface OrderBump {
@@ -248,8 +261,8 @@ export interface ProductPlan {
 }
 
 export interface CreateProductPlanRequest {
-  type: string;
-  status: string;
+  type: SubscriptionPlanPayload["type"];
+  status: SubscriptionPlanPayload["status"];
   plan_price: number;
   name: string;
   normal_price?: number;

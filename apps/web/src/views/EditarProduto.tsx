@@ -6,8 +6,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
-import type { Product, Checkout, ProductOffer, CreateProductPlanRequest, OrderBump } from "@/lib/api";
+import type { Product, Checkout, ProductOffer, OrderBump, SubscriptionPlanPayload } from "@/lib/api";
 import { ProductOfferType } from "@/lib/api";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -100,7 +101,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [nextRedirectEnabled, setNextRedirectEnabled] = useState(true);
   const [firstChargePriceEnabled, setFirstChargePriceEnabled] = useState(false);
   const [fixedChargesEnabled, setFixedChargesEnabled] = useState(false);
-  const [subscriptionFrequency, setSubscriptionFrequency] = useState<"" | "mensal" | "trimestral" | "anual">("");
+  const [subscriptionFrequency, setSubscriptionFrequency] = useState<"mensal" | "trimestral" | "anual">("anual");
   const [subscriptionTitle, setSubscriptionTitle] = useState("");
   const [subscriptionTag, setSubscriptionTag] = useState("");
   const [subscriptionPrice, setSubscriptionPrice] = useState("");
@@ -127,7 +128,17 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [savingOffer, setSavingOffer] = useState(false);
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
   const [planSaving, setPlanSaving] = useState(false);
-  const [planForm, setPlanForm] = useState({
+  const [planForm, setPlanForm] = useState<{
+    name: string;
+    type: SubscriptionPlanPayload["type"];
+    status: SubscriptionPlanPayload["status"];
+    plan_price: string;
+    normal_price: string;
+    discount_price: string;
+    cycles: string;
+    price_first_cycle: string;
+    default: boolean;
+  }>({
     name: "",
     type: "monthly",
     status: "active",
@@ -138,6 +149,20 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     price_first_cycle: "",
     default: false,
   });
+
+  const formatBRLInput = (value: string) => {
+    const numeric = value.replace(/\D/g, "");
+    if (!numeric) return "";
+    const amount = Number(numeric) / 100;
+    return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  };
+
+  const parseBRLToNumber = (value?: string) => {
+    if (!value) return undefined;
+    const numeric = value.replace(/\D/g, "");
+    if (!numeric) return undefined;
+    return Number(numeric) / 100;
+  };
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -216,26 +241,64 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const handleCreateOffer = async () => {
     if (!productId || !token) return;
     const selectedCheckout = checkoutOptions.find(checkout => checkout.id === selectedCheckoutId);
-    const templateToSend = selectedCheckout ?? "default";
     const mappedType =
       offerType === "assinatura" ? ProductOfferType.SUBSCRIPTION : ProductOfferType.SINGLE_PURCHASE;
+
+    if (offerType === "assinatura") {
+      if (!subscriptionTitle.trim() || !subscriptionPrice.trim()) {
+        console.error("Preencha os campos do plano de assinatura antes de salvar a oferta.");
+        return;
+      }
+    }
+
+    const planFromSubscription: SubscriptionPlanPayload | undefined =
+      offerType === "assinatura"
+        ? {
+            type:
+              subscriptionFrequency === "anual"
+                ? "yearly"
+              : subscriptionFrequency === "trimestral"
+                ? "quarterly"
+                : "monthly",
+            status: "active",
+            plan_price: parseBRLToNumber(subscriptionPrice) ?? 0,
+            name: subscriptionTitle.trim(),
+            normal_price: parseBRLToNumber(subscriptionPrice),
+            discount_price: parseBRLToNumber(subscriptionPromoPrice),
+            default: subscriptionDefault,
+            cycles: fixedChargesEnabled && subscriptionChargesCount ? Number(subscriptionChargesCount) : undefined,
+            price_first_cycle:
+              firstChargePriceEnabled && subscriptionFirstChargePrice
+                ? parseBRLToNumber(subscriptionFirstChargePrice)
+                : undefined,
+          }
+        : undefined;
+
     const payload: ProductOffer = {
       name: offerName.trim() || "Oferta",
       type: mappedType,
       status: offerStatus === "inactive" ? "inactive" : "active",
-      offer_price: offerFree ? 0 : offerPrice ? Number(offerPrice) : undefined,
+      offer_price: offerFree ? 0 : parseBRLToNumber(offerPrice),
       free: offerFree,
       back_redirect_url: offerBackRedirect || undefined,
       next_redirect_url: offerNextRedirect || undefined,
       checkout_id: selectedCheckoutId || undefined,
       checkout: selectedCheckout ?? undefined,
-      template: templateToSend, // sem checkout, envia default
+      subscription_plan: planFromSubscription,
     };
 
     setSavingOffer(true);
     try {
+      if (offerType === "assinatura" && planFromSubscription) {
+        console.log("[productApi] Payload de plano (subscription_plan):", planFromSubscription);
+      }
       console.log("[productApi] Enviando criação de oferta:", payload);
       const response = await productApi.createOffer(productId, payload, token);
+      if (offerType === "assinatura" && planFromSubscription && response?.id) {
+        console.log("[productApi] Enviando plano (subscription_plan) para oferta:", response.id);
+        const planResponse = await productApi.createOfferPlan(productId, response.id, planFromSubscription, token);
+        console.log("[productApi] Resposta do servidor (plan):", planResponse);
+      }
       console.log("[productApi] Resposta do servidor (oferta):", response);
       setOffersRefreshKey(prev => prev + 1);
       setShowOfferModal(false);
@@ -523,12 +586,12 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 </div>
 
               {offerType === "preco_unico" && (
-                <div className="space-y-3">
-                  <div className="space-y-1 text-sm">
-                    <p className="text-foreground font-semibold">Checkout</p>
-                    <p className="text-xs text-muted-foreground">
-                      Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
-                    </p>
+              <div className="space-y-3">
+                <div className="space-y-1 text-sm">
+                  <p className="text-foreground font-semibold">Checkout</p>
+                  <p className="text-xs text-muted-foreground">
+                    Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
+                  </p>
                     <div className="relative">
                       <select
                         className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none disabled:opacity-60"
@@ -572,7 +635,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                         className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                         placeholder="R$ 0,00"
                         value={offerPrice}
-                        onChange={event => setOfferPrice(event.target.value)}
+                        onChange={event => setOfferPrice(formatBRLInput(event.target.value))}
                       />
                     )}
                   </div>
@@ -595,10 +658,9 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                           className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none"
                           value={subscriptionFrequency}
                           onChange={event =>
-                            setSubscriptionFrequency(event.target.value as "" | "mensal" | "trimestral" | "anual")
+                            setSubscriptionFrequency(event.target.value as "mensal" | "trimestral" | "anual")
                           }
                         >
-                          <option value="">Escolher frequência</option>
                           <option value="anual">Anual</option>
                           <option value="mensal">Mensal</option>
                           <option value="trimestral">Trimestral</option>
@@ -610,7 +672,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                       <button
                         className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-foreground/20 bg-card text-foreground"
                         type="button"
-                        onClick={() => setSubscriptionFrequency(prev => prev || "mensal")}
+                        onClick={() => setSubscriptionFrequency(prev => prev || "anual")}
                         aria-label="Adicionar plano"
                       >
                         +
@@ -618,11 +680,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     </div>
                   </div>
 
-                  {subscriptionFrequency && (
-                    <div className="space-y-4 rounded-[10px] border border-foreground/15 bg-card/80 p-4">
-                      <p className="text-sm font-semibold text-foreground">
-                        {`Plano ${subscriptionFrequency === "anual" ? "anual" : subscriptionFrequency === "mensal" ? "mensal" : "trimestral"}`}
-                      </p>
+              {subscriptionFrequency && (
+                <div className="space-y-4 rounded-[10px] border border-foreground/15 bg-card/80 p-4">
+                  <p className="text-sm font-semibold text-foreground">
+                    {`Plano ${subscriptionFrequency === "anual" ? "anual" : subscriptionFrequency === "mensal" ? "mensal" : "trimestral"}`}
+                  </p>
                       <label className="flex items-center gap-2 text-xs text-muted-foreground">
                         <input
                           type="checkbox"
@@ -639,26 +701,35 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                           value={subscriptionTitle}
                           onChange={event => setSubscriptionTitle(event.target.value)}
                         />
+                        <div className="relative">
+                          <select
+                            className="h-10 w-full appearance-none rounded-[8px] border border-foreground/20 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
+                            value={subscriptionTag}
+                            onChange={event => setSubscriptionTag(event.target.value)}
+                          >
+                            <option value="">Selecione uma tag</option>
+                            <option value="novidade">Novidade</option>
+                            <option value="desconto">Desconto</option>
+                            <option value="recomendado">Recomendado</option>
+                          </select>
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                            <ChevronDown className="h-4 w-4" aria-hidden />
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
                         <input
                           className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="Tag em destaque"
-                          value={subscriptionTag}
-                          onChange={event => setSubscriptionTag(event.target.value)}
+                          placeholder="Preço normal"
+                          value={subscriptionPrice}
+                          onChange={event => setSubscriptionPrice(formatBRLInput(event.target.value))}
                         />
-                        <div className="grid grid-cols-2 gap-3">
-                          <input
-                            className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                            placeholder="Preço normal"
-                            value={subscriptionPrice}
-                            onChange={event => setSubscriptionPrice(event.target.value)}
-                          />
-                          <input
-                            className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                            placeholder="Preço promocional"
-                            value={subscriptionPromoPrice}
-                            onChange={event => setSubscriptionPromoPrice(event.target.value)}
-                          />
-                        </div>
+                        <input
+                          className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          placeholder="Preço promocional"
+                          value={subscriptionPromoPrice}
+                          onChange={event => setSubscriptionPromoPrice(formatBRLInput(event.target.value))}
+                        />
+                      </div>
                         <div className="rounded-[8px] border border-foreground/15 bg-card px-3 py-3 text-xs text-muted-foreground">
                           <p className="text-sm font-semibold text-foreground">Pré-visualização do seu comprador:</p>
                           <div className="mt-2 rounded-[6px] border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-foreground">
@@ -672,7 +743,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                                 : subscriptionFrequency === "trimestral"
                                 ? "Trimestral"
                                 : "Mensal"}{" "}
-                              - R$ {subscriptionPrice || "0,00"}
+                              - {subscriptionPrice || "R$ 0,00"}
                             </p>
                           </div>
                         </div>
@@ -681,6 +752,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                         </p>
                       </div>
 
+                      
                       <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                           <span>Preço diferente na primeira cobrança</span>
@@ -690,13 +762,14 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                             aria-label="Ativar preço diferente na primeira cobrança"
                           />
                         </div>
-                        <input
-                          className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                          placeholder="R$ 0,00"
-                          value={subscriptionFirstChargePrice}
-                          onChange={event => setSubscriptionFirstChargePrice(event.target.value)}
-                          disabled={!firstChargePriceEnabled}
-                        />
+                        {firstChargePriceEnabled && (
+                          <input
+                            className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                            placeholder="R$ 0,00"
+                            value={subscriptionFirstChargePrice}
+                            onChange={event => setSubscriptionFirstChargePrice(formatBRLInput(event.target.value))}
+                          />
+                        )}
 
                         <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                           <span>Número fixo de cobranças</span>
@@ -706,16 +779,17 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                             aria-label="Ativar número fixo de cobranças"
                           />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            className="h-10 w-20 rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                            placeholder="00"
-                            value={subscriptionChargesCount}
-                            onChange={event => setSubscriptionChargesCount(event.target.value)}
-                            disabled={!fixedChargesEnabled}
-                          />
-                          <span className="text-sm text-muted-foreground">cobranças</span>
-                        </div>
+                        {fixedChargesEnabled && (
+                          <div className="flex items-center gap-2">
+                            <input
+                              className="h-10 w-20 rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                              placeholder="00"
+                              value={subscriptionChargesCount}
+                              onChange={event => setSubscriptionChargesCount(event.target.value.replace(/\D/g, ""))}
+                            />
+                            <span className="text-sm text-muted-foreground">cobranças</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="pt-2 flex justify-end">
@@ -723,7 +797,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                           className="w-1/2 min-w-[140px] rounded-[8px] bg-rose-900/40 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-900/60"
                           type="button"
                           onClick={() => {
-                            setSubscriptionFrequency("");
+                            setSubscriptionFrequency("anual");
                             setSubscriptionTitle("");
                             setSubscriptionTag("");
                             setSubscriptionPrice("");
@@ -738,16 +812,49 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                           Excluir plano
                         </button>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
+            )}
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-semibold text-foreground">Order Bumps</p>
-                    <p className="text-xs text-muted-foreground">
+            {offerType === "assinatura" && (
+              <div className="space-y-1 text-sm">
+                <p className="text-foreground font-semibold">Checkout</p>
+                <p className="text-xs text-muted-foreground">
+                  Para usar um novo layout crie um checkout na aba Checkouts e selecione-o aqui.
+                </p>
+                <div className="relative">
+                  <select
+                    className="h-11 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground shadow-inner transition focus:border-primary focus:outline-none disabled:opacity-60"
+                    value={selectedCheckoutId}
+                    onChange={event => {
+                      const value = event.target.value;
+                      setSelectedCheckoutId(value);
+                      if (value && typeof window !== "undefined" && productId) {
+                        setOfferBackRedirect(`${window.location.origin}/checkout/${productId}/${value}`);
+                      }
+                    }}
+                    disabled={checkoutOptionsLoading || checkoutOptions.length === 0}
+                  >
+                    <option value="">{checkoutOptionsLoading ? "Carregando checkouts..." : "Selecione um checkout"}</option>
+                    {checkoutOptions.map(checkout => (
+                      <option key={checkout.id} value={checkout.id ?? ""}>
+                        {checkout.name || checkout.id}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                    <ChevronDown className="h-4 w-4" aria-hidden />
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-semibold text-foreground">Order Bumps</p>
+                  <p className="text-xs text-muted-foreground">
                       Complete as informações para adicionar produtos complementares ao seu plano de assinatura durante o processo de pagamento.
                     </p>
                   </div>
@@ -766,11 +873,10 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                         <div className="relative">
                           <select
                             className="h-10 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
-                            value={orderBumpForm.product}
+                            value={orderBumpForm.product || product?.name || ""}
                             onChange={event => setOrderBumpForm(prev => ({ ...prev, product: event.target.value }))}
                           >
-                            <option value="">{product?.name || "Selecione"}</option>
-                            {product?.id && <option value={product.id}>{product.name || product.id}</option>}
+                            <option value={product?.name || product?.id || ""}>{product?.name || "Selecione"}</option>
                           </select>
                           <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
                             <ChevronDown className="h-4 w-4" aria-hidden />
@@ -845,15 +951,28 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                       <button
                         type="button"
                         className="flex-1 rounded-[8px] bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90 disabled:opacity-60"
-                        disabled={!orderBumpForm.product || !orderBumpForm.offer || !orderBumpForm.title.trim()}
+                        disabled={
+                          !orderBumpForm.title.trim() ||
+                          ((offerType === "preco_unico"
+                            ? parseBRLToNumber(offerPrice)
+                            : parseBRLToNumber(subscriptionPrice)) === undefined)
+                        }
                         onClick={() => {
+                          const baseOfferPrice =
+                            offerType === "preco_unico"
+                              ? parseBRLToNumber(offerPrice)
+                              : parseBRLToNumber(subscriptionPrice);
+                          if (baseOfferPrice === undefined || Number.isNaN(baseOfferPrice)) {
+                            toast.error("Valor da oferta não fornecido");
+                            return;
+                          }
                           const next: OrderBump = {
                             title: orderBumpForm.title.trim(),
                             tag: orderBumpForm.tag.trim() || undefined,
-                            product: orderBumpForm.product.trim() || undefined,
+                            product: orderBumpForm.product.trim() || product?.name || undefined,
                             offer: orderBumpForm.offer.trim() || undefined,
                             description: orderBumpForm.description.trim() || undefined,
-                            price: undefined,
+                            price: orderBumpForm.price ? Number(orderBumpForm.price) : undefined,
                           };
                           if (editingOrderBumpIndex !== null) {
                             setOrderBumps(prev => prev.map((item, idx) => (idx === editingOrderBumpIndex ? next : item)));
@@ -898,11 +1017,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
                 {orderBumpEnabled && (
                   <div className="space-y-3 rounded-[10px] border border-dashed border-primary/70 p-4">
-                    {orderBumps.length === 0 && (
-                      <p className="text-sm text-muted-foreground">Nenhum Order Bump adicionado ainda.</p>
-                    )}
                     {orderBumps.map((item, idx) => (
-                      <div key={idx} className="overflow-hidden rounded-[12px] border border-foreground/15 bg-card/90">
+                      <div
+                        key={idx}
+                        className="overflow-hidden rounded-[12px] border border-primary/50 bg-card/90 shadow-[0_10px_30px_rgba(108,39,215,0.25)]"
+                      >
                         <div className="flex items-center justify-between bg-foreground/5 px-4 py-3 text-sm font-semibold text-foreground">
                           <span className="text-lg font-semibold">{String(idx + 1).padStart(2, "0")}</span>
                           <div className="flex items-center gap-2">
@@ -944,23 +1063,31 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                             </div>
                             <div className="flex-1 space-y-2 pt-1">
                               <div className="flex flex-col text-xs text-muted-foreground">
-                                <span className="px-2 py-1 text-foreground">{item.product || "—"}</span>
-                                <span className="mt-1 px-2 py-1 text-foreground">{item.offer || "—"}</span>
+                                {(() => {
+                                  const displayProduct =
+                                    item.product === product?.id ? product?.name : item.product || product?.name;
+                                  return <span className="px-2 py-1 text-foreground">{displayProduct || "—"}</span>;
+                                })()}
                               </div>
-                              <div className="space-y-1">
-                                <p className="text-xl font-semibold text-foreground">{item.title || "Título"}</p>
-                                <p className="text-lg font-semibold text-foreground">
-                                  {item.price !== undefined
-                                    ? Number(item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                                    : "Preço não informado"}
-                                </p>
-                              </div>
+                              <p className="text-lg font-semibold text-foreground">
+                                {(() => {
+                                  const bumpPrice =
+                                    item.price ??
+                                    parseBRLToNumber(offerPrice) ??
+                                    parseBRLToNumber(subscriptionPrice);
+                                  return bumpPrice !== undefined
+                                    ? bumpPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                                    : "Preço não informado";
+                                })()}
+                              </p>
                             </div>
                           </div>
 
                           <div className="space-y-3 px-4 py-4">
                             <div className="flex flex-wrap items-center gap-3">
-                              <p className="text-base font-semibold text-foreground">Título</p>
+                              <p className="text-base font-semibold text-foreground">
+                                {item.title || "Título"}
+                              </p>
                               <div className="inline-flex rounded-full bg-emerald-700/25 px-3 py-1 text-[11px] font-semibold text-emerald-300">
                                 {item.tag?.toUpperCase() || "SEM TAG"}
                               </div>
@@ -1244,11 +1371,13 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                 <select
                   className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
                   value={planForm.type}
-                  onChange={event => setPlanForm(prev => ({ ...prev, type: event.target.value }))}
+                  onChange={event =>
+                    setPlanForm(prev => ({ ...prev, type: event.target.value as SubscriptionPlanPayload["type"] }))
+                  }
                 >
                   <option value="monthly">Mensal</option>
-                  <option value="annual">Anual</option>
-                  <option value="lifetime">Vitalício</option>
+                  <option value="yearly">Anual</option>
+                  <option value="quarterly">Trimestral</option>
                 </select>
               </div>
 
@@ -1383,7 +1512,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                         return;
                       }
 
-                      const payload: CreateProductPlanRequest = {
+                      const payload: SubscriptionPlanPayload = {
                         name: planForm.name.trim(),
                         type: planForm.type,
                         status: planForm.status,
