@@ -186,6 +186,13 @@ export interface OrderBump {
   price?: number;
 }
 
+export interface CreateOrderBumpRequest {
+  bumped_offer_show_id: string;
+  title: string;
+  description?: string;
+  tag_display?: string;
+}
+
 export interface Coproducer {
   id?: string;
   name?: string;

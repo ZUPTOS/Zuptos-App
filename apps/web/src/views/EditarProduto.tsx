@@ -6,7 +6,14 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { productApi } from "@/lib/api";
-import type { Product, Checkout, ProductOffer, OrderBump, SubscriptionPlanPayload } from "@/lib/api";
+import type {
+  Product,
+  Checkout,
+  ProductOffer,
+  OrderBump,
+  SubscriptionPlanPayload,
+  CreateOrderBumpRequest,
+} from "@/lib/api";
 import { ProductOfferType } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +28,8 @@ import { ConfiguracoesTab } from "./editar-produto/ConfiguracoesTab";
 import { CheckoutsTab } from "./editar-produto/CheckoutsTab";
 import { OfertasTab } from "./editar-produto/OfertasTab";
 import { EntregavelTab } from "./editar-produto/EntregavelTab";
+
+type OrderBumpOfferOption = ProductOffer & { productId?: string; productName?: string };
 
 const tabs = [
   "Entregável",
@@ -113,8 +122,9 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   const [checkoutOptions, setCheckoutOptions] = useState<Checkout[]>([]);
   const [checkoutOptionsLoading, setCheckoutOptionsLoading] = useState(false);
   const [orderBumpEnabled, setOrderBumpEnabled] = useState(false);
-  const [orderBumpOffers, setOrderBumpOffers] = useState<ProductOffer[]>([]);
+  const [orderBumpOffers, setOrderBumpOffers] = useState<OrderBumpOfferOption[]>([]);
   const [orderBumpOffersLoading, setOrderBumpOffersLoading] = useState(false);
+  const [orderBumpProducts, setOrderBumpProducts] = useState<Product[]>([]);
   const [orderBumps, setOrderBumps] = useState<OrderBump[]>([]);
   const [orderBumpForm, setOrderBumpForm] = useState({
     product: "",
@@ -274,6 +284,15 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
           }
         : undefined;
 
+    if (orderBumpEnabled) {
+      const hasBumps = orderBumps.length > 0;
+      const hasMissingInfo = orderBumps.some(bump => !bump.title || !bump.offer);
+      if (!hasBumps || hasMissingInfo) {
+        toast.error("Oder bump não especificado");
+        return;
+      }
+    }
+
     const payload: ProductOffer = {
       name: offerName.trim() || "Oferta",
       type: mappedType,
@@ -298,6 +317,20 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
         console.log("[productApi] Enviando plano (subscription_plan) para oferta:", response.id);
         const planResponse = await productApi.createOfferPlan(productId, response.id, planFromSubscription, token);
         console.log("[productApi] Resposta do servidor (plan):", planResponse);
+      }
+      if (orderBumpEnabled && response?.id) {
+        const bumpsPayload: CreateOrderBumpRequest[] = orderBumps
+          .filter(bump => bump.offer)
+          .map(bump => ({
+            bumped_offer_show_id: bump.offer as string,
+            title: bump.title,
+            description: bump.description,
+            tag_display: bump.tag,
+          }));
+        console.log("[productApi] Enviando order bumps:", bumpsPayload);
+        await Promise.all(
+          bumpsPayload.map(bumpPayload => productApi.createOfferBump(productId, response.id!, bumpPayload, token))
+        );
       }
       console.log("[productApi] Resposta do servidor (oferta):", response);
       setOffersRefreshKey(prev => prev + 1);
@@ -354,13 +387,24 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       if (!productId || !token || !showOfferModal) return;
       setOrderBumpOffersLoading(true);
       try {
-        console.log("[offerApi] Buscando ofertas para order bump:", { productId, showOfferModal });
-        const data = await withLoading(
-          () => productApi.getOffersByProductId(productId, token),
-          "Carregando ofertas"
-        );
-        console.log("[offerApi] Ofertas carregadas:", data);
-        setOrderBumpOffers(data);
+        console.log("[offerApi] Buscando ofertas para order bump (outros produtos):", { productId, showOfferModal });
+        const productsList =
+          (await withLoading(
+            () => productApi.listProducts({ page: 1, limit: 50 }, token),
+            "Carregando produtos"
+          )) ?? [];
+        const otherProducts = Array.isArray(productsList)
+          ? productsList.filter(prod => prod?.id && prod.id !== productId)
+          : [];
+        setOrderBumpProducts(otherProducts);
+        const offersPromises = otherProducts.map(async prod => {
+          const offers = (await productApi.getOffersByProductId(prod.id!, token)) ?? [];
+          return offers.map(offer => ({ ...offer, productId: prod.id, productName: prod.name }));
+        });
+        const offersNested = await Promise.all(offersPromises);
+        const flattened = offersNested.flat().filter(offer => offer?.id);
+        console.log("[offerApi] Ofertas carregadas para order bump:", flattened);
+        setOrderBumpOffers(flattened);
       } catch (error) {
         console.error("Erro ao carregar ofertas para order bump:", error);
       } finally {
@@ -872,11 +916,29 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                         <span className="text-foreground">Produto</span>
                         <div className="relative">
                           <select
-                            className="h-10 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
-                            value={orderBumpForm.product || product?.name || ""}
-                            onChange={event => setOrderBumpForm(prev => ({ ...prev, product: event.target.value }))}
+                            className="h-10 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none disabled:opacity-60"
+                            value={orderBumpForm.product}
+                            onChange={event =>
+                              setOrderBumpForm(prev => ({
+                                ...prev,
+                                product: event.target.value,
+                                offer: "",
+                              }))
+                            }
+                            disabled={orderBumpOffersLoading || orderBumpProducts.length === 0}
                           >
-                            <option value={product?.name || product?.id || ""}>{product?.name || "Selecione"}</option>
+                            <option value="">
+                              {orderBumpOffersLoading
+                                ? "Carregando produtos..."
+                                : orderBumpProducts.length === 0
+                                ? "Cadastre um outro produto com oferta"
+                                : "Selecione um produto"}
+                            </option>
+                            {orderBumpProducts.map(prod => (
+                              <option key={prod.id} value={prod.id}>
+                                {prod.name}
+                              </option>
+                            ))}
                           </select>
                           <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
                             <ChevronDown className="h-4 w-4" aria-hidden />
@@ -891,14 +953,28 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                             className="h-10 w-full appearance-none rounded-[10px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none disabled:opacity-60"
                             value={orderBumpForm.offer}
                             onChange={event => setOrderBumpForm(prev => ({ ...prev, offer: event.target.value }))}
-                            disabled={orderBumpOffersLoading || orderBumpOffers.length === 0}
+                            disabled={
+                              orderBumpOffersLoading ||
+                              orderBumpOffers.length === 0 ||
+                              !orderBumpForm.product
+                            }
                           >
-                            <option value="">{orderBumpOffersLoading ? "Carregando..." : "Selecione"}</option>
-                            {orderBumpOffers.map(offer => (
-                              <option key={offer.id ?? offer.name} value={offer.id ?? ""}>
-                                {offer.name}
-                              </option>
-                            ))}
+                            <option value="">
+                              {orderBumpOffersLoading
+                                ? "Carregando..."
+                                : !orderBumpForm.product
+                                ? "Selecione um produto primeiro"
+                                : orderBumpOffers.length === 0
+                                ? "Nenhuma oferta disponível"
+                                : "Selecione"}
+                            </option>
+                            {orderBumpOffers
+                              .filter(offer => offer.productId === orderBumpForm.product)
+                              .map(offer => (
+                                <option key={offer.id ?? offer.name} value={offer.id ?? ""}>
+                                  {offer.name}
+                                </option>
+                              ))}
                           </select>
                           <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
                             <ChevronDown className="h-4 w-4" aria-hidden />
@@ -953,6 +1029,8 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                         className="flex-1 rounded-[8px] bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90 disabled:opacity-60"
                         disabled={
                           !orderBumpForm.title.trim() ||
+                          !orderBumpForm.product ||
+                          !orderBumpForm.offer ||
                           ((offerType === "preco_unico"
                             ? parseBRLToNumber(offerPrice)
                             : parseBRLToNumber(subscriptionPrice)) === undefined)
@@ -966,10 +1044,18 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                             toast.error("Valor da oferta não fornecido");
                             return;
                           }
+                          if (!orderBumpForm.product || !orderBumpForm.offer) {
+                            toast.error("Selecione produto e oferta para o Order Bump");
+                            return;
+                          }
+                          if (!orderBumpForm.offer) {
+                            toast.error("Selecione a oferta do order bump");
+                            return;
+                          }
                           const next: OrderBump = {
                             title: orderBumpForm.title.trim(),
                             tag: orderBumpForm.tag.trim() || undefined,
-                            product: orderBumpForm.product.trim() || product?.name || undefined,
+                            product: orderBumpForm.product.trim() || undefined,
                             offer: orderBumpForm.offer.trim() || undefined,
                             description: orderBumpForm.description.trim() || undefined,
                             price: orderBumpForm.price ? Number(orderBumpForm.price) : undefined,
@@ -1064,8 +1150,9 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                             <div className="flex-1 space-y-2 pt-1">
                               <div className="flex flex-col text-xs text-muted-foreground">
                                 {(() => {
-                                  const displayProduct =
-                                    item.product === product?.id ? product?.name : item.product || product?.name;
+                                  const fallbackName =
+                                    orderBumpProducts.find(prod => prod.id === item.product)?.name || product?.name;
+                                  const displayProduct = item.product === product?.id ? product?.name : fallbackName;
                                   return <span className="px-2 py-1 text-foreground">{displayProduct || "—"}</span>;
                                 })()}
                               </div>

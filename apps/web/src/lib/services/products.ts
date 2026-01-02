@@ -17,6 +17,7 @@ import type {
   Coproducer,
   CreateCoproducerRequest,
   SubscriptionPlanPayload,
+  CreateOrderBumpRequest,
 } from "../api-types";
 import { API_BASE_URL, buildQuery, readStoredToken, request } from "../request";
 
@@ -367,6 +368,27 @@ export const productApi = {
       throw new Error("Missing authentication token for product plans");
     }
     return request<ProductPlan>(`/product/${productId}/offer/${offerId}/plans`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  createOfferBump: async (
+    productId: string,
+    offerId: string,
+    payload: CreateOrderBumpRequest,
+    token?: string
+  ) => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for order bumps");
+    }
+    return request(`/product/${productId}/offer/${offerId}/bumps`, {
       method: "POST",
       baseUrl: PRODUCTS_BASE,
       headers: {
