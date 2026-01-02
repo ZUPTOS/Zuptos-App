@@ -28,7 +28,7 @@ export function OfertasTab({ productId, token, withLoading, onOpenOfferModal, re
         () => productApi.getOffersByProductId(productId, token),
         "Carregando ofertas"
       );
-      setOffers(data);
+      setOffers(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Erro ao carregar ofertas:", err);
       setError("Não foi possível carregar as ofertas agora.");

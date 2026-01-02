@@ -10,13 +10,13 @@ import type {
   ProductSettings,
   UpdateProductSettingsRequest,
   ProductPlan,
-  CreateProductPlanRequest,
   ProductStrategy,
   CreateProductStrategyRequest,
   ProductCoupon,
   CreateProductCouponRequest,
   Coproducer,
   CreateCoproducerRequest,
+  SubscriptionPlanPayload,
 } from "../api-types";
 import { API_BASE_URL, buildQuery, readStoredToken, request } from "../request";
 
@@ -340,16 +340,33 @@ export const productApi = {
     });
   },
 
-  createPlan: async (
-    id: string,
-    payload: CreateProductPlanRequest,
+  createPlan: async (productId: string, payload: SubscriptionPlanPayload, token?: string): Promise<ProductPlan> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product plans");
+    }
+    return request<ProductPlan>(`/product/${productId}/plans`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  createOfferPlan: async (
+    productId: string,
+    offerId: string,
+    payload: SubscriptionPlanPayload,
     token?: string
   ): Promise<ProductPlan> => {
     const authToken = token ?? readStoredToken();
     if (!authToken) {
       throw new Error("Missing authentication token for product plans");
     }
-    return request<ProductPlan>(`/product/${id}/plans`, {
+    return request<ProductPlan>(`/product/${productId}/offer/${offerId}/plans`, {
       method: "POST",
       baseUrl: PRODUCTS_BASE,
       headers: {
