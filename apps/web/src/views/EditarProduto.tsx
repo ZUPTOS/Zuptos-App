@@ -333,6 +333,11 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
         );
       }
       console.log("[productApi] Resposta do servidor (oferta):", response);
+      if (response?.id && productId) {
+        const publicCheckoutLink = `http://86.48.22.80:3000/checkout/${response.id}/product/${productId}`;
+        setOfferBackRedirect(publicCheckoutLink);
+        console.log("[productApi] Link público do checkout:", publicCheckoutLink);
+      }
       setOffersRefreshKey(prev => prev + 1);
       setShowOfferModal(false);
       setOfferName("");
@@ -446,7 +451,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     const rawStatus = (product as Product & { status?: string })?.status;
     const displayStatus = rawStatus && rawStatus.trim() ? rawStatus : "Ativo";
     return (
-      <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 rounded-[10px] border border-foreground/10 bg-card/80 p-4 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <div className="overflow-hidden rounded-[10px] bg-foreground/10">
             <Image
@@ -472,7 +477,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
-      <div className="w-full px-4 py-8">
+      <div className="w-full px-3 py-4">
         <div className="mx-auto flex w-full max-w-6xl gap-6">
           <nav className="w-52 shrink-0">
             <ul className="space-y-2 text-sm">

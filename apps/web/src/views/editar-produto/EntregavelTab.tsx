@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { productApi } from "@/lib/api";
 import type { ProductDeliverable } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
+import PaginatedTable from "@/components/PaginatedTable";
 
 type Props = {
   productId?: string;
@@ -72,83 +72,73 @@ export function EntregavelTab({ productId, token, withLoading, onOpenCreate, ref
         </div>
       </div>
 
-      <div className="rounded-[12px] border border-foreground/10 bg-card/70 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-        <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-          <span>Nome</span>
-          <span>Entregável</span>
-          <span>Tamanho</span>
-          <span>Status</span>
-        </div>
-        <div className="divide-y divide-foreground/10">
-          {loading && (
-            <>
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-4 w-16" />
+        <PaginatedTable
+          data={deliverables}
+          rowsPerPage={6}
+          rowKey={item => item.id ?? item.name ?? Math.random().toString()}
+          emptyMessage={loading ? "Carregando..." : error || "Nenhum entregável cadastrado."}
+          wrapperClassName="space-y-3"
+          tableContainerClassName="rounded-[10px] border border-foreground/10 bg-card"
+          headerRowClassName="bg-card/60"
+          tableClassName="text-left"
+          columns={[
+            {
+              id: "nome",
+              header: "Nome",
+              render: item => (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium capitalize">{item.name || item.type || "Entregável"}</p>
+                  <p className="break-all text-xs text-muted-foreground">ID: {item.id}</p>
+                </div>
+              ),
+            },
+            {
+              id: "conteudo",
+              header: "Entregável",
+              render: item => {
+                const linkLabel = item.content?.replace(/^https?:\/\//, "") ?? item.content ?? "-";
+                if (!item.content) return <span className="text-sm text-muted-foreground">-</span>;
+                return (
                   <div className="flex items-center gap-2">
-                    <Skeleton className="h-3 w-3 rounded-full" />
-                    <Skeleton className="h-4 w-16" />
+                    <a
+                      href={item.content}
+                      className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {linkLabel}
+                    </a>
+                    <button
+                      type="button"
+                      className="h-8 w-8 rounded-[6px] border border-foreground/15 bg-card text-sm text-foreground transition hover:border-foreground/30"
+                      aria-label="Baixar"
+                    >
+                      📎
+                    </button>
                   </div>
-                </div>
-              ))}
-            </>
-          )}
-          {!loading && error && <div className="px-4 py-4 text-sm text-rose-300">{error}</div>}
-          {!loading && !error && deliverables.length === 0 && (
-            <div className="px-4 py-6 text-sm text-muted-foreground">Nenhum entregável cadastrado.</div>
-          )}
-          {!loading &&
-            !error &&
-            deliverables.map(deliverable => {
-              const linkLabel = deliverable.content?.replace(/^https?:\/\//, "") ?? deliverable.content ?? "-";
-              const isActive = (deliverable.status ?? "active").toLowerCase() === "active";
-              return (
-                <div key={deliverable.id} className="grid grid-cols-4 items-center gap-4 px-4 py-4 text-sm text-foreground">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium capitalize">{deliverable.name || deliverable.type || "Entregável"}</p>
-                    <p className="break-all text-xs text-muted-foreground">ID: {deliverable.id}</p>
-                  </div>
-                  <div>
-                    {deliverable.content ? (
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={deliverable.content}
-                          className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {linkLabel}
-                        </a>
-                        <button
-                          type="button"
-                          className="h-8 w-8 rounded-[6px] border border-foreground/15 bg-card text-sm text-foreground transition hover:border-foreground/30"
-                          aria-label="Baixar"
-                        >
-                          📎
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{formatSize(deliverable.size)}</div>
+                );
+              },
+            },
+            {
+              id: "tamanho",
+              header: "Tamanho",
+              render: item => <span className="text-sm text-muted-foreground">{formatSize(item.size)}</span>,
+            },
+            {
+              id: "status",
+              header: "Status",
+              render: item => {
+                const isActive = (item.status ?? "active").toLowerCase() === "active";
+                return (
                   <div className="flex items-center gap-2 text-sm">
-                    <span
-                      className={`h-2.5 w-2.5 rounded-full ${isActive ? "bg-primary" : "bg-muted-foreground/50"}`}
-                      aria-hidden
-                    />
-                    <span className="font-medium text-foreground">{isActive ? "Ativo" : deliverable.status ?? "-"}</span>
+                    <span className={`h-2.5 w-2.5 rounded-full ${isActive ? "bg-primary" : "bg-muted-foreground/50"}`} aria-hidden />
+                    <span className="font-medium text-foreground">{isActive ? "Ativo" : item.status ?? "-"}</span>
                   </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
+                );
+              },
+            },
+          ]}
+        />
     </>
   );
 }

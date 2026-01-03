@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import AdminCheckout from "@/views/AdminCheckout";
+import Checkout from "@/views/Checkout";
 import AdminColaboradores from "@/views/AdminColaboradores";
 import AdminColaboradorDetalhes from "@/views/AdminColaboradorDetalhes";
 import AdminConfiguracoes from "@/views/AdminConfiguracoes";
@@ -106,7 +106,7 @@ jest.mock("next/navigation", () => ({
 
 describe("Admin checkout estático", () => {
   it("renderiza seções principais do checkout", () => {
-    render(<AdminCheckout />);
+    render(<Checkout />);
     expect(screen.getByText(/Identificação/i)).toBeInTheDocument();
     expect(screen.getByText(/^Pagamento$/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Comprar agora/i })).toBeInTheDocument();

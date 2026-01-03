@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { productApi } from "@/lib/api";
 import type { ProductOffer } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
+import PaginatedTable from "@/components/PaginatedTable";
 
 type Props = {
   productId?: string;
@@ -57,7 +57,7 @@ export function OfertasTab({ productId, token, withLoading, onOpenOfferModal, re
           </div>
           <button
             type="button"
-            className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
+            className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
             onClick={onOpenOfferModal}
           >
             Adicionar oferta
@@ -65,108 +65,110 @@ export function OfertasTab({ productId, token, withLoading, onOpenOfferModal, re
         </div>
       </div>
 
-      <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-        <div className="grid grid-cols-6 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-          <span>Nome</span>
-          <span>Checkout</span>
-          <span>Tipo</span>
-          <span>Valor</span>
-          <span>Acesso</span>
-          <span>Status</span>
-        </div>
-        <div className="divide-y divide-foreground/10">
-          {loading && (
-            <>
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-12" />
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-8 w-24 rounded-[10px]" />
-                </div>
-              ))}
-            </>
-          )}
-          {!loading && error && <div className="px-4 py-4 text-sm text-rose-300">{error}</div>}
-          {!loading && !error && offers.length === 0 && (
-            <div className="px-4 py-6 text-sm text-muted-foreground">Nenhuma oferta cadastrada.</div>
-          )}
-          {!loading &&
-            !error &&
-            offers.map(offer => {
-              const isActive = offer.status?.toLowerCase() === "active";
-              const normalizedType = offer.type?.toLowerCase();
-              const typeLabel =
-                normalizedType === "subscription"
-                  ? "Assinatura"
-                  : normalizedType === "single_purchase" || normalizedType === "single"
-                  ? "Preço único"
-                  : offer.type ?? "-";
-              const checkoutObj = offer.checkout as unknown as { name?: string; id?: string } | undefined;
-              const t = offer.template as unknown as { checkout?: { name?: string; id?: string }; name?: string; id?: string };
-              const checkoutName =
-                checkoutObj?.name ||
-                checkoutObj?.id ||
-                t?.checkout?.name ||
-                t?.name ||
-                t?.checkout?.id ||
-                t?.id ||
-                (typeof offer.template === "string" ? offer.template : offer.checkout_id ?? "default");
-              const accessUrl = offer.next_redirect_url ?? "-";
-              const accessLabel =
-                accessUrl && accessUrl !== "-"
-                  ? accessUrl.replace(/^https?:\/\//, "").slice(0, 6)
-                  : "-";
-
-              const handleCopyAccess = async () => {
-                if (!accessUrl || accessUrl === "-") return;
-                try {
-                  await navigator.clipboard?.writeText(accessUrl);
-                } catch (err) {
-                  console.error("Não foi possível copiar o link de acesso:", err);
-                }
-              };
-
-              const formatBRL = (value: number) =>
-                new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-
-              return (
-                <div key={offer.id ?? offer.name} className="grid grid-cols-6 items-center gap-4 px-4 py-4 text-sm text-foreground">
-                  <span className="break-words font-semibold uppercase">{offer.name}</span>
-                  <span className="font-semibold text-muted-foreground">{checkoutName}</span>
-                  <span className="text-muted-foreground">{typeLabel}</span>
+        <PaginatedTable<ProductOffer>
+          data={offers}
+          rowsPerPage={6}
+          rowKey={offer => offer.id ?? offer.name ?? Math.random().toString()}
+          emptyMessage={loading ? "Carregando..." : error || "Nenhuma oferta cadastrada."}
+          columns={[
+            {
+              id: "nome",
+              header: "Nome",
+              render: offer => <span className="break-words font-semibold uppercase">{offer.name}</span>,
+            },
+            {
+              id: "checkout",
+              header: "Checkout",
+              render: offer => {
+                const checkoutObj = offer.checkout as unknown as { name?: string; id?: string } | undefined;
+                const t = offer.template as unknown as { checkout?: { name?: string; id?: string }; name?: string; id?: string };
+                const checkoutName =
+                  checkoutObj?.name ||
+                  checkoutObj?.id ||
+                  t?.checkout?.name ||
+                  t?.name ||
+                  t?.checkout?.id ||
+                  t?.id ||
+                  (typeof offer.template === "string" ? offer.template : offer.checkout_id ?? "default");
+                return <span className="font-semibold text-muted-foreground">{checkoutName}</span>;
+              },
+            },
+            {
+              id: "tipo",
+              header: "Tipo",
+              render: offer => {
+                const normalizedType = offer.type?.toLowerCase();
+                const typeLabel =
+                  normalizedType === "subscription"
+                    ? "Assinatura"
+                    : normalizedType === "single_purchase" || normalizedType === "single"
+                    ? "Preço único"
+                    : offer.type ?? "-";
+                return <span className="text-muted-foreground">{typeLabel}</span>;
+              },
+            },
+            {
+              id: "valor",
+              header: "Valor",
+              render: offer => {
+                const formatBRL = (value: number) =>
+                  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+                return (
                   <span className="font-semibold">
                     {offer.free ? "Gratuito" : offer.offer_price != null ? formatBRL(Number(offer.offer_price)) : "-"}
                   </span>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30 disabled:opacity-60"
-                      disabled={!accessUrl || accessUrl === "-"}
-                      onClick={handleCopyAccess}
-                      title={accessUrl && accessUrl !== "-" ? "Copiar link de acesso" : "Sem link"}
-                    >
-                      {accessLabel}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-start">
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-[6px] text-xs font-semibold ${
-                        isActive ? "bg-emerald-500/15 text-emerald-300" : "bg-muted/40 text-muted-foreground"
-                      }`}
-                    >
-                      {isActive ? "Ativo" : "Inativo"}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
+                );
+              },
+            },
+            {
+              id: "acesso",
+              header: "Acesso",
+              render: offer => {
+                const accessUrl = offer.back_redirect_url ?? offer.next_redirect_url ?? "-";
+                const accessLabel =
+                  accessUrl && accessUrl !== "-"
+                    ? accessUrl.replace(/^https?:\/\//, "").slice(0, 24)
+                    : "-";
+                const handleCopyAccess = async () => {
+                  if (!accessUrl || accessUrl === "-") return;
+                  try {
+                    await navigator.clipboard?.writeText(accessUrl);
+                    console.log("[offerApi] Link de acesso copiado:", accessUrl);
+                  } catch (err) {
+                    console.error("Não foi possível copiar o link de acesso:", err);
+                  }
+                };
+                return (
+                  <button
+                    type="button"
+                    className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30 disabled:opacity-60"
+                    disabled={!accessUrl || accessUrl === "-"}
+                    onClick={handleCopyAccess}
+                    title={accessUrl && accessUrl !== "-" ? "Copiar link de acesso" : "Sem link"}
+                  >
+                    {accessLabel}
+                  </button>
+                );
+              },
+            },
+            {
+              id: "status",
+              header: "Status",
+              render: offer => {
+                const isActive = offer.status?.toLowerCase() === "active";
+                return (
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-[6px] text-xs font-semibold ${
+                      isActive ? "bg-emerald-500/15 text-emerald-300" : "bg-muted/40 text-muted-foreground"
+                    }`}
+                  >
+                    {isActive ? "Ativo" : "Inativo"}
+                  </span>
+                );
+              },
+            },
+          ]}
+        />
     </>
   );
 }

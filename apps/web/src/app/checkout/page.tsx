@@ -1,10 +1,10 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminCheckout from "@/views/AdminCheckout";
+import Checkout from "@/views/Checkout";
 
 function CheckoutPage() {
-  return <AdminCheckout />;
+  return <Checkout />;
 }
 
 export default withAuth(CheckoutPage);

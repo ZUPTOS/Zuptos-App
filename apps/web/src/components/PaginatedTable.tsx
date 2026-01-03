@@ -70,7 +70,7 @@ export default function PaginatedTable<T>({
 
   return (
     <div className={`flex flex-col gap-2 ${wrapperClassName}`}>
-      <div className={tableContainerClassName}>
+      <div className={`${tableContainerClassName} rounded-[10px] border border-foreground/10 bg-card`}>
         <div className="overflow-x-auto">
           <table
             className={`w-full text-center text-[14px] ${tableClassName} ${safeColumns.some(col => col.width) ? "table-fixed" : ""}`}

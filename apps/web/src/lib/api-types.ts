@@ -147,10 +147,23 @@ export interface CheckoutPayload {
   countdown_active?: boolean;
   countdown_expire?: string;
   countdown_background?: string;
+  countdown_text_color?: string;
   social_proofs_message?: string;
   social_proofs_min_client?: number;
   after_sale_title?: string;
   after_sale_message?: string;
+  accepted_documents?: ("cpf" | "cnpj")[];
+  payment_methods?: ("card" | "boleto" | "pix")[];
+  coupon_enabled?: boolean;
+  discount_card?: number;
+  discount_pix?: number;
+  discount_boleto?: number;
+  installments_limit?: number;
+  installments_preselected?: number;
+  testimonials_enabled?: boolean;
+  testimonials?: Testimonial[];
+  sales_notifications_enabled?: boolean;
+  social_proof_enabled?: boolean;
 }
 
 export enum CheckoutTemplate {
@@ -184,6 +197,15 @@ export interface OrderBump {
   product?: string;
   offer?: string;
   price?: number;
+}
+
+export interface Testimonial {
+  id?: string;
+  name?: string;
+  text?: string;
+  rating?: number;
+  avatar?: string;
+  active?: boolean;
 }
 
 export interface CreateOrderBumpRequest {

@@ -67,15 +67,31 @@ export default function EditarCheckoutView() {
   const [showBanner, setShowBanner] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [theme, setTheme] = useState<"Light" | "Dark">("Light");
-  const [counterBgColor, setCounterBgColor] = useState("#FFFFFF");
+  const [logoPosition, setLogoPosition] = useState<"left" | "center" | "right">("left");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [counterBgColor, setCounterBgColor] = useState("#111111");
   const [counterTextColor, setCounterTextColor] = useState("#FFFFFF");
   const [countdownEnabled, setCountdownEnabled] = useState(false);
-  const [accentColor, setAccentColor] = useState("#18a64a");
+  const [accentColor, setAccentColor] = useState("#5f17ff");
   const [couponEnabled, setCouponEnabled] = useState(false);
+  const [discountCard, setDiscountCard] = useState("");
+  const [discountPix, setDiscountPix] = useState("");
+  const [discountBoleto, setDiscountBoleto] = useState("");
+  const [installmentsLimit, setInstallmentsLimit] = useState("12");
+  const [installmentsPreselected, setInstallmentsPreselected] = useState("12");
   const [salesNotificationsEnabled, setSalesNotificationsEnabled] = useState(false);
   const [socialProofEnabled, setSocialProofEnabled] = useState(false);
   const [reviewsEnabled, setReviewsEnabled] = useState(false);
+  const [acceptedDocuments, setAcceptedDocuments] = useState<Array<"cpf" | "cnpj">>(["cpf"]);
+  const [paymentMethods, setPaymentMethods] = useState<Array<"card" | "boleto" | "pix">>(["card"]);
+  const [testimonials, setTestimonials] = useState<
+    { id?: string; name: string; text: string; rating: number; active: boolean }[]
+  >([]);
+  const [testimonialDraft, setTestimonialDraft] = useState<{ name: string; text: string; rating: number }>({
+    name: "",
+    text: "",
+    rating: 5,
+  });
   const [isSaving, setIsSaving] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
@@ -101,6 +117,14 @@ export default function EditarCheckoutView() {
 
   const handleSave = async () => {
     if (!productId || !token) return;
+    if (!acceptedDocuments.length) {
+      alert("Selecione ao menos um documento (CPF/CNPJ).");
+      return;
+    }
+    if (!paymentMethods.length) {
+      alert("Selecione ao menos um método de pagamento.");
+      return;
+    }
     const payload: CheckoutPayload = {
       name: checkoutName.trim() || "Checkout",
       template: CheckoutTemplate.DEFAULT,
@@ -112,16 +136,34 @@ export default function EditarCheckoutView() {
       required_email_confirmation: Boolean(requiredEmailConfirmation),
     };
     // Campos opcionais só entram quando habilitados
-    payload.theme = theme.toLowerCase();
+    payload.theme = theme;
     payload.defaultColor = accentColor;
+    payload.accepted_documents = acceptedDocuments;
+    payload.payment_methods = paymentMethods;
+    payload.coupon_enabled = couponEnabled;
+    if (couponEnabled) {
+      if (discountCard) payload.discount_card = Number(discountCard) || 0;
+      if (discountPix) payload.discount_pix = Number(discountPix) || 0;
+      if (discountBoleto) payload.discount_boleto = Number(discountBoleto) || 0;
+      if (installmentsLimit) payload.installments_limit = Number(installmentsLimit);
+      if (installmentsPreselected) payload.installments_preselected = Number(installmentsPreselected);
+    }
 
     if (countdownEnabled) {
       payload.countdown = true;
       payload.countdown_active = true;
       payload.countdown_background = counterBgColor;
+      payload.countdown_text_color = counterTextColor;
     }
     if (showLogo && logoFile) payload.logo = URL.createObjectURL(logoFile);
+    if (showLogo) payload.position_logo = logoPosition;
     if (showBanner && bannerFile) payload.banner = URL.createObjectURL(bannerFile);
+    payload.social_proof_enabled = socialProofEnabled;
+    payload.sales_notifications_enabled = salesNotificationsEnabled;
+    payload.testimonials_enabled = reviewsEnabled;
+    if (reviewsEnabled && testimonials.length) {
+      payload.testimonials = testimonials;
+    }
 
     setIsSaving(true);
     try {
@@ -211,9 +253,9 @@ export default function EditarCheckoutView() {
 
             <h1 className="text-xl font-semibold text-foreground">Editar Checkout</h1>
 
-            <div className="flex flex-col gap-6 overflow-y-auto pb-6">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,370px)_1fr]">
-                <div className="space-y-4">
+            <div className="flex flex-col gap-3 overflow-y-auto pb-6">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,400px)_1fr]">
+                <div className="space-y-3">
                   <SectionCard title="Nome">
                     <input
                       className={fieldClass}
@@ -224,7 +266,7 @@ export default function EditarCheckoutView() {
                   </SectionCard>
 
                   <SectionCard title="Campos obrigatórios no Checkout" iconSrc="/images/editar-produtos/warning.svg">
-                    <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="space-y-4 text-xs text-muted-foreground">
                       <p className="font-semibold text-foreground">Itens Obrigatórios</p>
                     <div className="flex flex-wrap gap-2">
                       {[
@@ -294,7 +336,27 @@ export default function EditarCheckoutView() {
                         </div>
                       </>
                     )}
-                      <input className={fieldClass} placeholder="Posicionamento" />
+                      {showLogo && (
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          <span className="text-foreground">Posicionamento</span>
+                          <div className="relative">
+                            <select
+                              className="h-10 w-full appearance-none rounded-[8px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
+                              value={logoPosition}
+                              onChange={event =>
+                                setLogoPosition(event.target.value as "left" | "center" | "right")
+                              }
+                            >
+                              <option value="left">Esquerda</option>
+                              <option value="center">Centro</option>
+                              <option value="right">Direita</option>
+                            </select>
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" /></svg>
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                         <span>Banner</span>
                         <button
@@ -331,41 +393,24 @@ export default function EditarCheckoutView() {
                         <p className="text-sm font-semibold text-foreground">Plano de Fundo</p>
                         <div className="grid grid-cols-2 gap-2">
                           <button
-                            onClick={() => setTheme("Light")}
+                            onClick={() => setTheme("light")}
                             className={`rounded-[10px] border px-3 py-4 text-sm font-semibold shadow-inner ${
-                              theme === "Light" ? "border-foreground/20 bg-[#d9d9d9] text-black" : "border-foreground/20 bg-card text-foreground"
+                              theme === "light" ? "border-foreground/20 bg-[#d9d9d9] text-black" : "border-foreground/20 bg-card text-foreground"
                             }`}
                             type="button"
                           >
                             Claro
                           </button>
                           <button
-                            onClick={() => setTheme("Dark")}
+                            onClick={() => setTheme("dark")}
                             className={`rounded-[10px] border px-3 py-4 text-sm font-semibold ${
-                              theme === "Dark" ? "border-foreground/20 bg-[#232323] text-foreground" : "border-foreground/20 bg-card text-foreground"
+                              theme === "dark" ? "border-foreground/20 bg-[#232323] text-foreground" : "border-foreground/20 bg-card text-foreground"
                             }`}
                             type="button"
                           >
                             Escuro
                           </button>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                          <span>Contador regressivo</span>
-                          <button
-                            type="button"
-                            className={`relative inline-flex h-5 w-10 items-center rounded-full ${countdownEnabled ? "bg-primary/70" : "bg-muted"}`}
-                            onClick={() => setCountdownEnabled(prev => !prev)}
-                          >
-                            <span className={`absolute h-4 w-4 rounded-full bg-white transition ${countdownEnabled ? "left-[calc(100%-18px)]" : "left-[6px]"}`} />
-                          </button>
-                        </div>
-                        {!countdownEnabled && (
-                          <p className="text-xs text-muted-foreground">
-                            Ative para exibir a tarja superior e a barra de progresso na pré-visualização.
-                          </p>
-                        )}
                       </div>
                       <div className="space-y-3">
                         <p className="text-sm font-semibold text-foreground">Cores de destaque</p>
@@ -403,9 +448,9 @@ export default function EditarCheckoutView() {
                   </SectionCard>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <SectionCard title="Pré-visualização">
-                    <div className="flex flex-col items-center gap-3">
+                    <div className="flex flex-col items-center gap-2">
                     <CheckoutPreview
                       theme={theme}
                       showLogo={showLogo}
@@ -440,24 +485,73 @@ export default function EditarCheckoutView() {
                 </div>
               </div>
 
-              <div className="space-y-4 w-full max-w-[370px]">
+              <div className="space-y-3 w-full max-w-[400px]">
                 <SectionCard title="Pagamentos" iconSrc="/images/editar-produtos/pagamentos.svg">
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-foreground">Aceitar pagamentos de</p>
-                    <div className="flex gap-2">
-                      {["CPF", "CNPJ"].map(doc => (
-                        <button key={doc} className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs text-foreground">
-                          {doc}
-                        </button>
-                      ))}
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { label: "CPF", value: "cpf" },
+                        { label: "CNPJ", value: "cnpj" },
+                      ].map(doc => {
+                        const active = acceptedDocuments.includes(doc.value as "cpf" | "cnpj");
+                        return (
+                          <button
+                            key={doc.value}
+                            type="button"
+                            className={`rounded-[8px] border px-3 py-2 text-xs font-semibold transition ${
+                              active
+                                ? "border-primary/60 bg-primary/10 text-primary"
+                                : "border-foreground/20 bg-card text-foreground"
+                            }`}
+                            onClick={() =>
+                              setAcceptedDocuments(prev => {
+                                const exists = prev.includes(doc.value as "cpf" | "cnpj");
+                                if (exists) {
+                                  const next = prev.filter(item => item !== doc.value);
+                                  return next.length ? next : prev; // impede ficar vazio
+                                }
+                                return [...prev, doc.value as "cpf" | "cnpj"];
+                              })
+                            }
+                          >
+                            {doc.label}
+                          </button>
+                        );
+                      })}
                     </div>
                     <p className="text-sm font-semibold text-foreground">Métodos aceitos</p>
-                    <div className="flex gap-2">
-                      {["Cartão de crédito", "Boleto", "Pix"].map(method => (
-                        <button key={method} className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs text-foreground">
-                          {method}
-                        </button>
-                      ))}
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { label: "Cartão de crédito", value: "card" },
+                        { label: "Boleto", value: "boleto" },
+                        { label: "Pix", value: "pix" },
+                      ].map(method => {
+                        const active = paymentMethods.includes(method.value as "card" | "boleto" | "pix");
+                        return (
+                          <button
+                            key={method.value}
+                            type="button"
+                            className={`rounded-[8px] border px-3 py-2 text-xs font-semibold transition ${
+                              active
+                                ? "border-primary/60 bg-primary/10 text-primary"
+                                : "border-foreground/20 bg-card text-foreground"
+                            }`}
+                            onClick={() =>
+                              setPaymentMethods(prev => {
+                                const exists = prev.includes(method.value as "card" | "boleto" | "pix");
+                                if (exists) {
+                                  const next = prev.filter(item => item !== method.value);
+                                  return next.length ? next : prev; // impede ficar vazio
+                                }
+                                return [...prev, method.value as "card" | "boleto" | "pix"];
+                              })
+                            }
+                          >
+                            {method.label}
+                          </button>
+                        );
+                      })}
                     </div>
                     <div className="flex items-center justify-between text-sm font-semibold text-foreground pt-2">
                       <span>Cupom de desconto</span>
@@ -469,17 +563,59 @@ export default function EditarCheckoutView() {
                         <span className={`absolute h-4 w-4 rounded-full bg-white transition ${couponEnabled ? "left-[calc(100%-18px)]" : "left-[6px]"}`} />
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <input className={fieldClass} placeholder="Cartão de crédito" />
-                      <input className={fieldClass} placeholder="Pix" />
-                    </div>
-                    <input className={fieldClass} placeholder="Boleto" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <input className={fieldClass} placeholder="Limite de parcelas" />
-                      <input className={fieldClass} placeholder="Parcela pré-selecionada" />
-                    </div>
-                    <input className={fieldClass} placeholder="Dias para vencimento" />
-                    <input className={fieldClass} placeholder="Tempo de expiração (Pix)" />
+                    {couponEnabled && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="relative">
+                            <input
+                              className={`${fieldClass} pr-10`}
+                              placeholder="Cartão de crédito"
+                              value={discountCard}
+                              onChange={event => setDiscountCard(event.target.value)}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              className={`${fieldClass} pr-10`}
+                              placeholder="Pix"
+                              value={discountPix}
+                              onChange={event => setDiscountPix(event.target.value)}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <input
+                            className={`${fieldClass} pr-10`}
+                            placeholder="Boleto"
+                            value={discountBoleto}
+                            onChange={event => setDiscountBoleto(event.target.value)}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="relative">
+                            <input
+                              className={`${fieldClass} pr-8`}
+                              placeholder="Limite de parcelas"
+                              value={installmentsLimit}
+                              onChange={event => setInstallmentsLimit(event.target.value.replace(/\D/g, ""))}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              className={`${fieldClass} pr-8`}
+                              placeholder="Parcela pré-selecionada"
+                              value={installmentsPreselected}
+                              onChange={event => setInstallmentsPreselected(event.target.value.replace(/\D/g, ""))}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-foreground">Preferências</p>
                       <div className="space-y-2 text-xs text-muted-foreground">
@@ -644,75 +780,112 @@ export default function EditarCheckoutView() {
                         </button>
                       </div>
                       {reviewsEnabled && (
-                        <>
+                        <div className="space-y-3">
                           <p className="text-xs text-muted-foreground">
                             Com os reviews, você cria argumentos de confiança para seu cliente finalizar a compra.
                           </p>
-                          {[1, 2].map(idx => (
-                            <div key={idx} className="space-y-2 rounded-[10px] border border-foreground/15 bg-card p-3">
+
+                          {testimonials.map((item, idx) => (
+                            <div key={item.id ?? idx} className="space-y-2 rounded-[10px] border border-foreground/15 bg-card p-3">
                               <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-base font-semibold text-foreground">#{idx}</span>
+                                  <span className="text-base font-semibold text-foreground">#{idx + 1}</span>
                                   <div className="flex items-center gap-2">
-                                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
-                                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                                    <button
+                                      type="button"
+                                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${
+                                        item.active ? "bg-primary/70" : "bg-muted"
+                                      }`}
+                                      onClick={() =>
+                                        setTestimonials(prev =>
+                                          prev.map((t, i) => (i === idx ? { ...t, active: !t.active } : t))
+                                        )
+                                      }
+                                    >
+                                      <span
+                                        className={`absolute h-4 w-4 rounded-full bg-white transition ${
+                                          item.active ? "left-[calc(100%-18px)]" : "left-[6px]"
+                                        }`}
+                                      />
                                     </button>
-                                    <span className="text-xs text-foreground">Ativo</span>
+                                    <span className="text-xs text-foreground">{item.active ? "Ativo" : "Inativo"}</span>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <button className="rounded-[6px] border border-foreground/20 bg-card px-2 py-1 text-xs text-foreground">
-                                    Editar
-                                  </button>
-                                  <button className="rounded-[6px] border border-foreground/20 bg-card px-2 py-1 text-xs text-rose-300">
-                                    Excluir
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  className="rounded-[6px] border border-foreground/20 bg-card px-2 py-1 text-xs text-rose-300"
+                                  onClick={() => setTestimonials(prev => prev.filter((_, i) => i !== idx))}
+                                >
+                                  Excluir
+                                </button>
                               </div>
                               <div className="flex items-center gap-3">
                                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/70" />
                                 <div className="space-y-1">
-                                  <p className="text-xs font-semibold text-foreground">Nome e sobrenome</p>
+                                  <p className="text-xs font-semibold text-foreground">{item.name || "Nome"}</p>
                                   <div className="flex gap-1 text-[#8ea000]">
                                     {Array.from({ length: 5 }).map((_, i) => (
-                                      <span key={i}>★</span>
+                                      <span key={i}>{i < (item.rating ?? 0) ? "★" : "☆"}</span>
                                     ))}
                                   </div>
                                 </div>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry&apos;s standard
-                                dummy text ever since the 1500s,
-                              </p>
+                              <p className="text-xs text-muted-foreground">{item.text || "Depoimento do cliente."}</p>
                             </div>
                           ))}
+
                           <div className="space-y-3 rounded-[10px] border border-foreground/15 bg-card p-3">
-                            <p className="text-sm font-semibold text-foreground">#2</p>
-                            <div className="rounded-[8px] border border-dashed border-foreground/20 bg-card/50 px-3 py-4 text-xs text-muted-foreground text-center">
-                              Arraste a imagem ou clique aqui
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-xs text-muted-foreground">
-                                Aceitamos os formatos .jpg, .jpeg e .png com menos de 10mb.
-                                <br />
-                                Sugestão de tamanho: 300 X 300
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-sm font-semibold text-foreground">Classificação</p>
+                            <p className="text-sm font-semibold text-foreground">Novo depoimento</p>
+                            <div className="flex items-center gap-2 text-sm text-foreground">
+                              <span>Classificação</span>
                               <div className="flex gap-1 text-[#8ea000]">
                                 {Array.from({ length: 5 }).map((_, i) => (
-                                  <span key={i}>★</span>
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => setTestimonialDraft(prev => ({ ...prev, rating: i + 1 }))}
+                                    className="text-lg"
+                                    aria-label={`Nota ${i + 1}`}
+                                  >
+                                    ★
+                                  </button>
                                 ))}
                               </div>
                             </div>
-                            <input className={fieldClass} placeholder="Nome" />
-                            <input className={fieldClass} placeholder="Depoimento" />
-                            <button className="rounded-[8px] bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
+                            <input
+                              className={fieldClass}
+                              placeholder="Nome"
+                              value={testimonialDraft.name}
+                              onChange={event => setTestimonialDraft(prev => ({ ...prev, name: event.target.value }))}
+                            />
+                            <input
+                              className={fieldClass}
+                              placeholder="Depoimento"
+                              value={testimonialDraft.text}
+                              onChange={event => setTestimonialDraft(prev => ({ ...prev, text: event.target.value }))}
+                            />
+                            <button
+                              type="button"
+                              className="rounded-[8px] bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                              onClick={() =>
+                                {
+                                  setTestimonials(prev => [
+                                    ...prev,
+                                    {
+                                      name: testimonialDraft.name || "Nome",
+                                      text: testimonialDraft.text || "Depoimento do cliente",
+                                      rating: testimonialDraft.rating,
+                                      active: true,
+                                    },
+                                  ]);
+                                  setTestimonialDraft({ name: "", text: "", rating: 5 });
+                                }
+                              }
+                            >
                               Inserir novo depoimento
                             </button>
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>

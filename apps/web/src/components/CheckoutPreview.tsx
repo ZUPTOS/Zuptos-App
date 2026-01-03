@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 export type CheckoutPreviewProps = {
-  theme: "Light" | "Dark";
+  theme: "Light" | "Dark" | "light" | "dark";
   showLogo: boolean;
   showBanner: boolean;
   requiredAddress: boolean;
@@ -32,7 +32,7 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
   } = props;
 
   const previewHtml = useMemo(() => {
-    const isLight = theme === "Light";
+    const isLight = (theme || "dark").toLowerCase() === "light";
     const bg = isLight ? "#e1e1e1" : "#05070c";
     const cardBg = isLight ? "#ffffff" : "#0d111b";
     const sideCardBg = isLight ? "#f4f4f4" : "#0f1522";
