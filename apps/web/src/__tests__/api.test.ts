@@ -7,8 +7,9 @@
 
 export {};
 
-const API_HOST = "http://86.48.22.80:3000";
-const API_PREFIX = "/v1";
+const API_HOST_RAW = process.env.API_PROXY_TARGET ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_HOST = API_HOST_RAW.replace(/\/v1\/?$/, "");
+const API_PREFIX = process.env.API_PREFIX ?? "/v1";
 
 const colors = {
   reset: "\x1b[0m",
@@ -77,6 +78,10 @@ async function request(path: string, options: RequestOptions = {}) {
 }
 
 async function runConnectivitySuite() {
+  if (!API_HOST) {
+    log("API_PROXY_TARGET ou NEXT_PUBLIC_API_URL não definidos. Configure o host da API antes de rodar.", "red");
+    return;
+  }
   log("\n=== TESTE DE CONECTIVIDADE DA API ===", "cyan");
 
   const results: TestResult[] = [];

@@ -129,6 +129,37 @@ export interface ProductOffer {
   subscription_plan?: SubscriptionPlanPayload;
 }
 
+export interface PublicCheckoutOfferBump {
+  id?: string;
+  title?: string;
+  description?: string;
+  tagDisplay?: string;
+  tag_display?: string;
+}
+
+export interface PublicCheckoutOfferResponse {
+  id?: string;
+  product?: Product;
+  checkout?: Checkout;
+  plan?: SubscriptionPlanPayload | null;
+  productOfferBumps?: PublicCheckoutOfferBump[] | null;
+  type?: ProductOfferType | string;
+  status?: string;
+  offerPrice?: number | string;
+  offer_price?: number | string;
+  free?: boolean;
+  backRedirectUrl?: string;
+  back_redirect_url?: string;
+  nextRedirectUrl?: string;
+  next_redirect_url?: string;
+  name?: string;
+  checkoutId?: string;
+  checkout_id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string;
+}
+
 export interface CheckoutPayload {
   template?: CheckoutTemplate | string;
   name: string;

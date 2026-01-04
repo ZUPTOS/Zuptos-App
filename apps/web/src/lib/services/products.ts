@@ -265,6 +265,33 @@ export const productApi = {
     return response;
   },
 
+  updateCheckout: async (
+    productId: string,
+    checkoutId: string,
+    payload: CheckoutPayload,
+    token?: string
+  ): Promise<Checkout> => {
+    if (!productId || !checkoutId) {
+      throw new Error("Missing product or checkout id for checkout update");
+    }
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for checkout update");
+    }
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined && value !== null)
+    );
+    return request<Checkout>(`/product/${productId}/checkouts/${checkoutId}`, {
+      method: "PATCH",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+  },
+
   getCheckoutsByProductId: async (id: string, token?: string): Promise<Checkout[]> => {
     const authToken = token ?? readStoredToken();
     return request<Checkout[]>(`/product/${id}/checkouts`, {

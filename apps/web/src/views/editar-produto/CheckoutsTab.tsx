@@ -73,74 +73,83 @@ export function CheckoutsTab({ productId, token, withLoading }: Props) {
         </div>
       </div>
 
-        {loading ? (
-          <div className="rounded-[10px] border border-foreground/10 bg-card">
-            <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-              <span>Nome</span>
-              <span>Tema</span>
-              <span>Template</span>
-              <span className="text-center">Ação</span>
-            </div>
-            <div className="divide-y divide-foreground/10">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-3">
-                  <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-24" />
-                  <div className="flex justify-center">
-                    <Skeleton className="h-8 w-20 rounded-[8px]" />
-                  </div>
-                </div>
-              ))}
-            </div>
+      {loading ? (
+        <div className="rounded-[10px] border border-foreground/10 bg-card">
+          <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
+            <span>Nome</span>
+            <span>Tema</span>
+            <span>Template</span>
+            <span className="text-center">Ação</span>
           </div>
-        ) : (
-          <PaginatedTable<Checkout>
-            data={checkouts}
-            rowsPerPage={6}
-            rowKey={item => item.id ?? item.name ?? Math.random().toString()}
-            emptyMessage={error || "Nenhum checkout cadastrado."}
-            wrapperClassName="space-y-3"
-            tableContainerClassName="rounded-[10px] border border-foreground/10 bg-card"
-            paginationContainerClassName="border-t-0 pt-3"
-            headerRowClassName="bg-card/60 text-muted-foreground"
-            tableClassName="text-left"
-            columns={[
-              {
-                id: "nome",
-                header: "Nome",
-                render: item => <span className="font-semibold text-foreground">{item.name}</span>,
-              },
-              {
-                id: "tema",
-                header: "Tema",
-                render: item => <span className="text-muted-foreground text-foreground">{item.theme ?? "-"}</span>,
-              },
-              {
-                id: "template",
-                header: "Template",
-                render: item => <span className="text-muted-foreground text-foreground">{item.template ?? "-"}</span>,
-              },
-              {
-                id: "acao",
-                header: "Ação",
-                headerClassName: "text-center",
-                cellClassName: "text-center",
-              render: () => (
+          <div className="divide-y divide-foreground/10">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-3">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
+                <div className="flex justify-center">
+                  <Skeleton className="h-8 w-20 rounded-[8px]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <PaginatedTable<Checkout>
+          data={checkouts}
+          rowsPerPage={6}
+          rowKey={item => item.id ?? item.name ?? Math.random().toString()}
+          emptyMessage={error || "Nenhum checkout cadastrado."}
+          wrapperClassName="space-y-3"
+          tableContainerClassName="rounded-[10px] border border-foreground/10 bg-card"
+          paginationContainerClassName="border-t-0 pt-3"
+          headerRowClassName="bg-card/60 text-muted-foreground"
+          tableClassName="text-left"
+          columns={[
+            {
+              id: "nome",
+              header: "Nome",
+              render: item => <span className="font-semibold text-foreground">{item.name}</span>,
+            },
+            {
+              id: "tema",
+              header: "Tema",
+              render: item => <span className="text-muted-foreground text-foreground">{item.theme ?? "-"}</span>,
+            },
+            {
+              id: "template",
+              header: "Template",
+              render: item => <span className="text-muted-foreground text-foreground">{item.template ?? "-"}</span>,
+            },
+            {
+              id: "acao",
+              header: "Ação",
+              headerClassName: "text-center",
+              cellClassName: "text-center",
+              render: item => (
                 <div className="flex justify-center">
                   <button
                     className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/40"
-                      onClick={() => productId && router.push(`/editar-produto/${encodeURIComponent(productId)}/checkout`)}
-                      type="button"
-                    >
-                      EDITAR
-                    </button>
-                  </div>
-                ),
-              },
-            ]}
-          />
-        )}
+                    onClick={() => {
+                      if (!productId || !item.id) return;
+                      console.log("[checkout] GET /product/{id}/checkouts/{checkoutId}", {
+                        productId,
+                        checkoutId: item.id,
+                      });
+                      router.push(
+                        `/editar-produto/${encodeURIComponent(productId)}/checkout?checkoutId=${encodeURIComponent(item.id)}`
+                      );
+                    }}
+                    type="button"
+                  >
+                    EDITAR
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
+      )}
     </>
   );
 }

@@ -9,14 +9,14 @@ type Props = {
   productId?: string;
   token?: string;
   withLoading: <T>(task: () => Promise<T>, label?: string) => Promise<T>;
-  onOpenRecoveryModal?: () => void;
 };
 
-export function ConfiguracoesTab({ productId, token, withLoading, onOpenRecoveryModal }: Props) {
+export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
   const [settings, setSettings] = useState<ProductSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -198,7 +198,7 @@ export function ConfiguracoesTab({ productId, token, withLoading, onOpenRecovery
             </div>
             <button
               className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/40"
-              onClick={onOpenRecoveryModal}
+              onClick={() => setShowRecoveryModal(true)}
               type="button"
             >
               Configurar
@@ -222,6 +222,96 @@ export function ConfiguracoesTab({ productId, token, withLoading, onOpenRecovery
           {saving ? "Salvando..." : "Salvar alterações"}
         </button>
       </div>
+
+      {showRecoveryModal && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="flex-1 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowRecoveryModal(false)}
+            aria-label="Fechar modal de recuperação"
+          />
+          <div className="relative h-full w-full max-w-[500px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
+            <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">Configurar Recuperação Ativa</h2>
+                <p className="text-sm text-muted-foreground">
+                  Com esse recurso reconquiste o cliente que está prestes a cancelar a compra ou recupere uma venda não finalizada.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRecoveryModal(false)}
+                className="text-lg text-muted-foreground transition hover:text-foreground"
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-6 pb-10">
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Preferências</p>
+
+                <div className="space-y-2 rounded-[10px] border border-foreground/15 bg-card/80 p-4">
+                  <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                    <span>Ofertas de preço único</span>
+                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
+                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione um produto para ser ofertado de forma gratuita para seu cliente no momento do cancelamento de um produto de preço
+                    único.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button className="h-11 rounded-[8px] border border-foreground/15 bg-card px-3 text-left text-sm text-muted-foreground">
+                      Produto
+                    </button>
+                    <button className="h-11 rounded-[8px] border border-foreground/15 bg-card px-3 text-left text-sm text-muted-foreground">
+                      Oferta
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-[10px] border border-foreground/15 bg-card/80 p-4">
+                  <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                    <span>Ofertas recorrentes</span>
+                    <button className="relative inline-flex h-5 w-10 items-center rounded-full bg-primary/70">
+                      <span className="absolute left-[calc(100%-18px)] h-4 w-4 rounded-full bg-white transition" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione uma porcentagem que será aplicada como desconto no momento do cancelamento dos seus planos recorrentes.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                      placeholder="20"
+                    />
+                    <span className="rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button
+                  type="button"
+                  className="flex-1 rounded-[8px] border border-foreground/20 bg-card px-4 py-3 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                  onClick={() => setShowRecoveryModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-[8px] bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
+                >
+                  Prosseguir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

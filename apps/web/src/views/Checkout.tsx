@@ -185,9 +185,42 @@ export default function Checkout({ checkout, product, offer }: Props) {
               </div>
             </div>
 
-            <div className="mt-2 px-5 pb-2 space-y-5">
-              {/* Exibe order bumps apenas se o backend retornar bumps no futuro */}
-            </div>
+            {offer?.order_bumps && offer.order_bumps.length > 0 && (
+              <div className="mt-2 px-5 pb-4 space-y-3">
+                {offer.order_bumps.map((bump, idx) => (
+                  <label
+                    key={bump.id ?? `${idx}-${bump.title}`}
+                    className={`flex items-center gap-3 rounded-[8px] border px-3 py-3 ${
+                      isDark ? "border-white/10 bg-[#0e0e0e]" : "border-black/10 bg-white"
+                    }`}
+                  >
+                    <input type="checkbox" className="h-5 w-5 rounded border border-foreground/30 bg-transparent" />
+                    <div className="flex items-center gap-3">
+                      <Image
+                        src="/images/produto.png"
+                        alt={bump.title || "Order bump"}
+                        width={64}
+                        height={64}
+                        className="h-[64px] w-[64px] rounded-[10px] object-cover"
+                      />
+                      <div className="flex flex-col gap-1">
+                        <p className={`text-sm font-semibold ${textPrimary}`}>{bump.title || "Order Bump"}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <span className="text-rose-500">
+                            {bump.price != null
+                              ? Number(bump.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                              : "-"}
+                          </span>
+                          <span className={isDark ? "text-neutral-300" : "text-neutral-700"}>
+                            {bump.description || "Complemento especial para sua compra"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
