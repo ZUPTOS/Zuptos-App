@@ -5,7 +5,6 @@ const AUTH_BASE = `${API_BASE_URL}/auth`;
 
 export const authApi = {
   signIn: async (credentials: SignInRequest): Promise<AuthResponse> => {
-    console.log("Sign in payload:", credentials);
     return request<AuthResponse>("/sign_in", {
       method: "POST",
       baseUrl: AUTH_BASE,
@@ -14,7 +13,6 @@ export const authApi = {
   },
 
   signUp: async (data: SignUpRequest): Promise<AuthResponse> => {
-    console.log("Sign up payload:", data);
     const payload = {
       username: data.username,
       email: data.email,
@@ -31,13 +29,11 @@ export const authApi = {
   },
 
   getCurrentUser: async (token: string): Promise<AuthResponse> => {
-    console.log("Getting current user with token:", token);
     const response = await request<AuthResponse>("/me", {
       method: "GET",
       baseUrl: AUTH_BASE,
       headers: { Authorization: `Bearer ${token}` },
     });
-    console.log("Current user response:", response);
     return response;
   },
 

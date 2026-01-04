@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { productApi } from "@/lib/api";
-import type { ProductStrategy } from "@/lib/api";
+import type { Product, ProductStrategy } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
@@ -17,6 +17,17 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
   const [strategiesLoading, setStrategiesLoading] = useState(false);
   const [strategiesError, setStrategiesError] = useState<string | null>(null);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [strategyForm, setStrategyForm] = useState({
+    name: "",
+    type: "",
+    productId: "",
+    acceptAction: "",
+    acceptUrl: "",
+    rejectAction: "",
+    rejectUrl: "",
+  });
 
   useEffect(() => {
     const loadStrategies = async () => {
@@ -38,6 +49,26 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
     };
     void loadStrategies();
   }, [productId, token, withLoading]);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      if (!showUpsellModal || !token) return;
+      setProductsLoading(true);
+      try {
+        const data = await withLoading(
+          () => productApi.listProducts({ page: 1, limit: 50 }, token),
+          "Carregando produtos"
+        );
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Erro ao carregar produtos para estratégia:", error);
+        setProducts([]);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+    void loadProducts();
+  }, [showUpsellModal, token, withLoading]);
 
   return (
     <>
@@ -149,28 +180,55 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
                   <input
                     className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="Digite um nome"
+                    value={strategyForm.name}
+                    onChange={event => setStrategyForm(current => ({ ...current, name: event.target.value }))}
                   />
                 </label>
                 <label className="space-y-1 text-sm text-muted-foreground">
                   <span className="text-foreground">Tipo de estratégia</span>
-                  <div className="flex items-center justify-between rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground">
-                    <input
-                      className="h-11 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      placeholder="Upsell"
-                    />
-                    <span className="text-lg text-muted-foreground">▾</span>
+                  <div className="relative">
+                    <select
+                      className="h-11 w-full appearance-none rounded-[8px] border border-foreground/15 bg-card px-3 pr-9 text-sm text-foreground focus:border-primary focus:outline-none"
+                      value={strategyForm.type}
+                      onChange={event =>
+                        setStrategyForm(current => ({ ...current, type: event.target.value }))
+                      }
+                    >
+                      <option value="">Selecione</option>
+                      <option value="upsell">Upsell</option>
+                      <option value="downsell">Downsell</option>
+                      <option value="cross_sell">Cross Sell</option>
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                      <ChevronDown className="h-4 w-4" aria-hidden />
+                    </span>
                   </div>
                 </label>
               </div>
 
               <label className="space-y-1 text-sm text-muted-foreground">
                 <span className="text-foreground">Selecione o produto</span>
-                <div className="flex items-center justify-between rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground">
-                  <input
-                    className="h-11 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                    placeholder="Selecione um produto"
-                  />
-                  <span className="text-lg text-muted-foreground">▾</span>
+                <div className="relative">
+                  <select
+                    className="h-11 w-full appearance-none rounded-[8px] border border-foreground/15 bg-card px-3 pr-9 text-sm text-foreground focus:border-primary focus:outline-none disabled:opacity-60"
+                    value={strategyForm.productId}
+                    onChange={event =>
+                      setStrategyForm(current => ({ ...current, productId: event.target.value }))
+                    }
+                    disabled={productsLoading || products.length === 0}
+                  >
+                    <option value="">
+                      {productsLoading ? "Carregando produtos..." : "Selecione um produto"}
+                    </option>
+                    {products.map(prod => (
+                      <option key={prod.id} value={prod.id}>
+                        {prod.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                    <ChevronDown className="h-4 w-4" aria-hidden />
+                  </span>
                 </div>
               </label>
 
@@ -178,12 +236,20 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
                 <p className="text-sm font-semibold text-foreground">Caso o cliente aceite a oferta</p>
                 <label className="space-y-1 text-sm text-muted-foreground">
                   <span className="text-foreground">Ação</span>
-                  <div className="flex items-center justify-between rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground">
-                    <input
-                      className="h-11 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      placeholder="Nova oferta"
-                    />
-                    <span className="text-lg text-muted-foreground">▾</span>
+                  <div className="relative">
+                    <select
+                      className="h-11 w-full appearance-none rounded-[8px] border border-foreground/15 bg-card px-3 pr-9 text-sm text-foreground focus:border-primary focus:outline-none"
+                      value={strategyForm.acceptAction}
+                      onChange={event =>
+                        setStrategyForm(current => ({ ...current, acceptAction: event.target.value }))
+                      }
+                    >
+                      <option value="">Nova oferta</option>
+                      <option value="redirect">Redirecionar</option>
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                      <ChevronDown className="h-4 w-4" aria-hidden />
+                    </span>
                   </div>
                 </label>
                 <label className="space-y-1 text-sm text-muted-foreground">
@@ -191,6 +257,10 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
                   <input
                     className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="Digite um nome"
+                    value={strategyForm.acceptUrl}
+                    onChange={event =>
+                      setStrategyForm(current => ({ ...current, acceptUrl: event.target.value }))
+                    }
                   />
                 </label>
               </div>
@@ -199,12 +269,20 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
                 <p className="text-sm font-semibold text-foreground">Se recusar</p>
                 <label className="space-y-1 text-sm text-muted-foreground">
                   <span className="text-foreground">Ação</span>
-                  <div className="flex items-center justify-between rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground">
-                    <input
-                      className="h-11 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      placeholder="Nova oferta"
-                    />
-                    <span className="text-lg text-muted-foreground">▾</span>
+                  <div className="relative">
+                    <select
+                      className="h-11 w-full appearance-none rounded-[8px] border border-foreground/15 bg-card px-3 pr-9 text-sm text-foreground focus:border-primary focus:outline-none"
+                      value={strategyForm.rejectAction}
+                      onChange={event =>
+                        setStrategyForm(current => ({ ...current, rejectAction: event.target.value }))
+                      }
+                    >
+                      <option value="">Nova oferta</option>
+                      <option value="redirect">Redirecionar</option>
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                      <ChevronDown className="h-4 w-4" aria-hidden />
+                    </span>
                   </div>
                 </label>
                 <label className="space-y-1 text-sm text-muted-foreground">
@@ -212,6 +290,10 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
                   <input
                     className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="Digite um nome"
+                    value={strategyForm.rejectUrl}
+                    onChange={event =>
+                      setStrategyForm(current => ({ ...current, rejectUrl: event.target.value }))
+                    }
                   />
                 </label>
               </div>

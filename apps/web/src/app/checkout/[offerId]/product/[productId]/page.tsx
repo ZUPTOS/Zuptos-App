@@ -109,12 +109,36 @@ const normalizeCheckout = (
 const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bumps"]> => {
   if (!Array.isArray(items)) return [];
   return items.map(item => {
-  const data = item as Record<string, unknown>;
+    const data = item as Record<string, unknown>;
+    const promoPrice = toNumber(
+      pick(
+        data.offer_price,
+        data.offerPrice,
+        data.discount_price,
+        data.discountPrice,
+        data.promotional_price,
+        data.promotionalPrice,
+        data.price
+      )
+    );
+    const normalPrice = toNumber(
+      pick(
+        data.normal_price,
+        data.normalPrice,
+        data.original_price,
+        data.originalPrice,
+        data.price_before,
+        data.priceBefore
+      )
+    );
     return {
       id: toString(data.id),
       title: toString(data.title) ?? "Order Bump",
       description: toString(data.description),
       tag: toString(pick(data.tagDisplay, data.tag_display)),
+      price: promoPrice ?? undefined,
+      offer_price: promoPrice ?? undefined,
+      normal_price: normalPrice ?? undefined,
     };
   });
 };

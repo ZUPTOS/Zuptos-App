@@ -228,6 +228,11 @@ export interface OrderBump {
   product?: string;
   offer?: string;
   price?: number;
+  offer_price?: number;
+  normal_price?: number;
+  original_price?: number;
+  discount_price?: number;
+  promotional_price?: number;
 }
 
 export interface Testimonial {
@@ -308,6 +313,11 @@ export interface UpdateProductSettingsRequest {
   language?: string;
   currency?: string;
   status?: string;
+  product?: {
+    id?: string;
+    name?: string;
+    description?: string;
+  };
 }
 
 export interface ProductPlan {

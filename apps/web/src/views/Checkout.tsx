@@ -35,6 +35,29 @@ export default function Checkout({ checkout, product, offer }: Props) {
   const textPrimary = isDark ? "text-white" : "text-[#0a0a0a]";
   const subCardBg = isDark ? "#0e0e0e" : "#f3f3f3";
   const borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const offerType = offer?.type?.toLowerCase();
+  const plan = offer?.subscription_plan as
+    | {
+        normal_price?: number;
+        discount_price?: number;
+        plan_price?: number;
+        price_first_cycle?: number;
+        normalPrice?: number;
+        discountPrice?: number;
+        planPrice?: number;
+        priceFirstCycle?: number;
+      }
+    | undefined;
+  const planNormal =
+    plan?.normal_price ?? plan?.normalPrice ?? plan?.plan_price ?? plan?.planPrice ?? plan?.price_first_cycle ?? plan?.priceFirstCycle;
+  const planPromo = plan?.discount_price ?? plan?.discountPrice;
+  const offerBasePrice = offer?.offer_price ?? (offer?.free ? 0 : undefined);
+  const orderBumpNormal = offerType === "subscription" ? planNormal ?? planPromo ?? offerBasePrice : offerBasePrice;
+  const orderBumpPromo = offerType === "subscription" ? planPromo : null;
+  const orderBumpHasDiscount =
+    orderBumpNormal != null && orderBumpPromo != null && Number(orderBumpNormal) !== Number(orderBumpPromo);
+  const formatBRL = (value: number) =>
+    Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const inputClass = `
     h-10 w-full rounded-[6px] px-3 text-sm focus:outline-none
     ${isDark ? "border border-white/10 bg-[#0b0b0b] text-white placeholder:text-neutral-500" : "border border-black/10 bg-white text-[#0a0a0a] placeholder:text-neutral-500"}
@@ -185,43 +208,63 @@ export default function Checkout({ checkout, product, offer }: Props) {
               </div>
             </div>
 
-            {offer?.order_bumps && offer.order_bumps.length > 0 && (
-              <div className="mt-2 px-5 pb-4 space-y-3">
-                {offer.order_bumps.map((bump, idx) => (
+          </div>
+
+          {offer?.order_bumps && offer.order_bumps.length > 0 && (
+            <div className="space-y-3">
+              {offer.order_bumps.map((bump, idx) => {
+                const formattedNormal =
+                  orderBumpNormal != null ? formatBRL(Number(orderBumpNormal)) : null;
+                const formattedPromo =
+                  orderBumpPromo != null ? formatBRL(Number(orderBumpPromo)) : null;
+                return (
                   <label
                     key={bump.id ?? `${idx}-${bump.title}`}
-                    className={`flex items-center gap-3 rounded-[8px] border px-3 py-3 ${
-                      isDark ? "border-white/10 bg-[#0e0e0e]" : "border-black/10 bg-white"
+                    className={`flex flex-col gap-3 rounded-[10px] border px-4 py-3 ${
+                      isDark ? "border-white/10 bg-[#0b0b0b]" : "border-black/10 bg-white"
                     }`}
                   >
-                    <input type="checkbox" className="h-5 w-5 rounded border border-foreground/30 bg-transparent" />
+                    {bump.description && (
+                      <p className={`text-center text-xs ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
+                        {bump.description}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 rounded border border-foreground/30 bg-transparent"
+                      />
                       <Image
                         src="/images/produto.png"
                         alt={bump.title || "Order bump"}
-                        width={64}
-                        height={64}
-                        className="h-[64px] w-[64px] rounded-[10px] object-cover"
+                        width={56}
+                        height={56}
+                        className="h-[56px] w-[56px] rounded-[10px] object-cover"
                       />
                       <div className="flex flex-col gap-1">
                         <p className={`text-sm font-semibold ${textPrimary}`}>{bump.title || "Order Bump"}</p>
-                        <div className="flex flex-wrap items-center gap-2 text-sm">
-                          <span className="text-rose-500">
-                            {bump.price != null
-                              ? Number(bump.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                              : "-"}
-                          </span>
-                          <span className={isDark ? "text-neutral-300" : "text-neutral-700"}>
-                            {bump.description || "Complemento especial para sua compra"}
-                          </span>
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          {offer?.free ? (
+                            <span className="text-emerald-400">Gratuito</span>
+                          ) : orderBumpHasDiscount ? (
+                            <>
+                              <span className="text-rose-500">{formattedNormal}</span>
+                              <span className={isDark ? "text-neutral-400" : "text-neutral-600"}>por apenas</span>
+                              <span className="text-emerald-400">{formattedPromo}</span>
+                            </>
+                          ) : formattedNormal ? (
+                            <span className="text-emerald-400">{formattedNormal}</span>
+                          ) : (
+                            <span className={isDark ? "text-neutral-400" : "text-neutral-600"}>-</span>
+                          )}
                         </div>
                       </div>
                     </div>
                   </label>
-                ))}
-              </div>
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <button
             type="button"

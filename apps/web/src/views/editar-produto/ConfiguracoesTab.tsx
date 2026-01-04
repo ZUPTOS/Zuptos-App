@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { productApi } from "@/lib/api";
-import type { ProductSettings, UpdateProductSettingsRequest } from "@/lib/api";
+import type { Product, ProductSettings, UpdateProductSettingsRequest } from "@/lib/api";
 
 type Props = {
   productId?: string;
@@ -12,11 +12,39 @@ type Props = {
 };
 
 export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
+  const [product, setProduct] = useState<Product | null>(null);
   const [settings, setSettings] = useState<ProductSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [formValues, setFormValues] = useState({
+    support_email: "",
+    phone_support: "",
+    language: "",
+    currency: "",
+  });
+  const [productForm, setProductForm] = useState({
+    name: "",
+    description: "",
+  });
+  const [statusDraft, setStatusDraft] = useState<"active" | "inactive">("active");
+
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (!productId || !token) return;
+      try {
+        const data = await withLoading(
+          () => productApi.getProductById(productId, token),
+          "Carregando produto"
+        );
+        setProduct(data);
+      } catch (err) {
+        console.error("Erro ao carregar produto:", err);
+      }
+    };
+    void loadProduct();
+  }, [productId, token, withLoading]);
 
   useEffect(() => {
     const load = async () => {
@@ -29,6 +57,9 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
           "Carregando configurações"
         );
         setSettings(data);
+        if (data?.status) {
+          setStatusDraft(data.status === "inactive" ? "inactive" : "active");
+        }
       } catch (err) {
         console.error("Erro ao carregar configurações:", err);
         setError("Não foi possível carregar as configurações agora.");
@@ -40,18 +71,79 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
   }, [productId, token, withLoading]);
 
   const handleSave = async () => {
-    if (!productId || !token || !settings) return;
+    if (!productId || !token) return;
     setSaving(true);
     setError(null);
     try {
-      const payload: UpdateProductSettingsRequest = {
-        support_email: settings.support_email || undefined,
-        phone_support: settings.phone_support || undefined,
-        language: settings.language || undefined,
-        currency: settings.currency || undefined,
-        status: settings.status || undefined,
-      };
-      await withLoading(() => productApi.updateProductSettings(productId, payload, token), "Salvando configurações");
+      const payload: UpdateProductSettingsRequest = {};
+      const supportEmail = formValues.support_email.trim();
+      const phoneSupport = formValues.phone_support.trim();
+      const language = formValues.language.trim();
+      const currency = formValues.currency.trim();
+      const nextName = productForm.name.trim();
+      const nextDescription = productForm.description.trim();
+
+      if (supportEmail && supportEmail !== settings?.support_email) {
+        payload.support_email = supportEmail;
+      }
+      if (phoneSupport && phoneSupport !== settings?.phone_support) {
+        payload.phone_support = phoneSupport;
+      }
+      if (language && language !== settings?.language) {
+        payload.language = language;
+      }
+      if (currency && currency !== settings?.currency) {
+        payload.currency = currency;
+      }
+      if (statusDraft && statusDraft !== settings?.status) {
+        payload.status = statusDraft;
+      }
+
+      if (nextName || nextDescription) {
+        payload.product = {
+          id: productId,
+          name: nextName || product?.name,
+          description: nextDescription || product?.description,
+        };
+      }
+
+      if (Object.keys(payload).length === 0) {
+        setSaving(false);
+        return;
+      }
+
+      const updatedSettings = await withLoading(
+        () => productApi.updateProductSettings(productId, payload, token),
+        "Salvando configurações"
+      );
+      let nextSettings = updatedSettings ?? settings;
+      let nextProduct = product;
+
+      try {
+        const [freshSettings, freshProduct] = await Promise.all([
+          productApi.getProductSettings(productId, token),
+          productApi.getProductById(productId, token),
+        ]);
+        nextSettings = freshSettings ?? nextSettings;
+        nextProduct = freshProduct ?? nextProduct;
+      } catch (refreshError) {
+        console.warn("Falha ao atualizar dados após salvar configurações:", refreshError);
+      }
+
+      if (nextSettings) {
+        setSettings(nextSettings);
+      }
+      if (nextProduct) {
+        setProduct(nextProduct);
+      }
+      setFormValues({
+        support_email: "",
+        phone_support: "",
+        language: "",
+        currency: "",
+      });
+      setProductForm({ name: "", description: "" });
+      console.log("Configurações salvas com sucesso!", { payload });
     } catch (err) {
       console.error("Erro ao salvar configurações:", err);
       setError("Não foi possível salvar as configurações.");
@@ -81,16 +173,20 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
               <span className="text-foreground">Nome do produto</span>
               <input
                 className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                placeholder="Nome do produto"
-                disabled
+                placeholder={product?.name ?? "Nome do produto"}
+                value={productForm.name}
+                onChange={event => setProductForm(current => ({ ...current, name: event.target.value }))}
+                disabled={loading || saving}
               />
             </label>
             <label className="space-y-1 text-sm text-muted-foreground">
               <span className="text-foreground">Descrição breve</span>
               <textarea
                 className="min-h-[80px] w-full rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                placeholder="Descrição do produto"
-                disabled
+                placeholder={product?.description ?? "Descrição do produto"}
+                value={productForm.description}
+                onChange={event => setProductForm(current => ({ ...current, description: event.target.value }))}
+                disabled={loading || saving}
               />
             </label>
           </div>
@@ -101,13 +197,10 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
             <span className="text-foreground">E-mail de suporte</span>
             <input
               className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder="ex: suporte@empresa.com"
-              value={settings?.support_email ?? ""}
+              placeholder={settings?.support_email ?? "ex: suporte@empresa.com"}
+              value={formValues.support_email}
               onChange={event =>
-                setSettings(current => ({
-                  ...(current ?? { id: "", product_id: productId ?? "" }),
-                  support_email: event.target.value,
-                }))
+                setFormValues(current => ({ ...current, support_email: event.target.value }))
               }
               disabled={loading || saving}
             />
@@ -116,13 +209,10 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
             <span className="text-foreground">Telefone de suporte</span>
             <input
               className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder="ex: +55 11 99999-9999"
-              value={settings?.phone_support ?? ""}
+              placeholder={settings?.phone_support ?? "ex: +55 11 99999-9999"}
+              value={formValues.phone_support}
               onChange={event =>
-                setSettings(current => ({
-                  ...(current ?? { id: "", product_id: productId ?? "" }),
-                  phone_support: event.target.value,
-                }))
+                setFormValues(current => ({ ...current, phone_support: event.target.value }))
               }
               disabled={loading || saving}
             />
@@ -134,13 +224,10 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
             <span className="text-foreground">Idioma</span>
             <input
               className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder="pt-BR"
-              value={settings?.language ?? ""}
+              placeholder={settings?.language ?? "pt-BR"}
+              value={formValues.language}
               onChange={event =>
-                setSettings(current => ({
-                  ...(current ?? { id: "", product_id: productId ?? "" }),
-                  language: event.target.value,
-                }))
+                setFormValues(current => ({ ...current, language: event.target.value }))
               }
               disabled={loading || saving}
             />
@@ -149,13 +236,10 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
             <span className="text-foreground">Moeda base</span>
             <input
               className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder="BRL"
-              value={settings?.currency ?? ""}
+              placeholder={settings?.currency ?? "BRL"}
+              value={formValues.currency}
               onChange={event =>
-                setSettings(current => ({
-                  ...(current ?? { id: "", product_id: productId ?? "" }),
-                  currency: event.target.value,
-                }))
+                setFormValues(current => ({ ...current, currency: event.target.value }))
               }
               disabled={loading || saving}
             />
@@ -169,20 +253,17 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
           </div>
           <button
             className={`relative inline-flex h-5 w-10 items-center rounded-full ${
-              settings?.status === "active" ? "bg-primary/70" : "bg-muted"
+              statusDraft === "active" ? "bg-primary/70" : "bg-muted"
             }`}
             onClick={() =>
-              setSettings(current => ({
-                ...(current ?? { id: "", product_id: productId ?? "" }),
-                status: current?.status === "active" ? "inactive" : "active",
-              }))
+              setStatusDraft(current => (current === "active" ? "inactive" : "active"))
             }
             disabled={loading || saving}
             type="button"
           >
             <span
               className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                settings?.status === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"
+                statusDraft === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"
               }`}
             />
           </button>
