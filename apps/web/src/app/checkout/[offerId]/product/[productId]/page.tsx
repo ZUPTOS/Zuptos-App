@@ -168,14 +168,14 @@ const normalizeOffer = (
 };
 
 const resolvePublicApiBase = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL ?? "/api";
-  if (typeof window !== "undefined" && raw.startsWith("/api")) {
-    return `${window.location.origin}/api-public`;
+  const raw = process.env.NEXT_PUBLIC_API_URL ?? "/v1";
+  if (typeof window !== "undefined" && raw.startsWith("/")) {
+    if (raw.startsWith("/v1")) {
+      return `${window.location.origin}/backend`;
+    }
+    return `${window.location.origin}${raw}`;
   }
   const normalized = raw.replace(/\/v1\/?$/, "");
-  if (typeof window !== "undefined" && normalized.startsWith("/")) {
-    return `${window.location.origin}${normalized}`;
-  }
   return normalized;
 };
 

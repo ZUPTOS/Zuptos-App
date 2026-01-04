@@ -6,14 +6,16 @@ const nextConfig = {
     if (!target) {
       return [];
     }
+    const normalizedTarget = target.replace(/\/$/, "");
+    const baseTarget = normalizedTarget.replace(/\/v1\/?$/, "");
     return [
       {
-        source: "/api/:path*",
-        destination: `${target.replace(/\/$/, "")}/:path*`,
+        source: "/v1/:path*",
+        destination: `${normalizedTarget}/:path*`,
       },
       {
-        source: "/api-public/:path*",
-        destination: `${target.replace(/\/v1\/?$/, "")}/:path*`,
+        source: "/backend/:path*",
+        destination: `${baseTarget}/:path*`,
       },
     ];
   },
