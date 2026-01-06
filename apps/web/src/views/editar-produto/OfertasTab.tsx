@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Pencil, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { productApi } from "@/lib/api";
 import type {
@@ -39,6 +39,20 @@ const parseBRLToNumber = (value?: string) => {
   return Number(numeric) / 100;
 };
 
+const TruncatedWithTooltip = ({ text, className }: { text?: string; className?: string }) => {
+  const content = text ?? "-";
+  return (
+    <span className={`relative block w-full truncate ${className ?? ""}`}>
+      <span className="group block w-full truncate">
+        {content}
+        <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden max-w-[260px] -translate-x-1/2 rounded-md border border-foreground/15 bg-card px-2 py-1 text-[11px] text-foreground shadow-lg group-hover:block">
+          {content}
+        </span>
+      </span>
+    </span>
+  );
+};
+
 export function OfertasTab({ productId, token, withLoading }: Props) {
   const [offers, setOffers] = useState<ProductOffer[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +60,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [showOfferModal, setShowOfferModal] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<ProductOffer | null>(null);
   const [offerName, setOfferName] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
   const [offerBackRedirect, setOfferBackRedirect] = useState("");
@@ -83,6 +98,86 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
   const [editingOrderBumpIndex, setEditingOrderBumpIndex] = useState<number | null>(null);
   const [savingOffer, setSavingOffer] = useState(false);
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
+  const [offerDeleteTarget, setOfferDeleteTarget] = useState<ProductOffer | null>(null);
+  const [copiedOfferId, setCopiedOfferId] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
+  const lastCopiedRef = useRef<{ id?: string; at: number } | null>(null);
+
+  const resetOfferForm = useCallback(() => {
+    setEditingOffer(null);
+    setOfferName("");
+    setOfferPrice("");
+    setOfferBackRedirect("");
+    setOfferNextRedirect("");
+    setOfferStatus("active");
+    setOfferFree(false);
+    setBackRedirectEnabled(true);
+    setNextRedirectEnabled(true);
+    setFirstChargePriceEnabled(false);
+    setFixedChargesEnabled(false);
+    setSubscriptionFrequency("anual");
+    setSubscriptionTitle("");
+    setSubscriptionTag("");
+    setSubscriptionPrice("");
+    setSubscriptionPromoPrice("");
+    setSubscriptionFirstChargePrice("");
+    setSubscriptionChargesCount("");
+    setSubscriptionDefault(false);
+    setSelectedCheckoutId("");
+    setOrderBumpEnabled(false);
+    setOrderBumps([]);
+    setOrderBumpForm({
+      product: "",
+      offer: "",
+      title: "",
+      tag: "",
+      price: "",
+      description: "",
+    });
+    setEditingOrderBumpIndex(null);
+    setOfferType("preco_unico");
+  }, []);
+
+  const openCreateOffer = useCallback(() => {
+    resetOfferForm();
+    setShowOfferModal(true);
+  }, [resetOfferForm]);
+
+  const openEditOffer = useCallback((offer: ProductOffer) => {
+    resetOfferForm();
+    setEditingOffer(offer);
+    const normalizedType = offer.type?.toLowerCase();
+    setOfferType(normalizedType === "subscription" ? "assinatura" : "preco_unico");
+    setOfferName(offer.name ?? "");
+    setOfferStatus(offer.status?.toLowerCase() === "inactive" ? "inactive" : "active");
+    setOfferFree(Boolean(offer.free));
+    if (!offer.free && offer.offer_price != null) {
+      setOfferPrice(formatBRLInput(String(offer.offer_price)));
+    }
+    setOfferBackRedirect(offer.back_redirect_url ?? "");
+    setOfferNextRedirect(offer.next_redirect_url ?? "");
+    setSelectedCheckoutId(offer.checkout_id ?? offer.checkout?.id ?? "");
+    const plan = offer.subscription_plan ?? (offer as { plan?: SubscriptionPlanPayload | null }).plan;
+    if (plan) {
+      setSubscriptionFrequency(plan.type === "yearly" ? "anual" : plan.type === "quarterly" ? "trimestral" : "mensal");
+      setSubscriptionTitle(plan.name ?? "");
+      setSubscriptionPrice(plan.plan_price != null ? formatBRLInput(String(plan.plan_price)) : "");
+      setSubscriptionPromoPrice(plan.discount_price != null ? formatBRLInput(String(plan.discount_price)) : "");
+      setSubscriptionFirstChargePrice(
+        plan.price_first_cycle != null ? formatBRLInput(String(plan.price_first_cycle)) : ""
+      );
+      setSubscriptionChargesCount(plan.cycles != null ? String(plan.cycles) : "");
+      setSubscriptionDefault(Boolean(plan.default));
+      setFirstChargePriceEnabled(Boolean(plan.price_first_cycle));
+      setFixedChargesEnabled(Boolean(plan.cycles));
+    }
+    setShowOfferModal(true);
+  }, [resetOfferForm]);
+
+  const closeOfferModal = useCallback(() => {
+    setShowOfferModal(false);
+    resetOfferForm();
+  }, [resetOfferForm]);
 
   const load = useCallback(async () => {
     if (!productId || !token) return;
@@ -106,6 +201,29 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
+
+  const handleCopyAccess = useCallback(async (accessUrl?: string, offerId?: string) => {
+    if (!accessUrl || accessUrl === "-") return;
+    const now = Date.now();
+    const lastCopy = lastCopiedRef.current;
+    if (lastCopy && lastCopy.id === offerId && now - lastCopy.at < 1200) {
+      return;
+    }
+    try {
+      await navigator.clipboard?.writeText(accessUrl);
+      lastCopiedRef.current = { id: offerId, at: now };
+      setCopiedOfferId(offerId ?? null);
+      if (copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedOfferId(null);
+      }, 500);
+      console.log("[offerApi] Link de acesso copiado:", accessUrl);
+    } catch (err) {
+      console.error("Não foi possível copiar o link de acesso:", err);
+    }
+  }, []);
 
   useEffect(() => {
     const loadCheckoutOptions = async () => {
@@ -160,11 +278,19 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
 
   const handleCreateOffer = async () => {
     if (!productId || !token) return;
+    const isEditing = Boolean(editingOffer?.id);
     const selectedCheckout = checkoutOptions.find(checkout => checkout.id === selectedCheckoutId);
     const mappedType =
       offerType === "assinatura" ? ProductOfferType.SUBSCRIPTION : ProductOfferType.SINGLE_PURCHASE;
 
-    if (offerType === "assinatura") {
+    const hasPlanData =
+      Boolean(subscriptionTitle.trim()) ||
+      Boolean(subscriptionPrice.trim()) ||
+      Boolean(subscriptionPromoPrice.trim()) ||
+      Boolean(subscriptionFirstChargePrice.trim()) ||
+      Boolean(subscriptionChargesCount.trim());
+
+    if (offerType === "assinatura" && hasPlanData) {
       if (!subscriptionTitle.trim() || !subscriptionPrice.trim()) {
         console.error("Preencha os campos do plano de assinatura antes de salvar a oferta.");
         return;
@@ -172,7 +298,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
     }
 
     const planFromSubscription: SubscriptionPlanPayload | undefined =
-      offerType === "assinatura"
+      offerType === "assinatura" && hasPlanData
         ? {
             type:
               subscriptionFrequency === "anual"
@@ -194,7 +320,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
           }
         : undefined;
 
-    if (orderBumpEnabled) {
+    if (!isEditing && orderBumpEnabled) {
       const hasBumps = orderBumps.length > 0;
       const hasMissingInfo = orderBumps.some(bump => !bump.title || !bump.offer);
       if (!hasBumps || hasMissingInfo) {
@@ -218,45 +344,44 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
 
     setSavingOffer(true);
     try {
-      if (offerType === "assinatura" && planFromSubscription) {
+      if (!isEditing && offerType === "assinatura" && planFromSubscription) {
         console.log("[productApi] Payload de plano (subscription_plan):", planFromSubscription);
       }
-      console.log("[productApi] Enviando criação de oferta:", payload);
-      const response = await productApi.createOffer(productId, payload, token);
-      if (offerType === "assinatura" && planFromSubscription && response?.id) {
-        console.log("[productApi] Enviando plano (subscription_plan) para oferta:", response.id);
-        const planResponse = await productApi.createOfferPlan(productId, response.id, planFromSubscription, token);
-        console.log("[productApi] Resposta do servidor (plan):", planResponse);
-      }
-      if (orderBumpEnabled && response?.id) {
-        const bumpsPayload: CreateOrderBumpRequest[] = orderBumps
-          .filter(bump => bump.offer)
-          .map(bump => ({
-            bumped_offer_show_id: bump.offer as string,
-            title: bump.title,
-            description: bump.description,
-            tag_display: bump.tag,
-          }));
-        console.log("[productApi] Enviando order bumps:", bumpsPayload);
-        await Promise.all(
-          bumpsPayload.map(bumpPayload => productApi.createOfferBump(productId, response.id!, bumpPayload, token))
-        );
-      }
-      console.log("[productApi] Resposta do servidor (oferta):", response);
-      if (response?.id && productId && typeof window !== "undefined") {
-        const publicCheckoutLink = `${window.location.origin}/checkout/${response.id}/product/${productId}`;
-        setOfferBackRedirect(publicCheckoutLink);
-        console.log("[productApi] Link público do checkout:", publicCheckoutLink);
+      if (isEditing && editingOffer?.id) {
+        console.log("[productApi] Enviando atualização de oferta:", payload);
+        const response = await productApi.updateOffer(productId, editingOffer.id, payload, token);
+        console.log("[productApi] Resposta do servidor (oferta):", response);
+      } else {
+        console.log("[productApi] Enviando criação de oferta:", payload);
+        const response = await productApi.createOffer(productId, payload, token);
+        if (offerType === "assinatura" && planFromSubscription && response?.id) {
+          console.log("[productApi] Enviando plano (subscription_plan) para oferta:", response.id);
+          const planResponse = await productApi.createOfferPlan(productId, response.id, planFromSubscription, token);
+          console.log("[productApi] Resposta do servidor (plan):", planResponse);
+        }
+        if (orderBumpEnabled && response?.id) {
+          const bumpsPayload: CreateOrderBumpRequest[] = orderBumps
+            .filter(bump => bump.offer)
+            .map(bump => ({
+              bumped_offer_show_id: bump.offer as string,
+              title: bump.title,
+              description: bump.description,
+              tag_display: bump.tag,
+            }));
+          console.log("[productApi] Enviando order bumps:", bumpsPayload);
+          await Promise.all(
+            bumpsPayload.map(bumpPayload => productApi.createOfferBump(productId, response.id!, bumpPayload, token))
+          );
+        }
+        console.log("[productApi] Resposta do servidor (oferta):", response);
+        if (response?.id && productId && typeof window !== "undefined") {
+          const publicCheckoutLink = `${window.location.origin}/checkout/${response.id}/product/${productId}`;
+          setOfferBackRedirect(publicCheckoutLink);
+          console.log("[productApi] Link público do checkout:", publicCheckoutLink);
+        }
       }
       setRefreshKey(prev => prev + 1);
-      setShowOfferModal(false);
-      setOfferName("");
-      setOfferPrice("");
-      setOfferBackRedirect("");
-      setOfferNextRedirect("");
-      setOfferFree(false);
-      setOfferStatus("active");
-      setSelectedCheckoutId("");
+      closeOfferModal();
     } catch (error) {
       console.error("Erro ao criar oferta:", error);
     } finally {
@@ -281,7 +406,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
           <button
             type="button"
             className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-            onClick={() => setShowOfferModal(true)}
+            onClick={openCreateOffer}
           >
             Adicionar oferta
           </button>
@@ -297,7 +422,9 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
           {
             id: "nome",
             header: "Nome",
-            render: offer => <span className="break-words font-semibold uppercase">{offer.name}</span>,
+            render: offer => (
+              <TruncatedWithTooltip text={offer.name} className="font-semibold uppercase" />
+            ),
           },
           {
             id: "checkout",
@@ -313,7 +440,12 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                 t?.checkout?.id ||
                 t?.id ||
                 (typeof offer.template === "string" ? offer.template : offer.checkout_id ?? "default");
-              return <span className="font-semibold text-muted-foreground">{checkoutName}</span>;
+              return (
+                <TruncatedWithTooltip
+                  text={checkoutName}
+                  className="font-semibold text-muted-foreground"
+                />
+              );
             },
           },
           {
@@ -327,7 +459,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                   : normalizedType === "single_purchase" || normalizedType === "single"
                   ? "Preço único"
                   : offer.type ?? "-";
-              return <span className="text-muted-foreground">{typeLabel}</span>;
+              return <TruncatedWithTooltip text={typeLabel} className="text-muted-foreground" />;
             },
           },
           {
@@ -346,6 +478,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
           {
             id: "acesso",
             header: "Acesso",
+            width: "170px",
             render: offer => {
               const computedUrl =
                 typeof window !== "undefined" && productId && offer.id
@@ -360,25 +493,24 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                 accessUrl && accessUrl !== "-"
                   ? accessUrl.replace(/^https?:\/\//, "").slice(0, 24)
                   : "-";
-              const handleCopyAccess = async () => {
-                if (!accessUrl || accessUrl === "-") return;
-                try {
-                  await navigator.clipboard?.writeText(accessUrl);
-                  console.log("[offerApi] Link de acesso copiado:", accessUrl);
-                } catch (err) {
-                  console.error("Não foi possível copiar o link de acesso:", err);
-                }
-              };
+              const offerKey = offer.id ?? accessUrl ?? "-";
               return (
-                <button
-                  type="button"
-                  className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30 disabled:opacity-60"
-                  disabled={!accessUrl || accessUrl === "-"}
-                  onClick={handleCopyAccess}
-                  title={accessUrl && accessUrl !== "-" ? "Copiar link de acesso" : "Sem link"}
-                >
-                  {accessLabel}
-                </button>
+                <div className="relative w-full max-w-[150px]">
+                  <button
+                    type="button"
+                    className="w-full truncate rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30 disabled:opacity-60"
+                    disabled={!accessUrl || accessUrl === "-"}
+                    onClick={() => handleCopyAccess(accessUrl, offerKey)}
+                    title={accessUrl && accessUrl !== "-" ? "Copiar link de acesso" : "Sem link"}
+                  >
+                    {accessLabel}
+                  </button>
+                  {copiedOfferId === offerKey && (
+                    <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-emerald-400">
+                      Link copiado
+                    </span>
+                  )}
+                </div>
               );
             },
           },
@@ -398,6 +530,32 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
               );
             },
           },
+          {
+            id: "acoes",
+            header: "",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            render: offer => (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-foreground/15 bg-card text-muted-foreground transition hover:border-foreground/40 hover:text-foreground"
+                  onClick={() => openEditOffer(offer)}
+                  aria-label="Editar oferta"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-rose-500/30 bg-rose-500/10 text-rose-200 transition hover:border-rose-500/60"
+                  onClick={() => setOfferDeleteTarget(offer)}
+                  aria-label="Excluir oferta"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ),
+          },
         ]}
       />
 
@@ -405,7 +563,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
         <div className="fixed inset-0 z-50 flex">
           <div
             className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowOfferModal(false)}
+            onClick={closeOfferModal}
             aria-label="Fechar modal"
           />
           <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
@@ -413,7 +571,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
               <h2 className="text-2xl font-semibold text-foreground">Criar oferta</h2>
               <button
                 type="button"
-                onClick={() => setShowOfferModal(false)}
+                onClick={closeOfferModal}
                 className="text-muted-foreground transition hover:text-foreground"
                 aria-label="Fechar"
               >
@@ -530,6 +688,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                   </div>
                 </div>
               )}
+
 
               {offerType === "assinatura" && (
                 <div className="space-y-4">
@@ -1083,9 +1242,41 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                   onClick={handleCreateOffer}
                   disabled={savingOffer}
                 >
-                  {savingOffer ? "Salvando..." : "Adicionar oferta"}
+                  {savingOffer ? "Salvando..." : editingOffer ? "Atualizar oferta" : "Adicionar oferta"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {offerDeleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setOfferDeleteTarget(null)}
+            aria-label="Fechar confirmação"
+          />
+          <div className="relative w-full max-w-sm rounded-[12px] border border-foreground/10 bg-card p-6 shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
+            <h3 className="text-lg font-semibold text-foreground">Excluir oferta</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              A exclusão ainda não está disponível no backend. Este modal já está pronto para quando a rota existir.
+            </p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-[8px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                onClick={() => setOfferDeleteTarget(null)}
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white opacity-50"
+                disabled
+              >
+                Excluir
+              </button>
             </div>
           </div>
         </div>

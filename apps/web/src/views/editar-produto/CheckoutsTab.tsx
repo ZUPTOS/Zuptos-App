@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { productApi } from "@/lib/api";
 import type { Checkout } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,8 @@ export function CheckoutsTab({ productId, token, withLoading }: Props) {
   const [checkouts, setCheckouts] = useState<Checkout[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Checkout | null>(null);
+  const [deletingCheckout, setDeletingCheckout] = useState(false);
 
   const load = useCallback(async () => {
     if (!productId || !token) return;
@@ -41,6 +43,20 @@ export function CheckoutsTab({ productId, token, withLoading }: Props) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleDeleteCheckout = async () => {
+    if (!productId || !token || !deleteTarget?.id) return;
+    setDeletingCheckout(true);
+    try {
+      await productApi.deleteCheckout(productId, deleteTarget.id, token);
+      setDeleteTarget(null);
+      await load();
+    } catch (err) {
+      console.error("Erro ao excluir checkout:", err);
+    } finally {
+      setDeletingCheckout(false);
+    }
+  };
 
   return (
     <>
@@ -127,7 +143,7 @@ export function CheckoutsTab({ productId, token, withLoading }: Props) {
               headerClassName: "text-center",
               cellClassName: "text-center",
               render: item => (
-                <div className="flex justify-center">
+                <div className="flex items-center justify-center gap-2">
                   <button
                     className="rounded-[8px] border border-foreground/20 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/40"
                     onClick={() => {
@@ -144,11 +160,52 @@ export function CheckoutsTab({ productId, token, withLoading }: Props) {
                   >
                     EDITAR
                   </button>
+                  <button
+                    type="button"
+                    className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-rose-500/30 bg-rose-500/10 text-rose-200 transition hover:border-rose-500/60"
+                    onClick={() => setDeleteTarget(item)}
+                    aria-label="Excluir checkout"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               ),
             },
           ]}
         />
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setDeleteTarget(null)}
+            aria-label="Fechar confirmação"
+          />
+          <div className="relative w-full max-w-sm rounded-[12px] border border-foreground/10 bg-card p-6 shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
+            <h3 className="text-lg font-semibold text-foreground">Excluir checkout</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Deseja excluir o checkout <span className="font-semibold text-foreground">{deleteTarget.name || "sem nome"}</span>?
+            </p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-[8px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500/90 disabled:opacity-60"
+                onClick={handleDeleteCheckout}
+                disabled={deletingCheckout}
+              >
+                {deletingCheckout ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

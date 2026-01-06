@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import { productApi } from "@/lib/api";
 import type { ProductDeliverable } from "@/lib/api";
+import { notify } from "@/components/ui/notification-toast";
 import PaginatedTable from "@/components/PaginatedTable";
 
 type Props = {
@@ -30,8 +31,13 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
   const [deliverableFile, setDeliverableFile] = useState<File | null>(null);
   const [deliverableFormError, setDeliverableFormError] = useState<string | null>(null);
   const [savingDeliverable, setSavingDeliverable] = useState(false);
+  const [editingDeliverable, setEditingDeliverable] = useState<ProductDeliverable | null>(null);
+  const [loadingDeliverable, setLoadingDeliverable] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ProductDeliverable | null>(null);
+  const [deletingDeliverable, setDeletingDeliverable] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isEditing = Boolean(editingDeliverable);
 
   const load = useCallback(async () => {
     if (!productId || !token) return;
@@ -55,6 +61,58 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
+
+  const resetDeliverableForm = useCallback(() => {
+    setDeliverableName("");
+    setDeliverableContent("");
+    setDeliverableFile(null);
+    setDeliverableFormError(null);
+    setDeliverableTab("arquivo");
+    setEditingDeliverable(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const openCreateDeliverable = useCallback(() => {
+    resetDeliverableForm();
+    setShowDeliverableModal(true);
+  }, [resetDeliverableForm]);
+
+  const openEditDeliverable = useCallback(
+    async (deliverableId: string) => {
+      if (!productId || !token) return;
+      setLoadingDeliverable(true);
+      setDeliverableFormError(null);
+      try {
+        const data = await withLoading(
+          () => productApi.getDeliverableById(productId, deliverableId, token),
+          "Carregando entregável"
+        );
+        console.log("Entregável carregado:", data);
+        setEditingDeliverable(data);
+        setDeliverableTab((data.type ?? "file").toLowerCase() === "link" ? "link" : "arquivo");
+        setDeliverableName("");
+        setDeliverableContent("");
+        setDeliverableFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        setShowDeliverableModal(true);
+      } catch (err) {
+        console.error("Erro ao carregar entregável:", err);
+        setDeliverableFormError("Não foi possível carregar o entregável selecionado.");
+      } finally {
+        setLoadingDeliverable(false);
+      }
+    },
+    [productId, token, withLoading]
+  );
+
+  const closeDeliverableModal = useCallback(() => {
+    setShowDeliverableModal(false);
+    resetDeliverableForm();
+  }, [resetDeliverableForm]);
 
   const handleCreateDeliverable = async () => {
     if (!productId || !token) return;
@@ -93,19 +151,89 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
       console.log("[productApi] Enviando criação de entregável:", payload);
       const response = await productApi.createDeliverable(productId, payload, token);
       console.log("[productApi] Resposta do servidor (entregável):", response);
-      setRefreshKey(prev => prev + 1);
-      setShowDeliverableModal(false);
-      setDeliverableName("");
-      setDeliverableContent("");
-      setDeliverableFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (deliverableTab === "arquivo" && deliverableFile) {
+        try {
+          await productApi.uploadDeliverableFile(productId, response.id, deliverableFile, token);
+        } catch (uploadError) {
+          console.error("Erro ao enviar arquivo do entregável:", uploadError);
+        }
       }
+      setRefreshKey(prev => prev + 1);
+      closeDeliverableModal();
     } catch (err) {
       console.error("Erro ao criar entregável:", err);
       setDeliverableFormError("Não foi possível salvar o entregável.");
     } finally {
       setSavingDeliverable(false);
+    }
+  };
+
+  const handleUpdateDeliverable = async () => {
+    if (!productId || !token || !editingDeliverable) return;
+    const trimmedName = deliverableName.trim();
+    const trimmedContent = deliverableContent.trim();
+    const nextType = deliverableTab === "link" ? "link" : "file";
+    const currentType = (editingDeliverable.type ?? "").toLowerCase();
+
+    if (nextType === "link" && !trimmedContent && !editingDeliverable.content) {
+      setDeliverableFormError("Preencha o link do entregável.");
+      return;
+    }
+
+    if (nextType === "file" && !deliverableFile && currentType !== "file") {
+      setDeliverableFormError("Selecione um arquivo para enviar.");
+      return;
+    }
+
+    const payload = {
+      name: trimmedName || editingDeliverable.name || "Entregável",
+      type: nextType,
+      status: editingDeliverable.status ?? "active",
+      content: trimmedContent || editingDeliverable.content || undefined,
+      size: deliverableFile?.size ?? editingDeliverable.size,
+    };
+
+    setSavingDeliverable(true);
+    setDeliverableFormError(null);
+    try {
+      console.log("[productApi] Enviando atualização de entregável:", payload);
+      const response = await productApi.updateDeliverable(
+        productId,
+        editingDeliverable.id,
+        payload,
+        token
+      );
+      console.log("[productApi] Resposta do servidor (entregável):", response);
+      if (deliverableTab === "arquivo" && deliverableFile) {
+        try {
+          await productApi.uploadDeliverableFile(productId, editingDeliverable.id, deliverableFile, token);
+        } catch (uploadError) {
+          console.error("Erro ao enviar arquivo do entregável:", uploadError);
+        }
+      }
+      notify.success("Entregável atualizado");
+      setRefreshKey(prev => prev + 1);
+      closeDeliverableModal();
+    } catch (err) {
+      console.error("Erro ao atualizar entregável:", err);
+      setDeliverableFormError("Não foi possível atualizar o entregável.");
+    } finally {
+      setSavingDeliverable(false);
+    }
+  };
+
+  const handleDeleteDeliverable = async () => {
+    if (!productId || !token || !deleteTarget?.id) return;
+    setDeletingDeliverable(true);
+    try {
+      await productApi.deleteDeliverable(productId, deleteTarget.id, token);
+      notify.success("Entregável deletado");
+      setRefreshKey(prev => prev + 1);
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("Erro ao excluir entregável:", err);
+    } finally {
+      setDeletingDeliverable(false);
     }
   };
 
@@ -126,7 +254,7 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
           <button
             type="button"
             className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-            onClick={() => setShowDeliverableModal(true)}
+            onClick={openCreateDeliverable}
           >
             Adicionar arquivo
           </button>
@@ -166,6 +294,7 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
                       className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
                       target="_blank"
                       rel="noreferrer"
+                      onClick={event => event.stopPropagation()}
                     >
                       {linkLabel}
                     </a>
@@ -173,6 +302,7 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
                       type="button"
                       className="h-8 w-8 rounded-[6px] border border-foreground/15 bg-card text-sm text-foreground transition hover:border-foreground/30"
                       aria-label="Baixar"
+                      onClick={event => event.stopPropagation()}
                     >
                       📎
                     </button>
@@ -198,6 +328,40 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
                 );
               },
             },
+            {
+              id: "acoes",
+              header: "",
+              headerClassName: "text-center",
+              cellClassName: "text-center",
+              render: item => (
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-foreground/15 bg-card text-muted-foreground transition hover:border-foreground/40 hover:text-foreground"
+                    onClick={event => {
+                      event.stopPropagation();
+                      if (item.id) {
+                        void openEditDeliverable(item.id);
+                      }
+                    }}
+                    aria-label="Editar entregável"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-rose-500/30 bg-rose-500/10 text-rose-200 transition hover:border-rose-500/60"
+                    onClick={event => {
+                      event.stopPropagation();
+                      setDeleteTarget(item);
+                    }}
+                    aria-label="Excluir entregável"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ),
+            },
           ]}
         />
 
@@ -205,17 +369,17 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
         <div className="fixed inset-0 z-50 flex">
           <div
             className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowDeliverableModal(false)}
+            onClick={closeDeliverableModal}
             aria-label="Fechar modal entregável"
           />
           <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
               <h2 className="text-2xl font-semibold text-foreground">
-                {deliverableTab === "arquivo" ? "Adicionar entregável" : "Link de acesso"}
+                {isEditing ? "Atualizar entregável" : deliverableTab === "arquivo" ? "Adicionar entregável" : "Link de acesso"}
               </h2>
               <button
                 type="button"
-                onClick={() => setShowDeliverableModal(false)}
+                onClick={closeDeliverableModal}
                 className="text-lg text-muted-foreground transition hover:text-foreground"
                 aria-label="Fechar"
               >
@@ -224,6 +388,11 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
             </div>
 
             <div className="mt-5 space-y-5 pb-10">
+              {loadingDeliverable && (
+                <p className="rounded-[10px] border border-foreground/10 bg-card px-3 py-2 text-sm text-muted-foreground">
+                  Carregando dados do entregável...
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -253,7 +422,7 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
                 <span className="text-foreground">Nome de exibição</span>
                 <input
                   className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  placeholder="Digite um nome"
+                  placeholder={editingDeliverable?.name ?? "Digite um nome"}
                   value={deliverableName}
                   onChange={event => setDeliverableName(event.target.value)}
                 />
@@ -266,6 +435,9 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <p className="text-sm text-foreground">Selecione um arquivo ou arraste e solte aqui</p>
                       <p>JPG, PNG, PDF ou ZIP, não superior a 50 MB</p>
+                      {isEditing && editingDeliverable?.name && (
+                        <p className="text-[11px] text-muted-foreground">Arquivo atual: {editingDeliverable.name}</p>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -295,7 +467,7 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
                   <span className="text-foreground">Link de acesso</span>
                   <input
                     className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                    placeholder="Inserir link"
+                    placeholder={editingDeliverable?.content ?? "Inserir link"}
                     value={deliverableContent}
                     onChange={event => setDeliverableContent(event.target.value)}
                   />
@@ -305,22 +477,57 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
               {deliverableFormError && <p className="text-sm text-rose-300">{deliverableFormError}</p>}
 
               <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
-                  onClick={() => setShowDeliverableModal(false)}
-                >
-                  Cancelar
-                </button>
+                {!isEditing && (
+                  <button
+                    type="button"
+                    className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                    onClick={closeDeliverableModal}
+                  >
+                    Cancelar
+                  </button>
+                )}
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={handleCreateDeliverable}
+                  onClick={isEditing ? handleUpdateDeliverable : handleCreateDeliverable}
                   disabled={savingDeliverable}
                 >
-                  {savingDeliverable ? "Salvando..." : "Adicionar"}
+                  {savingDeliverable ? "Salvando..." : isEditing ? "Atualizar entregável" : "Adicionar"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setDeleteTarget(null)}
+            aria-label="Fechar confirmação"
+          />
+          <div className="relative w-full max-w-sm rounded-[12px] border border-foreground/10 bg-card p-6 shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
+            <h3 className="text-lg font-semibold text-foreground">Excluir entregável</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Deseja excluir o entregável <span className="font-semibold text-foreground">{deleteTarget.name || "sem nome"}</span>?
+            </p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-[8px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500/90 disabled:opacity-60"
+                onClick={handleDeleteDeliverable}
+                disabled={deletingDeliverable}
+              >
+                {deletingDeliverable ? "Excluindo..." : "Excluir"}
+              </button>
             </div>
           </div>
         </div>

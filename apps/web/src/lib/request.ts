@@ -12,9 +12,12 @@ export async function request<T>(
 ): Promise<T> {
   const { baseUrl, silent, ...rest } = init;
   const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData;
+  const hasBody = rest.body !== undefined && rest.body !== null;
   const defaultHeaders = isFormData
     ? undefined
-    : { "Content-Type": "application/json" } satisfies Record<string, string>;
+    : hasBody
+      ? ({ "Content-Type": "application/json" } satisfies Record<string, string>)
+      : undefined;
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${baseUrl ?? API_BASE_URL}${normalizedPath}`;
