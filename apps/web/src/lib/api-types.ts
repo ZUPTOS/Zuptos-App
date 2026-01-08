@@ -323,11 +323,30 @@ export interface UpdateProductSettingsRequest {
 export interface ProductPlan {
   id: string;
   name?: string;
+  type?: string;
   platform?: string;
   status?: string;
   pixel_id?: string;
+  provider_tracking_id?: string;
+  token_api_connection?: string;
+  add_to_cart?: boolean;
+  initiate_checkout?: boolean;
+  add_payment_info?: boolean;
+  purchase?: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface CreateProductTrackingRequest {
+  name: string;
+  type: "default" | "api" | string;
+  status: "active" | "inactive" | string;
+  provider_tracking_id: string;
+  token_api_connection?: string;
+  add_to_cart?: boolean;
+  initiate_checkout?: boolean;
+  add_payment_info?: boolean;
+  purchase?: boolean;
 }
 
 export interface CreateProductPlanRequest {
@@ -350,18 +369,34 @@ export interface ProductStrategy {
   value?: string | number;
   script?: string;
   status?: string;
+  action_successful_type?: string;
+  action_unsuccessful_type?: string;
+  action_successful_url?: string;
+  action_unsuccessful_url?: string;
 }
 
 export interface CreateProductStrategyRequest {
+  name?: string;
   type: string;
   offer_id: string;
+  action_successful_type?: string;
+  action_unsuccessful_type?: string;
+  action_successful_url?: string;
+  action_unsuccessful_url?: string;
 }
 
 export interface ProductCoupon {
   id: string;
   name?: string;
+  internal_name?: string;
   discount?: number | string;
+  discount_amount?: number | string;
   code?: string;
+  coupon_code?: string;
+  is_percentage?: boolean;
+  minimum_purchase_amount?: number | string;
+  limit_usage?: number;
+  expires_at?: string;
   status?: string;
   created_at?: string;
   updated_at?: string;

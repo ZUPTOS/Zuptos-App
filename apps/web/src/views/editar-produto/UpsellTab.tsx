@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, Pencil, Search, Trash2 } from "lucide-react";
 import { productApi } from "@/lib/api";
-import type { Product, ProductStrategy } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
+import type { CreateProductStrategyRequest, Product, ProductStrategy } from "@/lib/api";
+import PaginatedTable from "@/components/PaginatedTable";
 
 type Props = {
   productId?: string;
@@ -17,8 +17,12 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
   const [strategiesLoading, setStrategiesLoading] = useState(false);
   const [strategiesError, setStrategiesError] = useState<string | null>(null);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [savingStrategy, setSavingStrategy] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [editingStrategy, setEditingStrategy] = useState<ProductStrategy | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProductStrategy | null>(null);
+  const [deletingStrategy, setDeletingStrategy] = useState(false);
   const [strategyForm, setStrategyForm] = useState({
     name: "",
     type: "",
@@ -29,26 +33,69 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
     rejectUrl: "",
   });
 
-  useEffect(() => {
-    const loadStrategies = async () => {
-      if (!productId || !token) return;
-      setStrategiesLoading(true);
-      setStrategiesError(null);
-      try {
-        const data = await withLoading(
-          () => productApi.getProductStrategy(productId, token),
-          "Carregando upsells"
-        );
-        setStrategies(data);
-      } catch (error) {
-        console.error("Erro ao carregar upsells:", error);
-        setStrategiesError("Não foi possível carregar as estratégias agora.");
-      } finally {
-        setStrategiesLoading(false);
-      }
-    };
-    void loadStrategies();
+  const resetStrategyForm = useCallback(() => {
+    setStrategyForm({
+      name: "",
+      type: "",
+      productId: "",
+      acceptAction: "",
+      acceptUrl: "",
+      rejectAction: "",
+      rejectUrl: "",
+    });
+    setEditingStrategy(null);
+  }, []);
+
+  const openCreateStrategy = useCallback(() => {
+    resetStrategyForm();
+    setShowUpsellModal(true);
+  }, [resetStrategyForm]);
+
+  const openEditStrategy = useCallback(
+    (strategy: ProductStrategy) => {
+      resetStrategyForm();
+      setEditingStrategy(strategy);
+      setStrategyForm({
+        name: strategy.name ?? "",
+        type: strategy.type ?? "",
+        productId: strategy.offer ?? "",
+        acceptAction: strategy.action_successful_type ?? "",
+        acceptUrl: strategy.action_successful_url ?? "",
+        rejectAction: strategy.action_unsuccessful_type ?? "",
+        rejectUrl: strategy.action_unsuccessful_url ?? "",
+      });
+      setShowUpsellModal(true);
+    },
+    [resetStrategyForm]
+  );
+
+  const closeUpsellModal = useCallback(() => {
+    setShowUpsellModal(false);
+    resetStrategyForm();
+  }, [resetStrategyForm]);
+
+  const loadStrategies = useCallback(async () => {
+    if (!productId || !token) return;
+    setStrategiesLoading(true);
+    setStrategiesError(null);
+    try {
+      const data = await withLoading(
+        () => productApi.getProductStrategy(productId, token),
+        "Carregando upsells"
+      );
+      console.log("Estratégias data:", data);
+      setStrategies(data);
+    } catch (error) {
+      console.error("Erro ao carregar upsells:", error);
+      setStrategiesError("Não foi possível carregar as estratégias agora.");
+    } finally {
+      setStrategiesLoading(false);
+    }
   }, [productId, token, withLoading]);
+
+  useEffect(() => {
+    void loadStrategies();
+  }, [loadStrategies]);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -70,6 +117,53 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
     void loadProducts();
   }, [showUpsellModal, token, withLoading]);
 
+  const handleCreateStrategy = useCallback(async () => {
+    if (!productId || !token) return;
+    if (!strategyForm.type || !strategyForm.productId) return;
+
+    const payload: CreateProductStrategyRequest = {
+      name: strategyForm.name.trim() || undefined,
+      type: strategyForm.type,
+      offer_id: strategyForm.productId,
+      action_successful_type: strategyForm.acceptAction || "welcome",
+      action_unsuccessful_type: strategyForm.rejectAction || "goodbye",
+      action_successful_url: strategyForm.acceptUrl || undefined,
+      action_unsuccessful_url: strategyForm.rejectUrl || undefined,
+    };
+
+    setSavingStrategy(true);
+    try {
+      if (editingStrategy?.id) {
+        await withLoading(
+          () => productApi.updateProductStrategy(productId, editingStrategy.id!, payload, token),
+          "Atualizando estratégia"
+        );
+      } else {
+        await withLoading(() => productApi.createProductStrategy(productId, payload, token), "Criando estratégia");
+      }
+      closeUpsellModal();
+      await loadStrategies();
+    } catch (error) {
+      console.error("Erro ao salvar estratégia:", error);
+    } finally {
+      setSavingStrategy(false);
+    }
+  }, [productId, token, strategyForm, withLoading, loadStrategies, editingStrategy, closeUpsellModal]);
+
+  const handleDeleteStrategy = useCallback(async () => {
+    if (!productId || !token || !deleteTarget?.id) return;
+    setDeletingStrategy(true);
+    try {
+      await productApi.deleteProductStrategy(productId, deleteTarget.id, token);
+      setDeleteTarget(null);
+      await loadStrategies();
+    } catch (error) {
+      console.error("Erro ao excluir estratégia:", error);
+    } finally {
+      setDeletingStrategy(false);
+    }
+  }, [productId, token, deleteTarget, loadStrategies]);
+
   return (
     <>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -87,68 +181,84 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
           <button
             type="button"
             className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-            onClick={() => setShowUpsellModal(true)}
+            onClick={openCreateStrategy}
           >
             Adicionar
           </button>
         </div>
       </div>
 
-      <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-        <div className="grid grid-cols-5 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-          <span>Nome</span>
-          <span>Tipo</span>
-          <span>Oferta</span>
-          <span>Valor</span>
-          <span className="text-right">Script</span>
-        </div>
-        <div className="divide-y divide-foreground/10">
-          {strategiesLoading && (
-            <>
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-16" />
-                  <div className="flex justify-end">
-                    <Skeleton className="h-6 w-24 rounded-full" />
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-          {!strategiesLoading && strategiesError && (
-            <div className="px-4 py-4 text-sm text-rose-300">{strategiesError}</div>
-          )}
-          {!strategiesLoading && !strategiesError && strategies.length === 0 && (
-            <div className="px-4 py-6 text-sm text-muted-foreground">Nenhuma estratégia cadastrada.</div>
-          )}
-          {!strategiesLoading &&
-            !strategiesError &&
-            strategies.map(item => (
-              <div
-                key={item.id}
-                className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-sm text-foreground"
-              >
-                <span className="font-semibold uppercase">{item.name || item.type || "Estrategia"}</span>
-                <span className="text-muted-foreground">{item.type ?? "-"}</span>
-                <span className="text-muted-foreground">{item.offer ?? "-"}</span>
-                <span className="font-semibold">
-                  {item.value !== undefined && item.value !== null ? item.value : "-"}
-                </span>
-                <div className="flex justify-end">
-                  <span className="inline-flex items-center rounded-full bg-muted/60 px-3 py-[6px] text-[11px] font-semibold text-muted-foreground">
-                    {item.script ?? "-"}
-                  </span>
-                </div>
+      <PaginatedTable<ProductStrategy>
+        data={strategies}
+        rowsPerPage={6}
+        rowKey={item => item.id ?? `${item.type}-${item.offer}`}
+        emptyMessage={strategiesLoading ? "Carregando..." : strategiesError || "Nenhuma estratégia cadastrada."}
+        wrapperClassName="space-y-3"
+        tableContainerClassName="rounded-[12px] border border-foreground/10 bg-card/80"
+        headerRowClassName="text-foreground"
+        tableClassName="text-left"
+        columns={[
+          {
+            id: "nome",
+            header: "Nome",
+            render: item => <span className="font-semibold uppercase">{item.name || item.type || "Estratégia"}</span>,
+          },
+          {
+            id: "tipo",
+            header: "Tipo",
+            render: item => <span className="text-muted-foreground">{item.type ?? "-"}</span>,
+          },
+          {
+            id: "oferta",
+            header: "Oferta",
+            render: item => <span className="text-muted-foreground">{item.offer ?? "-"}</span>,
+          },
+          {
+            id: "valor",
+            header: "Valor",
+            render: item => (
+              <span className="font-semibold">
+                {item.value !== undefined && item.value !== null ? item.value : "-"}
+              </span>
+            ),
+          },
+          {
+            id: "script",
+            header: "Script",
+            render: item => (
+              <span className="inline-flex items-center rounded-full bg-muted/60 px-3 py-[6px] text-[11px] font-semibold text-muted-foreground">
+                {item.script ?? "-"}
+              </span>
+            ),
+          },
+          {
+            id: "acoes",
+            header: "",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            render: item => (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-foreground/15 bg-card text-muted-foreground transition hover:border-foreground/40 hover:text-foreground"
+                  onClick={() => openEditStrategy(item)}
+                  aria-label="Editar estratégia"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-rose-500/30 bg-rose-500/10 text-rose-200 transition hover:border-rose-500/60"
+                  onClick={() => setDeleteTarget(item)}
+                  aria-label="Excluir estratégia"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-            ))}
-        </div>
-      </div>
+            ),
+          },
+        ]}
+      />
 
       {showUpsellModal && (
         <div className="fixed inset-0 z-50 flex">
@@ -302,18 +412,52 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
                 <button
                   type="button"
                   className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
-                  onClick={() => setShowUpsellModal(false)}
+                  onClick={closeUpsellModal}
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => setShowUpsellModal(false)}
+                  onClick={handleCreateStrategy}
+                  disabled={savingStrategy || !strategyForm.type || !strategyForm.productId}
                 >
-                  Adicionar
+                  {savingStrategy ? "Salvando..." : editingStrategy ? "Atualizar" : "Adicionar"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setDeleteTarget(null)}
+            aria-label="Fechar confirmação"
+          />
+          <div className="relative w-full max-w-sm rounded-[12px] border border-foreground/10 bg-card p-6 shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
+            <h3 className="text-lg font-semibold text-foreground">Excluir estratégia</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Deseja excluir a estratégia <span className="font-semibold text-foreground">{deleteTarget.name || "sem nome"}</span>?
+            </p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-[8px] border border-foreground/15 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500/90 disabled:opacity-60"
+                onClick={handleDeleteStrategy}
+                disabled={deletingStrategy}
+              >
+                {deletingStrategy ? "Excluindo..." : "Excluir"}
+              </button>
             </div>
           </div>
         </div>

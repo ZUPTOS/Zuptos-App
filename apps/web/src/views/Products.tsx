@@ -17,7 +17,7 @@ import {
   X
 } from "lucide-react";
 
-type ProductStatus = "ativo" | "pausado" | "em_breve";
+type ProductStatus = "ativo" | "pausado" | "em_breve" | "inativo" | "incompleto" | "recusado";
 type ProductMode = "producao" | "coproducao";
 
 interface Product {
@@ -48,14 +48,38 @@ const statusConfig: Record<ProductStatus, { label: string; badgeClass: string }>
     label: "Ativo",
     badgeClass: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/40"
   },
+  inativo: {
+    label: "Inativo",
+    badgeClass: "bg-muted/40 text-muted-foreground border border-muted/50"
+  },
   pausado: {
     label: "Pausado",
     badgeClass: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/40"
+  },
+  incompleto: {
+    label: "Incompleto",
+    badgeClass: "bg-orange-500/15 text-orange-400 border border-orange-500/40"
+  },
+  recusado: {
+    label: "Recusado",
+    badgeClass: "bg-rose-500/15 text-rose-400 border border-rose-500/40"
   },
   em_breve: {
     label: "Em breve",
     badgeClass: "bg-sky-500/15 text-sky-400 border border-sky-500/40"
   }
+};
+
+const normalizeProductStatus = (value?: string): ProductStatus => {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (!normalized) return "ativo";
+  if (["ativo", "active"].includes(normalized)) return "ativo";
+  if (["inativo", "inactive"].includes(normalized)) return "inativo";
+  if (["pausado", "paused"].includes(normalized)) return "pausado";
+  if (["em_breve", "em breve", "coming_soon", "coming soon"].includes(normalized)) return "em_breve";
+  if (["incompleto", "incomplete", "incompleted"].includes(normalized)) return "incompleto";
+  if (["recusado", "rejected", "refused", "declined"].includes(normalized)) return "recusado";
+  return "ativo";
 };
 
 const filterTypeOptions = [
@@ -332,9 +356,10 @@ export default function Products() {
         ...item,
         category: item.type,
         description: (item as Product & { description?: string }).description ?? "",
-        status: (item as Product & { status?: ProductStatus }).status ?? "ativo",
+        status: normalizeProductStatus((item as Product & { status?: string }).status),
         mode: index % 2 === 0 ? "producao" : "coproducao"
       }));
+      console.log("[Products] Produtos carregados:", normalized);
       setProducts(normalized);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);

@@ -10,6 +10,7 @@ import type {
   ProductSettings,
   UpdateProductSettingsRequest,
   ProductPlan,
+  CreateProductTrackingRequest,
   ProductStrategy,
   CreateProductStrategyRequest,
   ProductCoupon,
@@ -508,24 +509,28 @@ export const productApi = {
     }
   },
 
-  getPlansByProductId: async (id: string, token?: string): Promise<ProductPlan[]> => {
+  getPlansByProductId: async (productId: string, token?: string): Promise<ProductPlan[]> => {
     const authToken = token ?? readStoredToken();
     if (!authToken) {
-      throw new Error("Missing authentication token for product plans");
+      throw new Error("Missing authentication token for product trackings");
     }
-    return request<ProductPlan[]>(`/product/${id}/plans`, {
+    return request<ProductPlan[]>(`/product/${productId}/trackings`, {
       method: "GET",
       baseUrl: PRODUCTS_BASE,
       headers: { Authorization: `Bearer ${authToken}` },
     });
   },
 
-  createPlan: async (productId: string, payload: SubscriptionPlanPayload, token?: string): Promise<ProductPlan> => {
+  createPlan: async (
+    productId: string,
+    payload: CreateProductTrackingRequest,
+    token?: string
+  ): Promise<ProductPlan> => {
     const authToken = token ?? readStoredToken();
     if (!authToken) {
-      throw new Error("Missing authentication token for product plans");
+      throw new Error("Missing authentication token for product trackings");
     }
-    return request<ProductPlan>(`/product/${productId}/plans`, {
+    return request<ProductPlan>(`/product/${productId}/trackings`, {
       method: "POST",
       baseUrl: PRODUCTS_BASE,
       headers: {
@@ -607,6 +612,41 @@ export const productApi = {
         Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify(payload),
+    });
+  },
+
+  updateProductStrategy: async (
+    productId: string,
+    strategyId: string,
+    payload: CreateProductStrategyRequest,
+    token?: string
+  ): Promise<ProductStrategy> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product strategy update");
+    }
+    return request<ProductStrategy>(`/product/${productId}/strategies/${strategyId}`, {
+      method: "PATCH",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteProductStrategy: async (productId: string, strategyId: string, token?: string): Promise<void> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product strategy deletion");
+    }
+    await request(`/product/${productId}/strategies/${strategyId}`, {
+      method: "DELETE",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
     });
   },
 

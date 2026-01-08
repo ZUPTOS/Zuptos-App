@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { productApi } from "@/lib/api";
 import type { CreateProductCouponRequest, ProductCoupon } from "@/lib/api";
+import PaginatedTable from "@/components/PaginatedTable";
 
 type Props = {
   productId?: string;
@@ -29,6 +30,35 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
     status: "active" as "active" | "inactive",
   });
 
+  const formatBRLInput = (value: string) => {
+    const numeric = value.replace(/\D/g, "");
+    if (!numeric) return "";
+    const amount = Number(numeric) / 100;
+    return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  };
+
+  const parseBRLToNumber = (value?: string) => {
+    if (!value) return undefined;
+    const numeric = value.replace(/\D/g, "");
+    if (!numeric) return undefined;
+    return Number(numeric) / 100;
+  };
+
+  const formatPercentInput = (value: string) => {
+    const cleaned = value.replace(/[^0-9,]/g, "");
+    if (!cleaned) return "";
+    const [intPart, decPart] = cleaned.split(",");
+    const trimmedDec = decPart ? decPart.slice(0, 2) : "";
+    return `${intPart}${trimmedDec ? `,${trimmedDec}` : ""}%`;
+  };
+
+  const parsePercentToNumber = (value?: string) => {
+    if (!value) return undefined;
+    const cleaned = value.replace(/[^0-9,]/g, "");
+    if (!cleaned) return undefined;
+    return Number(cleaned.replace(",", "."));
+  };
+
   const loadCoupons = useCallback(async () => {
     if (!productId || !token) return;
     setCouponsLoading(true);
@@ -38,6 +68,7 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
         () => productApi.getProductCoupons(productId, token),
         "Carregando cupons"
       );
+      console.log("Cupons carregados:", data)
       setCoupons(data);
     } catch (error) {
       console.error("Erro ao carregar cupons:", error);
@@ -58,15 +89,16 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
       return;
     }
 
-    const discountValue = Number(couponForm.discount_amount);
-    if (Number.isNaN(discountValue)) {
+    const discountValue =
+      couponUnit === "percent"
+        ? parsePercentToNumber(couponForm.discount_amount)
+        : parseBRLToNumber(couponForm.discount_amount);
+    if (discountValue === undefined || Number.isNaN(discountValue)) {
       setCouponsError("Informe um valor de desconto válido.");
       return;
     }
 
-    const minimumPurchase = couponForm.minimum_purchase_amount
-      ? Number(couponForm.minimum_purchase_amount)
-      : undefined;
+    const minimumPurchase = parseBRLToNumber(couponForm.minimum_purchase_amount);
     if (minimumPurchase !== undefined && Number.isNaN(minimumPurchase)) {
       setCouponsError("Informe um valor mínimo de compra válido.");
       return;
@@ -99,6 +131,17 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
       );
       console.log("[coupon] Resposta do servidor:", response);
       await loadCoupons();
+      setCouponForm({
+        coupon_code: "",
+        discount_amount: "",
+        is_percentage: false,
+        internal_name: "",
+        expires_at: "",
+        minimum_purchase_amount: "",
+        limit_usage: "",
+        status: "active",
+      });
+      setCouponUnit("valor");
       setShowCouponModal(false);
     } catch (error) {
       console.error("Erro ao criar cupom:", error);
@@ -145,56 +188,83 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
         </div>
       </div>
 
-      <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-        <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-          <span>Nome</span>
-          <span>Desconto</span>
-          <span>Código</span>
-          <span className="text-right">Status</span>
-        </div>
-        <div className="divide-y divide-foreground/10">
-          {couponsLoading && (
-            <>
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
-                  <div className="space-y-2">
-                    <div className="h-4 w-28 rounded bg-muted/50" />
-                    <div className="h-3 w-24 rounded bg-muted/40" />
-                  </div>
-                  <div className="h-4 w-16 rounded bg-muted/50" />
-                  <div className="h-4 w-24 rounded bg-muted/50" />
-                  <div className="flex justify-end">
-                    <div className="h-6 w-20 rounded-full bg-muted/60" />
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-          {!couponsLoading && couponsError && (
-            <div className="px-4 py-4 text-sm text-rose-300">{couponsError}</div>
-          )}
-          {!couponsLoading && !couponsError && coupons.length === 0 && (
-            <div className="px-4 py-4 text-sm text-muted-foreground">Nenhum cupom cadastrado ainda.</div>
-          )}
-          {!couponsLoading &&
-            !couponsError &&
-            coupons.map(coupon => (
-              <div key={coupon.id ?? coupon.code} className="grid grid-cols-4 items-center gap-4 px-4 py-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-foreground">{coupon.name ?? "Cupom"}</p>
-                  <p className="text-xs text-muted-foreground">{coupon.id ?? "--"}</p>
-                </div>
-                <span className="font-semibold text-foreground">{coupon.discount ?? "-"}</span>
-                <span className="text-muted-foreground">{coupon.code ?? "-"}</span>
-                <div className="flex justify-end">
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-[11px] font-semibold text-emerald-300">
-                    {coupon.status ?? "-"}
-                  </span>
-                </div>
+      <PaginatedTable<ProductCoupon>
+        data={coupons}
+        rowsPerPage={6}
+        rowKey={coupon => coupon.id ?? coupon.code ?? coupon.coupon_code ?? Math.random().toString()}
+        emptyMessage={couponsLoading ? "Carregando..." : couponsError || "Nenhum cupom cadastrado ainda."}
+        wrapperClassName="space-y-3"
+        tableContainerClassName="rounded-[12px] border border-foreground/10 bg-card/80"
+        headerRowClassName="text-foreground"
+        tableClassName="text-left"
+        columns={[
+          {
+            id: "nome",
+            header: "Nome",
+            render: coupon => (
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {coupon.internal_name || coupon.name || "Cupom"}
+                </p>
+                <p className="text-xs text-muted-foreground">{coupon.id ?? "--"}</p>
               </div>
-            ))}
-        </div>
-      </div>
+            ),
+          },
+          {
+            id: "desconto",
+            header: "Desconto",
+            render: coupon => {
+              const isPercent = coupon.is_percentage ?? false;
+              const value = coupon.discount_amount ?? coupon.discount;
+              if (value === undefined || value === null) return <span className="text-muted-foreground">-</span>;
+              const numericValue =
+                typeof value === "number"
+                  ? value
+                  : Number(String(value).replace(/[^0-9,.-]/g, "").replace(",", "."));
+              if (Number.isNaN(numericValue)) {
+                return <span className="text-muted-foreground">-</span>;
+              }
+              if (isPercent) {
+                return (
+                  <span className="font-semibold text-foreground">
+                    {numericValue.toString().replace(".", ",")}%
+                  </span>
+                );
+              }
+              return (
+                <span className="font-semibold text-foreground">
+                  {numericValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              );
+            },
+          },
+          {
+            id: "codigo",
+            header: "Código",
+            render: coupon => (
+              <span className="text-muted-foreground">{coupon.coupon_code || coupon.code || "-"}</span>
+            ),
+          },
+          {
+            id: "status",
+            header: "Status",
+            headerClassName: "text-right",
+            cellClassName: "text-right",
+            render: coupon => {
+              const isActive = (coupon.status ?? "active").toLowerCase() === "active";
+              return (
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-[6px] text-[11px] font-semibold ${
+                    isActive ? "bg-emerald-500/15 text-emerald-300" : "bg-muted/40 text-muted-foreground"
+                  }`}
+                >
+                  {isActive ? "Ativo" : "Inativo"}
+                </span>
+              );
+            },
+          },
+        ]}
+      />
 
       {showCouponModal && (
         <div className="fixed inset-0 z-50 flex">
@@ -270,14 +340,29 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                   <input
                     className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder={couponUnit === "percent" ? "% desconto" : "R$ desconto"}
+                    inputMode="decimal"
                     value={couponForm.discount_amount}
-                    onChange={event => setCouponForm(prev => ({ ...prev, discount_amount: event.target.value }))}
+                    onChange={event =>
+                      setCouponForm(prev => ({
+                        ...prev,
+                        discount_amount:
+                          couponUnit === "percent"
+                            ? formatPercentInput(event.target.value)
+                            : formatBRLInput(event.target.value),
+                      }))
+                    }
                   />
                   <input
                     className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="Compra mínima"
+                    inputMode="decimal"
                     value={couponForm.minimum_purchase_amount}
-                    onChange={event => setCouponForm(prev => ({ ...prev, minimum_purchase_amount: event.target.value }))}
+                    onChange={event =>
+                      setCouponForm(prev => ({
+                        ...prev,
+                        minimum_purchase_amount: formatBRLInput(event.target.value),
+                      }))
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -342,7 +427,9 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                     couponSaving ||
                     !couponForm.coupon_code.trim() ||
                     !couponForm.discount_amount ||
-                    Number.isNaN(Number(couponForm.discount_amount))
+                    (couponUnit === "percent"
+                      ? Number.isNaN(parsePercentToNumber(couponForm.discount_amount))
+                      : Number.isNaN(parseBRLToNumber(couponForm.discount_amount)))
                   }
                 >
                   {couponSaving ? "Salvando..." : "Adicionar"}

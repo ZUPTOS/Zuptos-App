@@ -57,6 +57,7 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
           "Carregando configurações"
         );
         setSettings(data);
+        console.log("Configurações carregadas:", data);
         if (data?.status) {
           setStatusDraft(data.status === "inactive" ? "inactive" : "active");
         }
@@ -147,6 +148,21 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
     } catch (err) {
       console.error("Erro ao salvar configurações:", err);
       setError("Não foi possível salvar as configurações.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeactivateProduct = async () => {
+    if (!productId || !token) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await withLoading(() => productApi.deleteProduct(productId, token), "Excluindo produto");
+      setStatusDraft("inactive");
+    } catch (err) {
+      console.error("Erro ao desativar produto:", err);
+      setError("Não foi possível desativar o produto.");
     } finally {
       setSaving(false);
     }
@@ -291,7 +307,12 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
       </div>
 
       <div className="flex items-center justify-between">
-        <button className="rounded-[8px] border border-rose-900/60 bg-rose-900/30 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-900/50">
+        <button
+          className="rounded-[8px] border border-rose-900/60 bg-rose-900/30 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-900/50 disabled:opacity-60"
+          type="button"
+          onClick={handleDeactivateProduct}
+          disabled={saving || loading}
+        >
           Excluir produto
         </button>
         <button
