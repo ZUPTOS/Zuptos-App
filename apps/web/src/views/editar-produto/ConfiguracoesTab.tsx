@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { productApi } from "@/lib/api";
 import type { Product, ProductSettings, UpdateProductSettingsRequest } from "@/lib/api";
+import { notify } from "@/components/ui/notification-toast";
 
 type Props = {
   productId?: string;
@@ -157,9 +158,16 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
     if (!productId || !token) return;
     setSaving(true);
     setError(null);
+    const payload = { status: "inactive" };
     try {
-      await withLoading(() => productApi.deleteProduct(productId, token), "Excluindo produto");
+      console.log("[settings] Enviando atualização de status:", payload);
+      const response = await withLoading(
+        () => productApi.updateProductSettings(productId, payload, token),
+        "Desativando produto"
+      );
+      console.log("[settings] Resposta desativação:", response);
       setStatusDraft("inactive");
+      notify.success("Produto desativado");
     } catch (err) {
       console.error("Erro ao desativar produto:", err);
       setError("Não foi possível desativar o produto.");

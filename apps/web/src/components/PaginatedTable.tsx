@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buildPageIndicators } from "@/lib/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export type Column<T> = {
   id: string;
@@ -19,6 +20,8 @@ interface PaginatedTableProps<T> {
   rowKey: (row: T, index: number) => string;
   rowsPerPage?: number;
   initialPage?: number;
+  isLoading?: boolean;
+  loadingRows?: number;
   emptyMessage?: string;
   tableContainerClassName?: string;
   paginationContainerClassName?: string;
@@ -38,6 +41,8 @@ export default function PaginatedTable<T>({
   rowKey,
   rowsPerPage = 5,
   initialPage = 1,
+  isLoading = false,
+  loadingRows,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
   tableContainerClassName = "",
   paginationContainerClassName = "",
@@ -52,6 +57,7 @@ export default function PaginatedTable<T>({
   const safeData = useMemo(() => data ?? [], [data]);
   const totalPages = Math.max(1, Math.ceil(safeData.length / rowsPerPage));
   const [currentPage, setCurrentPage] = useState(Math.min(initialPage, totalPages));
+  const showSkeleton = isLoading && safeData.length === 0;
 
   useEffect(() => {
     setCurrentPage(prev => Math.min(prev, totalPages));
@@ -90,7 +96,33 @@ export default function PaginatedTable<T>({
               </tr>
             </thead>
             <tbody>
-              {paginatedData.length ? (
+              {showSkeleton ? (
+                Array.from({ length: loadingRows ?? rowsPerPage }).map((_, index) => (
+                  <tr key={`skeleton-${index}`} className="border-t border-foreground/5">
+                    {safeColumns.map(column => {
+                      const cellAlignment =
+                        column.cellClassName?.includes("text-right") ||
+                        column.headerClassName?.includes("text-right")
+                          ? "justify-end"
+                          : column.cellClassName?.includes("text-center") ||
+                              column.headerClassName?.includes("text-center")
+                            ? "justify-center"
+                            : "justify-start";
+                      return (
+                        <td
+                          key={`${column.id}-${index}`}
+                          className={`px-6 py-4 align-center ${column.cellClassName ?? ""}`}
+                          style={column.width ? { width: column.width } : undefined}
+                        >
+                          <div className={`flex ${cellAlignment}`}>
+                            <Skeleton className="h-4 w-28" />
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              ) : paginatedData.length ? (
                 paginatedData.map((row, index) => {
                   const rowClassName = getRowClassName?.(row, index) ?? "";
                   const isClickable = typeof onRowClick === "function";

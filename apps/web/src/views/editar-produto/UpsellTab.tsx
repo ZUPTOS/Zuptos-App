@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, Pencil, Search, Trash2 } from "lucide-react";
 import { productApi } from "@/lib/api";
-import type { CreateProductStrategyRequest, Product, ProductStrategy } from "@/lib/api";
+import type { CreateProductStrategyRequest, ProductOffer, ProductStrategy } from "@/lib/api";
 import PaginatedTable from "@/components/PaginatedTable";
 
 type Props = {
@@ -18,11 +18,14 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
   const [strategiesError, setStrategiesError] = useState<string | null>(null);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [savingStrategy, setSavingStrategy] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productsLoading, setProductsLoading] = useState(false);
+  const [offers, setOffers] = useState<ProductOffer[]>([]);
+  const [offersLoading, setOffersLoading] = useState(false);
   const [editingStrategy, setEditingStrategy] = useState<ProductStrategy | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProductStrategy | null>(null);
   const [deletingStrategy, setDeletingStrategy] = useState(false);
+  const [copiedStrategyId, setCopiedStrategyId] = useState<string | null>(null);
+  const lastCopiedRef = useRef<{ id?: string | null; at: number } | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
   const [strategyForm, setStrategyForm] = useState({
     name: "",
     type: "",
@@ -32,6 +35,50 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
     rejectAction: "",
     rejectUrl: "",
   });
+
+  const resolveStrategyList = (raw: unknown): ProductStrategy[] => {
+    if (Array.isArray(raw)) return raw;
+    const data = (raw as { data?: ProductStrategy[] } | null)?.data;
+    return Array.isArray(data) ? data : [];
+  };
+
+  const toText = (value: unknown) =>
+    typeof value === "string" && value.trim() ? value : undefined;
+
+  const resolveOfferId = (item: ProductStrategy) => {
+    const raw = item as unknown as Record<string, unknown>;
+    return (
+      item.offer ??
+      toText(raw.offer_id) ??
+      toText(raw.offerId) ??
+      toText(raw.product_id) ??
+      toText(raw.productId)
+    );
+  };
+
+  const offerNameById = useCallback(
+    (offerId?: string) => {
+      if (!offerId) return undefined;
+      const match = offers.find(offer => offer.id === offerId);
+      return match?.name;
+    },
+    [offers]
+  );
+
+  const offerById = useCallback(
+    (offerId?: string) => {
+      if (!offerId) return undefined;
+      return offers.find(offer => offer.id === offerId);
+    },
+    [offers]
+  );
+
+  const formatOfferPrice = useCallback((value?: number | string) => {
+    if (value === undefined || value === null || value === "") return undefined;
+    const numericValue = typeof value === "string" ? Number(value) : value;
+    if (Number.isNaN(numericValue)) return undefined;
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(numericValue);
+  }, []);
 
   const resetStrategyForm = useCallback(() => {
     setStrategyForm({
@@ -84,7 +131,7 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
         "Carregando upsells"
       );
       console.log("Estratégias data:", data);
-      setStrategies(data);
+      setStrategies(resolveStrategyList(data));
     } catch (error) {
       console.error("Erro ao carregar upsells:", error);
       setStrategiesError("Não foi possível carregar as estratégias agora.");
@@ -98,24 +145,55 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
   }, [loadStrategies]);
 
   useEffect(() => {
-    const loadProducts = async () => {
-      if (!showUpsellModal || !token) return;
-      setProductsLoading(true);
+    const loadOffers = async () => {
+      if (!token || !productId) return;
+      setOffersLoading(true);
       try {
         const data = await withLoading(
-          () => productApi.listProducts({ page: 1, limit: 50 }, token),
-          "Carregando produtos"
+          () => productApi.getOffersByProductId(productId, token),
+          "Carregando ofertas"
         );
-        setProducts(Array.isArray(data) ? data : []);
+        setOffers(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Erro ao carregar produtos para estratégia:", error);
-        setProducts([]);
+        console.error("Erro ao carregar ofertas para estratégia:", error);
+        setOffers([]);
       } finally {
-        setProductsLoading(false);
+        setOffersLoading(false);
       }
     };
-    void loadProducts();
-  }, [showUpsellModal, token, withLoading]);
+    void loadOffers();
+  }, [token, productId, withLoading]);
+
+  const handleCopyScript = useCallback(async (scriptUrl?: string, strategyId?: string) => {
+    if (!scriptUrl || scriptUrl === "-") return;
+    const now = Date.now();
+    const lastCopy = lastCopiedRef.current;
+    if (lastCopy && lastCopy.id === strategyId && now - lastCopy.at < 1200) {
+      return;
+    }
+    try {
+      await navigator.clipboard?.writeText(scriptUrl);
+      lastCopiedRef.current = { id: strategyId, at: now };
+      setCopiedStrategyId(strategyId ?? null);
+      if (copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedStrategyId(null);
+      }, 500);
+      console.log("[strategyApi] Link copiado:", scriptUrl);
+    } catch (error) {
+      console.error("Não foi possível copiar o link:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCreateStrategy = useCallback(async () => {
     if (!productId || !token) return;
@@ -192,7 +270,8 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
         data={strategies}
         rowsPerPage={6}
         rowKey={item => item.id ?? `${item.type}-${item.offer}`}
-        emptyMessage={strategiesLoading ? "Carregando..." : strategiesError || "Nenhuma estratégia cadastrada."}
+        isLoading={strategiesLoading}
+        emptyMessage={strategiesError || "Nenhuma estratégia cadastrada."}
         wrapperClassName="space-y-3"
         tableContainerClassName="rounded-[12px] border border-foreground/10 bg-card/80"
         headerRowClassName="text-foreground"
@@ -211,25 +290,73 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
           {
             id: "oferta",
             header: "Oferta",
-            render: item => <span className="text-muted-foreground">{item.offer ?? "-"}</span>,
+            render: item => {
+              const offerLabel = resolveOfferId(item);
+              const resolvedName = offerNameById(offerLabel);
+              return <span className="text-muted-foreground">{resolvedName ?? offerLabel ?? "-"}</span>;
+            },
           },
           {
             id: "valor",
             header: "Valor",
-            render: item => (
-              <span className="font-semibold">
-                {item.value !== undefined && item.value !== null ? item.value : "-"}
-              </span>
-            ),
+            render: item => {
+              const offerId = resolveOfferId(item);
+              const offer = offerById(offerId);
+              const raw = item as unknown as Record<string, unknown>;
+              const rawValue =
+                offer?.offer_price ??
+                (offer as { offerPrice?: number | string } | undefined)?.offerPrice ??
+                item.value ??
+                raw.offer_price ??
+                raw.offerPrice ??
+                raw.price ??
+                raw.value;
+              const value =
+                typeof rawValue === "string" || typeof rawValue === "number" ? rawValue : undefined;
+              const formattedValue = formatOfferPrice(value);
+              return (
+                <span className="font-semibold">
+                  {offer?.free ? "Gratuito" : formattedValue ?? "-"}
+                </span>
+              );
+            },
           },
           {
             id: "script",
             header: "Script",
-            render: item => (
-              <span className="inline-flex items-center rounded-full bg-muted/60 px-3 py-[6px] text-[11px] font-semibold text-muted-foreground">
-                {item.script ?? "-"}
-              </span>
-            ),
+            render: item => {
+              const raw = item as unknown as Record<string, unknown>;
+              const scriptUrl =
+                toText(item.action_successful_url) ??
+                toText(item.action_unsuccessful_url) ??
+                toText(item.script) ??
+                toText(raw.action_successful_url) ??
+                toText(raw.action_unsuccessful_url) ??
+                toText(raw.script);
+              const scriptLabel =
+                scriptUrl && scriptUrl !== "-"
+                  ? scriptUrl.replace(/^https?:\/\//, "").slice(0, 22)
+                  : "-";
+              const strategyKey = item.id ?? scriptUrl ?? "script";
+              return (
+                <div className="relative w-full max-w-[180px]">
+                  <button
+                    type="button"
+                    className="w-full truncate rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:border-foreground/30 hover:text-foreground disabled:opacity-60"
+                    disabled={!scriptUrl || scriptUrl === "-"}
+                    onClick={() => handleCopyScript(scriptUrl, strategyKey)}
+                    title={scriptUrl && scriptUrl !== "-" ? "Copiar link" : "Sem link"}
+                  >
+                    {scriptLabel}
+                  </button>
+                  {copiedStrategyId === strategyKey && (
+                    <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-emerald-400">
+                      Link copiado
+                    </span>
+                  )}
+                </div>
+              );
+            },
           },
           {
             id: "acoes",
@@ -317,7 +444,7 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
               </div>
 
               <label className="space-y-1 text-sm text-muted-foreground">
-                <span className="text-foreground">Selecione o produto</span>
+                <span className="text-foreground">Selecione a oferta</span>
                 <div className="relative">
                   <select
                     className="h-11 w-full appearance-none rounded-[8px] border border-foreground/15 bg-card px-3 pr-9 text-sm text-foreground focus:border-primary focus:outline-none disabled:opacity-60"
@@ -325,14 +452,18 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
                     onChange={event =>
                       setStrategyForm(current => ({ ...current, productId: event.target.value }))
                     }
-                    disabled={productsLoading || products.length === 0}
+                    disabled={offersLoading || offers.length === 0}
                   >
                     <option value="">
-                      {productsLoading ? "Carregando produtos..." : "Selecione um produto"}
+                      {offersLoading
+                        ? "Carregando ofertas..."
+                        : offers.length === 0
+                          ? "Sem oferta cadastrada"
+                          : "Selecione uma oferta"}
                     </option>
-                    {products.map(prod => (
-                      <option key={prod.id} value={prod.id}>
-                        {prod.name}
+                    {offers.map(offer => (
+                      <option key={offer.id ?? offer.name} value={offer.id}>
+                        {offer.name ?? offer.id}
                       </option>
                     ))}
                   </select>

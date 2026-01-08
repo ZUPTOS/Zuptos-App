@@ -6,7 +6,6 @@ import type {
   Checkout,
   ProductListParams,
   ProductOffer,
-  UpdateProductRequest,
   ProductSettings,
   UpdateProductSettingsRequest,
   ProductPlan,
@@ -110,39 +109,6 @@ export const productApi = {
         Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify(body),
-    });
-  },
-
-  updateProduct: async (id: string, payload: UpdateProductRequest, token?: string): Promise<Product> => {
-    if (!id) {
-      throw new Error("Missing id for product update");
-    }
-    const bodyEntries = {
-      name: payload.name,
-      type: payload.type,
-      image_url: payload.image_url,
-      total_invoiced: payload.total_invoiced,
-      total_sold: payload.total_sold,
-      description: payload.description,
-    };
-    const hasUpdates = Object.values(bodyEntries).some(value => value !== undefined);
-    if (!hasUpdates) {
-      throw new Error("No fields provided for product update");
-    }
-
-    const authToken = token ?? readStoredToken();
-    return request<Product>(`/product/${id}`, {
-      method: "PATCH",
-      baseUrl: PRODUCTS_BASE,
-      headers: {
-        "Content-Type": "application/json",
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      },
-      body: JSON.stringify(
-        Object.fromEntries(
-          Object.entries(bodyEntries).filter(([, value]) => value !== undefined)
-        )
-      ),
     });
   },
 
@@ -541,6 +507,49 @@ export const productApi = {
     });
   },
 
+  updateTracking: async (
+    productId: string,
+    trackingId: string,
+    payload: CreateProductTrackingRequest,
+    token?: string
+  ): Promise<ProductPlan> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product trackings");
+    }
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined)
+    );
+    return request<ProductPlan>(`/product/${productId}/trackings/${trackingId}`, {
+      method: "PATCH",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+  },
+
+  deleteTracking: async (
+    productId: string,
+    trackingId: string,
+    token?: string
+  ): Promise<{ id?: string; status?: string; message?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product trackings");
+    }
+    return request<{ id?: string; status?: string; message?: string }>(
+      `/product/${productId}/trackings/${trackingId}`,
+      {
+        method: "DELETE",
+        baseUrl: PRODUCTS_BASE,
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      }
+    );
+  },
+
   createOfferPlan: async (
     productId: string,
     offerId: string,
@@ -682,6 +691,49 @@ export const productApi = {
     });
   },
 
+  updateCoproducer: async (
+    productId: string,
+    coproducerId: string,
+    payload: CreateCoproducerRequest,
+    token?: string
+  ): Promise<Coproducer> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for coproducer update");
+    }
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined)
+    );
+    return request<Coproducer>(`/product/${productId}/coproducers/${coproducerId}`, {
+      method: "PATCH",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+  },
+
+  deleteCoproducer: async (
+    productId: string,
+    coproducerId: string,
+    token?: string
+  ): Promise<{ id?: string; status?: string; message?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for coproducer deletion");
+    }
+    return request<{ id?: string; status?: string; message?: string }>(
+      `/product/${productId}/coproducers/${coproducerId}`,
+      {
+        method: "DELETE",
+        baseUrl: PRODUCTS_BASE,
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      }
+    );
+  },
+
   getProductCoupons: async (id: string, token?: string): Promise<ProductCoupon[]> => {
     const authToken = token ?? readStoredToken();
     if (!authToken) {
@@ -712,5 +764,48 @@ export const productApi = {
       },
       body: JSON.stringify(payload),
     });
+  },
+
+  updateProductCoupon: async (
+    productId: string,
+    couponId: string,
+    payload: CreateProductCouponRequest,
+    token?: string
+  ): Promise<ProductCoupon> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product coupons");
+    }
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined)
+    );
+    return request<ProductCoupon>(`/product/${productId}/coupons/${couponId}`, {
+      method: "PATCH",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+  },
+
+  deleteProductCoupon: async (
+    productId: string,
+    couponId: string,
+    token?: string
+  ): Promise<{ id?: string; status?: string; message?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product coupons");
+    }
+    return request<{ id?: string; status?: string; message?: string }>(
+      `/product/${productId}/coupons/${couponId}`,
+      {
+        method: "DELETE",
+        baseUrl: PRODUCTS_BASE,
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      }
+    );
   },
 };

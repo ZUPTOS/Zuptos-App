@@ -49,7 +49,12 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
         "Carregando entregáveis"
       );
       console.log("Entregáveis carregados:", data);
-      setDeliverables(data);
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { data?: ProductDeliverable[] } | null)?.data)
+          ? (data as { data: ProductDeliverable[] }).data
+          : [];
+      setDeliverables(list);
     } catch (err) {
       console.error("Erro ao carregar entregáveis:", err);
       setError("Não foi possível carregar os entregáveis agora.");
@@ -265,7 +270,8 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
           data={deliverables}
           rowsPerPage={6}
           rowKey={item => item.id ?? item.name ?? Math.random().toString()}
-          emptyMessage={loading ? "Carregando..." : error || "Nenhum entregável cadastrado."}
+          isLoading={loading}
+          emptyMessage={error || "Nenhum entregável cadastrado."}
           wrapperClassName="space-y-3"
           tableContainerClassName="rounded-[10px] border border-foreground/10 bg-card"
           headerRowClassName="bg-card/60"
@@ -274,38 +280,34 @@ export function EntregavelTab({ productId, token, withLoading }: Props) {
             {
               id: "nome",
               header: "Nome",
-              render: item => (
-                <div className="space-y-1">
-                  <p className="text-sm font-medium capitalize">{item.name || item.type || "Entregável"}</p>
-                  <p className="break-all text-xs text-muted-foreground">ID: {item.id}</p>
-                </div>
-              ),
+              render: item => {
+                const raw = item as unknown as Record<string, unknown>;
+                const name =
+                  item.name ??
+                  (typeof raw.title === "string" ? raw.title : undefined) ??
+                  (typeof raw.display_name === "string" ? raw.display_name : undefined) ??
+                  (typeof raw.filename === "string" ? raw.filename : undefined);
+                return <p className="text-sm font-medium capitalize">{name || "Entregável"}</p>;
+              },
             },
             {
               id: "conteudo",
               header: "Entregável",
               render: item => {
-                const linkLabel = item.content?.replace(/^https?:\/\//, "") ?? item.content ?? "-";
                 if (!item.content) return <span className="text-sm text-muted-foreground">-</span>;
+                const typeValue = item.type ? item.type.toLowerCase() : "";
+                const label = typeValue === "Link" ? "Link" : "Download";
                 return (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center">
                     <a
                       href={item.content}
-                      className="rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs text-foreground transition hover:border-foreground/30"
+                      className="truncate rounded-[6px] border border-foreground/15 bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:border-foreground/30"
                       target="_blank"
                       rel="noreferrer"
                       onClick={event => event.stopPropagation()}
                     >
-                      {linkLabel}
+                      {label}
                     </a>
-                    <button
-                      type="button"
-                      className="h-8 w-8 rounded-[6px] border border-foreground/15 bg-card text-sm text-foreground transition hover:border-foreground/30"
-                      aria-label="Baixar"
-                      onClick={event => event.stopPropagation()}
-                    >
-                      📎
-                    </button>
                   </div>
                 );
               },

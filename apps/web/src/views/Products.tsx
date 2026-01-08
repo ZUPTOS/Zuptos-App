@@ -219,7 +219,10 @@ export default function Products() {
       const matchesType =
         selectedTypes.length === 0 || selectedTypes.includes(normalizedType);
       const statusValue = product.status ?? "ativo";
-      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(statusValue);
+      const matchesStatus =
+        selectedStatuses.length === 0
+          ? statusValue !== "inativo"
+          : selectedStatuses.includes(statusValue);
       return matchesTab && matchesSearch && matchesType && matchesStatus;
     });
   }, [activeTab, normalizedSearch, products, selectedTypes, selectedStatuses]);

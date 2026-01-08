@@ -417,7 +417,8 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
         data={offers}
         rowsPerPage={6}
         rowKey={offer => offer.id ?? offer.name ?? Math.random().toString()}
-        emptyMessage={loading ? "Carregando..." : error || "Nenhuma oferta cadastrada."}
+        isLoading={loading}
+        emptyMessage={error || "Nenhuma oferta cadastrada."}
         columns={[
           {
             id: "nome",

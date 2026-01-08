@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import { productApi } from "@/lib/api";
 import type { Coproducer, CreateCoproducerRequest } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
+import PaginatedTable from "@/components/PaginatedTable";
 
 type Props = {
   productId?: string;
@@ -21,6 +21,9 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
   const [showCoproductionDetailModal, setShowCoproductionDetailModal] = useState(false);
   const [coproducerSaving, setCoproducerSaving] = useState(false);
   const [coproducerFormError, setCoproducerFormError] = useState<string | null>(null);
+  const [editingCoproducer, setEditingCoproducer] = useState<Coproducer | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Coproducer | null>(null);
+  const [deletingCoproducer, setDeletingCoproducer] = useState(false);
   const [coproducerForm, setCoproducerForm] = useState({
     name: "",
     email: "",
@@ -32,6 +35,12 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
     splitInvoice: false,
   });
 
+  const normalizeCoproducers = useCallback((raw: unknown): Coproducer[] => {
+    if (Array.isArray(raw)) return raw;
+    const data = (raw as { data?: Coproducer[] } | null)?.data;
+    return Array.isArray(data) ? data : [];
+  }, []);
+
   useEffect(() => {
     const loadCoproducers = async () => {
       if (!productId || !token) return;
@@ -42,7 +51,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
           () => productApi.getCoproducersByProductId(productId, token),
           "Carregando coprodutores"
         );
-        setCoproducers(data);
+        setCoproducers(normalizeCoproducers(data));
       } catch (error) {
         console.error("Erro ao carregar coprodutores:", error);
         setCoproducersError("Não foi possível carregar os coprodutores agora.");
@@ -51,9 +60,49 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
       }
     };
     void loadCoproducers();
-  }, [productId, token, withLoading]);
+  }, [productId, token, withLoading, normalizeCoproducers]);
 
-  const handleCreateCoproducer = async () => {
+  const resetCoproducerForm = useCallback(() => {
+    setCoproducerForm({
+      name: "",
+      email: "",
+      commission: "",
+      durationMonths: "",
+      lifetime: false,
+      shareSalesDetails: false,
+      extendProductStrategies: false,
+      splitInvoice: false,
+    });
+    setEditingCoproducer(null);
+  }, []);
+
+  const openEditCoproducer = useCallback(
+    (coproducer: Coproducer) => {
+      const durationMonths = coproducer.duration_months ?? 0;
+      const isLifetime = durationMonths === 0;
+      const commissionValue =
+        coproducer.revenue_share_percentage ??
+        coproducer.commission_percentage ??
+        (typeof coproducer.commission === "number"
+          ? coproducer.commission
+          : Number(coproducer.commission));
+      setCoproducerForm({
+        name: coproducer.name ?? "",
+        email: coproducer.email ?? "",
+        commission: Number.isNaN(commissionValue) ? "" : String(commissionValue),
+        durationMonths: isLifetime ? "" : String(durationMonths),
+        lifetime: isLifetime,
+        shareSalesDetails: Boolean(coproducer.share_sales_details),
+        extendProductStrategies: Boolean(coproducer.extend_product_strategies),
+        splitInvoice: Boolean(coproducer.split_invoice),
+      });
+      setEditingCoproducer(coproducer);
+      setShowCoproductionModal(true);
+    },
+    []
+  );
+
+  const handleSaveCoproducer = async () => {
     if (!productId || !token) return;
     setCoproducerFormError(null);
 
@@ -75,32 +124,51 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
 
     setCoproducerSaving(true);
     try {
-      console.log("[coproducer] Enviando criação:", payload);
-      const response = await withLoading(
-        () => productApi.createCoproducer(productId, payload, token),
-        "Criando coprodutor"
-      );
-      console.log("[coproducer] Resposta do servidor:", response);
+      if (editingCoproducer?.id) {
+        console.log("[coproducer] Enviando atualização:", payload);
+        const response = await withLoading(
+          () => productApi.updateCoproducer(productId, editingCoproducer.id!, payload, token),
+          "Atualizando coprodutor"
+        );
+        console.log("[coproducer] Resposta atualização:", response);
+      } else {
+        console.log("[coproducer] Enviando criação:", payload);
+        const response = await withLoading(
+          () => productApi.createCoproducer(productId, payload, token),
+          "Criando coprodutor"
+        );
+        console.log("[coproducer] Resposta do servidor:", response);
+      }
       const refreshed = await productApi.getCoproducersByProductId(productId, token);
-      setCoproducers(refreshed);
-      setCoproducerForm({
-        name: "",
-        email: "",
-        commission: "",
-        durationMonths: "",
-        lifetime: false,
-        shareSalesDetails: false,
-        extendProductStrategies: false,
-        splitInvoice: false,
-      });
+      setCoproducers(normalizeCoproducers(refreshed));
+      resetCoproducerForm();
       setShowCoproductionModal(false);
     } catch (error) {
-      console.error("Erro ao criar coprodutor:", error);
-      setCoproducerFormError("Não foi possível criar o coprodutor.");
+      console.error("Erro ao salvar coprodutor:", error);
+      setCoproducerFormError("Não foi possível salvar o coprodutor.");
     } finally {
       setCoproducerSaving(false);
     }
   };
+
+  const handleDeleteCoproducer = useCallback(async () => {
+    if (!productId || !token || !deleteTarget?.id) return;
+    setDeletingCoproducer(true);
+    try {
+      await withLoading(
+        () => productApi.deleteCoproducer(productId, deleteTarget.id!, token),
+        "Excluindo coprodutor"
+      );
+      setDeleteTarget(null);
+      const refreshed = await productApi.getCoproducersByProductId(productId, token);
+      setCoproducers(normalizeCoproducers(refreshed));
+    } catch (error) {
+      console.error("Erro ao excluir coprodutor:", error);
+      setCoproducerFormError("Não foi possível excluir o coprodutor.");
+    } finally {
+      setDeletingCoproducer(false);
+    }
+  }, [productId, token, deleteTarget, withLoading, normalizeCoproducers]);
 
   return (
     <>
@@ -120,87 +188,110 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
           <button
             type="button"
             className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-            onClick={() => setShowCoproductionModal(true)}
+            onClick={() => {
+              resetCoproducerForm();
+              setShowCoproductionModal(true);
+            }}
           >
             Adicionar
           </button>
         </div>
       </div>
 
-      <div className="rounded-[12px] border border-foreground/10 bg-card/80 shadow-[0_14px_36px_rgba(0,0,0,0.3)]">
-        <div className="grid grid-cols-5 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
-          <span>Nome</span>
-          <span>Início</span>
-          <span>Comissão</span>
-          <span>Duração</span>
-          <span className="text-right">Status</span>
-        </div>
-        <div className="divide-y divide-foreground/10">
-          {coproducersLoading &&
-            Array.from({ length: 3 }).map((_, idx) => (
-              <div key={idx} className="grid grid-cols-5 items-center gap-4 px-4 py-4">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-24" />
-                <div className="flex justify-end">
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                </div>
-              </div>
-            ))}
-          {!coproducersLoading && coproducersError && (
-            <div className="px-4 py-4 text-sm text-rose-300">{coproducersError}</div>
-          )}
-          {!coproducersLoading && !coproducersError && coproducers.length === 0 && (
-            <div className="px-4 py-4 text-sm text-muted-foreground">Nenhum coprodutor encontrado.</div>
-          )}
-          {!coproducersLoading &&
-            !coproducersError &&
-            coproducers.map(item => {
-              const name = item.name || item.email || "—";
-              const startDate = item.start_at || item.start || item.created_at || "";
+      <PaginatedTable<Coproducer>
+        data={coproducers}
+        rowsPerPage={6}
+        rowKey={item => item.id ?? item.email ?? item.name ?? Math.random().toString()}
+        isLoading={coproducersLoading}
+        emptyMessage={coproducersError || "Nenhum coprodutor encontrado."}
+        wrapperClassName="space-y-3"
+        tableContainerClassName="rounded-[12px] border border-foreground/10 bg-card/80"
+        headerRowClassName="text-foreground"
+        tableClassName="text-left"
+        onRowClick={item => {
+          setSelectedCoproducer(item);
+          setShowCoproductionDetailModal(true);
+        }}
+        columns={[
+          {
+            id: "nome",
+            header: "Nome",
+            render: item => (
+              <span className="font-semibold uppercase">{item.name || item.email || "—"}</span>
+            ),
+          },
+          {
+            id: "email",
+            header: "E-mail",
+            render: item => <span className="text-muted-foreground">{item.email || "—"}</span>,
+          },
+          {
+            id: "comissao",
+            header: "Comissão",
+            render: item => {
               const commissionValue =
-                item.commission ?? item.commission_percentage ?? (typeof item.status === "number" ? item.status : undefined);
-              const commission =
-                commissionValue !== undefined
-                  ? typeof commissionValue === "number"
-                    ? `${commissionValue}%`
-                    : String(commissionValue)
-                  : "—";
-              const duration = item.duration || "—";
-              const status = item.status || "—";
+                item.revenue_share_percentage ??
+                item.commission_percentage ??
+                (typeof item.commission === "number" ? item.commission : Number(item.commission));
               return (
-                <button
-                  key={item.id ?? `${name}-${status}`}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCoproducer(item);
-                    setShowCoproductionDetailModal(true);
-                  }}
-                  className="grid grid-cols-5 items-center gap-4 px-4 py-4 text-left text-sm text-foreground transition hover:bg-card/60"
-                >
-                  <span className="font-semibold uppercase">{name}</span>
-                  <div className="space-y-1 text-muted-foreground">
-                    <p className="font-semibold text-foreground">
-                      {startDate ? new Date(startDate).toLocaleDateString("pt-BR") : "—"}
-                    </p>
-                    <p className="text-[11px] uppercase tracking-wide"> </p>
-                  </div>
-                  <div className="space-y-1 text-muted-foreground">
-                    <p className="font-semibold text-foreground">{commission}</p>
-                    <p className="text-[11px]">Vendas produtor</p>
-                  </div>
-                  <span className="font-semibold">{duration}</span>
-                  <div className="flex justify-end">
-                    <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
-                      {status}
-                    </span>
-                  </div>
-                </button>
+                <span className="font-semibold text-foreground">
+                  {Number.isNaN(commissionValue) || commissionValue === undefined ? "—" : `${commissionValue}%`}
+                </span>
               );
-            })}
-        </div>
-      </div>
+            },
+          },
+          {
+            id: "duracao",
+            header: "Duração",
+            render: item => {
+              if (item.duration_months === 0) return <span className="font-semibold">Vitalício</span>;
+              if (item.duration_months) return <span className="font-semibold">{item.duration_months} mês(es)</span>;
+              return <span className="font-semibold">{item.duration || "—"}</span>;
+            },
+          },
+          {
+            id: "status",
+            header: "Status",
+            render: item => (
+              <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-3 py-[6px] text-xs font-semibold text-emerald-300">
+                {item.status || "—"}
+              </span>
+            ),
+          },
+          {
+            id: "acoes",
+            header: "",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            render: item => (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-foreground/15 bg-card text-muted-foreground transition hover:border-foreground/40 hover:text-foreground"
+                  onClick={event => {
+                    event.stopPropagation();
+                    openEditCoproducer(item);
+                  }}
+                  aria-label="Editar coprodutor"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-rose-500/30 bg-rose-500/10 text-rose-200 transition hover:border-rose-500/60"
+                  onClick={event => {
+                    event.stopPropagation();
+                    setDeleteTarget(item);
+                  }}
+                  aria-label="Excluir coprodutor"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {showCoproductionModal && (
         <div className="fixed inset-0 z-50 flex">
@@ -211,10 +302,15 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
           />
           <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
-              <h2 className="text-2xl font-semibold text-foreground">Convite de coprodução</h2>
+              <h2 className="text-2xl font-semibold text-foreground">
+                {editingCoproducer ? "Atualizar coprodutor" : "Convite de coprodução"}
+              </h2>
               <button
                 type="button"
-                onClick={() => setShowCoproductionModal(false)}
+                onClick={() => {
+                  setShowCoproductionModal(false);
+                  resetCoproducerForm();
+                }}
                 className="text-lg text-muted-foreground transition hover:text-foreground"
                 aria-label="Fechar"
               >
@@ -343,14 +439,17 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
                 <button
                   type="button"
                   className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
-                  onClick={() => setShowCoproductionModal(false)}
+                  onClick={() => {
+                    setShowCoproductionModal(false);
+                    resetCoproducerForm();
+                  }}
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => void handleCreateCoproducer()}
+                  onClick={() => void handleSaveCoproducer()}
                   disabled={
                     coproducerSaving ||
                     !coproducerForm.name.trim() ||
@@ -358,9 +457,38 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
                     !coproducerForm.commission
                   }
                 >
-                  {coproducerSaving ? "Salvando..." : "Adicionar"}
+                  {coproducerSaving ? "Salvando..." : editingCoproducer ? "Atualizar" : "Adicionar"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-[12px] border border-foreground/10 bg-card p-6 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+            <h3 className="text-lg font-semibold text-foreground">Excluir coprodutor?</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Tem certeza que deseja excluir este coprodutor? Essa ação não pode ser desfeita.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingCoproducer}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(255,71,87,0.35)] transition hover:bg-rose-500/90"
+                onClick={handleDeleteCoproducer}
+                disabled={deletingCoproducer}
+              >
+                {deletingCoproducer ? "Excluindo..." : "Excluir"}
+              </button>
             </div>
           </div>
         </div>

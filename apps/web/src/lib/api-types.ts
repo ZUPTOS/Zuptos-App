@@ -79,6 +79,22 @@ export enum ProductType {
   SERVICE = "service",
 }
 
+export enum TrackingType {
+  DEFAULT = "default",
+  API = "api",
+}
+
+export enum TrackingStatus {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+}
+
+export enum ProviderTrackingName {
+  FACEBOOK = "facebook",
+  GOOGLE = "google",
+  TIKTOK = "tiktok",
+}
+
 export interface ProductDeliverable {
   id: string;
   product_id: string;
@@ -257,11 +273,16 @@ export interface Coproducer {
   email?: string;
   commission?: number | string;
   commission_percentage?: number;
+  revenue_share_percentage?: number;
   status?: string;
   start?: string;
   start_at?: string;
   created_at?: string;
   duration?: string;
+  duration_months?: number;
+  share_sales_details?: boolean;
+  extend_product_strategies?: boolean;
+  split_invoice?: boolean;
 }
 
 export interface CreateCoproducerRequest {
@@ -293,6 +314,7 @@ export interface UpdateProductRequest {
   sale_url?: string;
   login_username?: string;
   login_password?: string;
+  status?: string;
 }
 
 export interface ProductSettings {
@@ -328,6 +350,7 @@ export interface ProductPlan {
   status?: string;
   pixel_id?: string;
   provider_tracking_id?: string;
+  provider_tracking_name?: ProviderTrackingName | string;
   token_api_connection?: string;
   add_to_cart?: boolean;
   initiate_checkout?: boolean;
@@ -339,8 +362,9 @@ export interface ProductPlan {
 
 export interface CreateProductTrackingRequest {
   name: string;
-  type: "default" | "api" | string;
-  status: "active" | "inactive" | string;
+  type: TrackingType;
+  status: TrackingStatus;
+  provider_tracking_name: ProviderTrackingName;
   provider_tracking_id: string;
   token_api_connection?: string;
   add_to_cart?: boolean;

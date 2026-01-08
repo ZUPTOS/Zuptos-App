@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import { productApi } from "@/lib/api";
 import type { CreateProductCouponRequest, ProductCoupon } from "@/lib/api";
 import PaginatedTable from "@/components/PaginatedTable";
@@ -12,6 +12,35 @@ type Props = {
   withLoading: <T>(task: () => Promise<T>, label?: string) => Promise<T>;
 };
 
+const formatBRLInput = (value: string) => {
+  const numeric = value.replace(/\D/g, "");
+  if (!numeric) return "";
+  const amount = Number(numeric) / 100;
+  return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+};
+
+const parseBRLToNumber = (value?: string) => {
+  if (!value) return undefined;
+  const numeric = value.replace(/\D/g, "");
+  if (!numeric) return undefined;
+  return Number(numeric) / 100;
+};
+
+const formatPercentInput = (value: string) => {
+  const cleaned = value.replace(/[^0-9,]/g, "");
+  if (!cleaned) return "";
+  const [intPart, decPart] = cleaned.split(",");
+  const trimmedDec = decPart ? decPart.slice(0, 2) : "";
+  return `${intPart}${trimmedDec ? `,${trimmedDec}` : ""}%`;
+};
+
+const parsePercentToNumber = (value?: string) => {
+  if (!value) return undefined;
+  const cleaned = value.replace(/[^0-9,]/g, "");
+  if (!cleaned) return undefined;
+  return Number(cleaned.replace(",", "."));
+};
+
 export function CuponsTab({ productId, token, withLoading }: Props) {
   const [coupons, setCoupons] = useState<ProductCoupon[]>([]);
   const [couponsLoading, setCouponsLoading] = useState(false);
@@ -19,6 +48,10 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
   const [couponSaving, setCouponSaving] = useState(false);
   const [couponUnit, setCouponUnit] = useState<"valor" | "percent">("valor");
   const [showCouponModal, setShowCouponModal] = useState(false);
+  const couponCodeRef = useRef<HTMLInputElement | null>(null);
+  const [editingCoupon, setEditingCoupon] = useState<ProductCoupon | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProductCoupon | null>(null);
+  const [deletingCoupon, setDeletingCoupon] = useState(false);
   const [couponForm, setCouponForm] = useState({
     coupon_code: "",
     discount_amount: "",
@@ -29,35 +62,6 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
     limit_usage: "",
     status: "active" as "active" | "inactive",
   });
-
-  const formatBRLInput = (value: string) => {
-    const numeric = value.replace(/\D/g, "");
-    if (!numeric) return "";
-    const amount = Number(numeric) / 100;
-    return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  };
-
-  const parseBRLToNumber = (value?: string) => {
-    if (!value) return undefined;
-    const numeric = value.replace(/\D/g, "");
-    if (!numeric) return undefined;
-    return Number(numeric) / 100;
-  };
-
-  const formatPercentInput = (value: string) => {
-    const cleaned = value.replace(/[^0-9,]/g, "");
-    if (!cleaned) return "";
-    const [intPart, decPart] = cleaned.split(",");
-    const trimmedDec = decPart ? decPart.slice(0, 2) : "";
-    return `${intPart}${trimmedDec ? `,${trimmedDec}` : ""}%`;
-  };
-
-  const parsePercentToNumber = (value?: string) => {
-    if (!value) return undefined;
-    const cleaned = value.replace(/[^0-9,]/g, "");
-    if (!cleaned) return undefined;
-    return Number(cleaned.replace(",", "."));
-  };
 
   const loadCoupons = useCallback(async () => {
     if (!productId || !token) return;
@@ -82,7 +86,7 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
     void loadCoupons();
   }, [loadCoupons]);
 
-  const handleCreateCoupon = useCallback(async () => {
+  const handleSaveCoupon = useCallback(async () => {
     if (!productId || !token) {
       console.warn("[coupon] missing productId or token", { productId, tokenPresent: Boolean(token) });
       setCouponsError("Sessão expirada. Faça login novamente.");
@@ -110,8 +114,9 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
       return;
     }
 
+    const rawCouponCode = couponCodeRef.current?.value ?? couponForm.coupon_code;
     const payload: CreateProductCouponRequest = {
-      coupon_code: couponForm.coupon_code.trim(),
+      coupon_code: rawCouponCode.trim(),
       discount_amount: discountValue,
       status: couponForm.status,
       is_percentage: couponUnit === "percent",
@@ -124,13 +129,23 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
     setCouponsError(null);
     setCouponSaving(true);
     try {
-      console.log("[coupon] Enviando criação de cupom:", payload);
-      const response = await withLoading(
-        () => productApi.createProductCoupon(productId, payload, token),
-        "Criando cupom"
-      );
-      console.log("[coupon] Resposta do servidor:", response);
+      if (editingCoupon?.id) {
+        console.log("[coupon] Enviando atualização de cupom:", payload);
+        const response = await withLoading(
+          () => productApi.updateProductCoupon(productId, editingCoupon.id!, payload, token),
+          "Atualizando cupom"
+        );
+        console.log("[coupon] Resposta atualização:", response);
+      } else {
+        console.log("[coupon] Enviando criação de cupom:", payload);
+        const response = await withLoading(
+          () => productApi.createProductCoupon(productId, payload, token),
+          "Criando cupom"
+        );
+        console.log("[coupon] Resposta do servidor:", response);
+      }
       await loadCoupons();
+      setEditingCoupon(null);
       setCouponForm({
         coupon_code: "",
         discount_amount: "",
@@ -144,12 +159,51 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
       setCouponUnit("valor");
       setShowCouponModal(false);
     } catch (error) {
-      console.error("Erro ao criar cupom:", error);
-      setCouponsError("Não foi possível criar o cupom.");
+      console.error("Erro ao salvar cupom:", error);
+      setCouponsError("Não foi possível salvar o cupom.");
     } finally {
       setCouponSaving(false);
     }
-  }, [productId, token, couponForm, couponUnit, withLoading, loadCoupons]);
+  }, [productId, token, couponForm, couponUnit, withLoading, loadCoupons, editingCoupon]);
+
+  const openEditCoupon = useCallback((coupon: ProductCoupon) => {
+    const isPercent = coupon.is_percentage ?? false;
+    setCouponUnit(isPercent ? "percent" : "valor");
+    setCouponForm({
+      coupon_code: coupon.coupon_code ?? coupon.code ?? "",
+      discount_amount: isPercent
+        ? formatPercentInput(String(coupon.discount_amount ?? ""))
+        : formatBRLInput(String(coupon.discount_amount ?? "")),
+      is_percentage: Boolean(coupon.is_percentage),
+      internal_name: coupon.internal_name ?? coupon.name ?? "",
+      expires_at: coupon.expires_at ?? "",
+      minimum_purchase_amount: coupon.minimum_purchase_amount
+        ? formatBRLInput(String(coupon.minimum_purchase_amount))
+        : "",
+      limit_usage: coupon.limit_usage ? String(coupon.limit_usage) : "",
+      status: (coupon.status ?? "active").toLowerCase() === "inactive" ? "inactive" : "active",
+    });
+    setEditingCoupon(coupon);
+    setShowCouponModal(true);
+  }, []);
+
+  const handleDeleteCoupon = useCallback(async () => {
+    if (!productId || !token || !deleteTarget?.id) return;
+    setDeletingCoupon(true);
+    try {
+      await withLoading(
+        () => productApi.deleteProductCoupon(productId, deleteTarget.id!, token),
+        "Excluindo cupom"
+      );
+      setDeleteTarget(null);
+      await loadCoupons();
+    } catch (error) {
+      console.error("Erro ao excluir cupom:", error);
+      setCouponsError("Não foi possível excluir o cupom.");
+    } finally {
+      setDeletingCoupon(false);
+    }
+  }, [productId, token, deleteTarget, withLoading, loadCoupons]);
 
   return (
     <>
@@ -180,6 +234,7 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                 status: "active",
               });
               setCouponUnit("valor");
+              setEditingCoupon(null);
               setShowCouponModal(true);
             }}
           >
@@ -192,7 +247,8 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
         data={coupons}
         rowsPerPage={6}
         rowKey={coupon => coupon.id ?? coupon.code ?? coupon.coupon_code ?? Math.random().toString()}
-        emptyMessage={couponsLoading ? "Carregando..." : couponsError || "Nenhum cupom cadastrado ainda."}
+        isLoading={couponsLoading}
+        emptyMessage={couponsError || "Nenhum cupom cadastrado ainda."}
         wrapperClassName="space-y-3"
         tableContainerClassName="rounded-[12px] border border-foreground/10 bg-card/80"
         headerRowClassName="text-foreground"
@@ -206,7 +262,6 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                 <p className="text-sm font-semibold text-foreground">
                   {coupon.internal_name || coupon.name || "Cupom"}
                 </p>
-                <p className="text-xs text-muted-foreground">{coupon.id ?? "--"}</p>
               </div>
             ),
           },
@@ -263,6 +318,38 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
               );
             },
           },
+          {
+            id: "acoes",
+            header: "",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            render: coupon => (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-foreground/15 bg-card text-muted-foreground transition hover:border-foreground/40 hover:text-foreground"
+                  onClick={event => {
+                    event.stopPropagation();
+                    openEditCoupon(coupon);
+                  }}
+                  aria-label="Editar cupom"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-rose-500/30 bg-rose-500/10 text-rose-200 transition hover:border-rose-500/60"
+                  onClick={event => {
+                    event.stopPropagation();
+                    setDeleteTarget(coupon);
+                  }}
+                  aria-label="Excluir cupom"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ),
+          },
         ]}
       />
 
@@ -270,20 +357,28 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
         <div className="fixed inset-0 z-50 flex">
           <div
             className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowCouponModal(false)}
+            onClick={() => {
+              setShowCouponModal(false);
+              setEditingCoupon(null);
+            }}
             aria-label="Fechar modal cupom"
           />
           <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
             <div className="flex items-center justify-between border-b border-foreground/10 pb-4">
               <div>
-                <h2 className="text-2xl font-semibold text-foreground">Novo Desconto</h2>
+                <h2 className="text-2xl font-semibold text-foreground">
+                  {editingCoupon ? "Atualizar cupom" : "Novo Desconto"}
+                </h2>
                 <p className="text-sm text-muted-foreground">
                   Configure um cupom de desconto e aumente as conversões da sua loja, capte novos compradores e incentive a conclusão da compra.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowCouponModal(false)}
+                onClick={() => {
+                  setShowCouponModal(false);
+                  setEditingCoupon(null);
+                }}
                 className="text-lg text-muted-foreground transition hover:text-foreground"
                 aria-label="Fechar"
               >
@@ -305,6 +400,7 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
               <label className="space-y-3 text-sm text-muted-foreground">
                 <span className="text-foreground">Código de Cupom</span>
                 <input
+                  ref={couponCodeRef}
                   className="h-11 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                   placeholder="Selecione um produto"
                   value={couponForm.coupon_code}
@@ -415,14 +511,17 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                 <button
                   type="button"
                   className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
-                  onClick={() => setShowCouponModal(false)}
+                  onClick={() => {
+                    setShowCouponModal(false);
+                    setEditingCoupon(null);
+                  }}
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => void handleCreateCoupon()}
+                  onClick={() => void handleSaveCoupon()}
                   disabled={
                     couponSaving ||
                     !couponForm.coupon_code.trim() ||
@@ -432,9 +531,38 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                       : Number.isNaN(parseBRLToNumber(couponForm.discount_amount)))
                   }
                 >
-                  {couponSaving ? "Salvando..." : "Adicionar"}
+                  {couponSaving ? "Salvando..." : editingCoupon ? "Atualizar" : "Adicionar"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-[12px] border border-foreground/10 bg-card p-6 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+            <h3 className="text-lg font-semibold text-foreground">Excluir cupom?</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Tem certeza que deseja excluir este cupom? Essa ação não pode ser desfeita.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingCoupon}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(255,71,87,0.35)] transition hover:bg-rose-500/90"
+                onClick={handleDeleteCoupon}
+                disabled={deletingCoupon}
+              >
+                {deletingCoupon ? "Excluindo..." : "Excluir"}
+              </button>
             </div>
           </div>
         </div>
