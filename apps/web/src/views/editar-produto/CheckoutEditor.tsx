@@ -9,6 +9,8 @@ import type { CheckoutPayload, Product } from "@/lib/api";
 import { CheckoutTemplate } from "@/lib/api";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pencil, Trash2 } from "lucide-react";
+import { notify } from "@/components/ui/notification-toast";
 
 const fieldClass =
   "h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
@@ -96,19 +98,22 @@ export function CheckoutEditor({
   const [discountBoleto, setDiscountBoleto] = useState("");
   const [installmentsLimit, setInstallmentsLimit] = useState("12");
   const [installmentsPreselected, setInstallmentsPreselected] = useState("12");
+  const [boletoDueDays, setBoletoDueDays] = useState("3");
+  const [pixExpireMinutes, setPixExpireMinutes] = useState("");
   const [salesNotificationsEnabled, setSalesNotificationsEnabled] = useState(false);
   const [socialProofEnabled, setSocialProofEnabled] = useState(false);
   const [reviewsEnabled, setReviewsEnabled] = useState(false);
   const [acceptedDocuments, setAcceptedDocuments] = useState<Array<"cpf" | "cnpj">>(["cpf"]);
   const [paymentMethods, setPaymentMethods] = useState<Array<"card" | "boleto" | "pix">>(["card"]);
   const [testimonials, setTestimonials] = useState<
-    { id?: string; name: string; text: string; rating: number; active: boolean }[]
+    { id?: string; name: string; text: string; rating: number; active: boolean; avatar?: string }[]
   >([]);
   const [testimonialDraft, setTestimonialDraft] = useState<{ name: string; text: string; rating: number }>({
     name: "",
     text: "",
     rating: 5,
   });
+  const [editingTestimonialIndex, setEditingTestimonialIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
@@ -167,6 +172,8 @@ export function CheckoutEditor({
         setDiscountBoleto(data.discount_boleto != null ? String(data.discount_boleto) : "");
         setInstallmentsLimit(data.installments_limit != null ? String(data.installments_limit) : "12");
         setInstallmentsPreselected(data.installments_preselected != null ? String(data.installments_preselected) : "12");
+        setBoletoDueDays(data.boleto_due_days != null ? String(data.boleto_due_days) : "3");
+        setPixExpireMinutes(data.pix_expire_minutes != null ? String(data.pix_expire_minutes) : "");
         setSalesNotificationsEnabled(Boolean(data.sales_notifications_enabled));
         setSocialProofEnabled(Boolean(data.social_proof_enabled));
         setReviewsEnabled(Boolean(data.testimonials_enabled));
@@ -191,6 +198,11 @@ export function CheckoutEditor({
 
   const handleSave = async () => {
     if (!productId || !token) return;
+    const normalizedName = checkoutName.trim();
+    if (!normalizedName || normalizedName.toLowerCase() === "checkout") {
+      notify.error("Informe um nome válido para o checkout.");
+      return;
+    }
     if (!acceptedDocuments.length) {
       alert("Selecione ao menos um documento (CPF/CNPJ).");
       return;
@@ -200,7 +212,7 @@ export function CheckoutEditor({
       return;
     }
     const payload: CheckoutPayload = {
-      name: checkoutName.trim() || "Checkout",
+      name: normalizedName,
       template: CheckoutTemplate.DEFAULT,
       required_address: true,
       required_phone: true,
@@ -219,6 +231,8 @@ export function CheckoutEditor({
       if (discountBoleto) payload.discount_boleto = Number(discountBoleto) || 0;
       if (installmentsLimit) payload.installments_limit = Number(installmentsLimit);
       if (installmentsPreselected) payload.installments_preselected = Number(installmentsPreselected);
+      if (boletoDueDays) payload.boleto_due_days = Number(boletoDueDays);
+      if (pixExpireMinutes) payload.pix_expire_minutes = Number(pixExpireMinutes);
     }
 
     if (countdownEnabled) {
@@ -244,6 +258,25 @@ export function CheckoutEditor({
         ? await productApi.updateCheckout(productId, checkoutId, payload, token)
         : await productApi.createCheckout(productId, payload, token);
       console.log("[checkout] Resposta do servidor:", response);
+      const targetCheckoutId = checkoutId ?? (response as { id?: string } | undefined)?.id;
+      if (reviewsEnabled && targetCheckoutId && testimonials.length > 0) {
+        await Promise.all(
+          testimonials.map(item =>
+            productApi.createCheckoutDepoiment(
+              productId,
+              targetCheckoutId,
+              {
+                image: item.avatar,
+                name: item.name || "Nome",
+                depoiment: item.text || "Depoimento",
+                active: item.active ?? true,
+                ratting: String(item.rating ?? ""),
+              },
+              token
+            )
+          )
+        );
+      }
       if (onSaved) onSaved();
     } catch (error) {
       console.error("Erro ao salvar checkout:", error);
@@ -671,36 +704,45 @@ export function CheckoutEditor({
                 {couponEnabled && (
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
+                      <label className="space-y-2 text-xs text-muted-foreground">
+                        <span>Cartão de crédito</span>
+                        <div className="relative">
+                          <input
+                            className={`${fieldClass} pr-10`}
+                            placeholder="0"
+                            value={discountCard}
+                            onChange={event => setDiscountCard(event.target.value)}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
+                        </div>
+                      </label>
+                      <label className="space-y-2 text-xs text-muted-foreground">
+                        <span>Pix</span>
+                        <div className="relative">
+                          <input
+                            className={`${fieldClass} pr-10`}
+                            placeholder="0"
+                            value={discountPix}
+                            onChange={event => setDiscountPix(event.target.value)}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
+                        </div>
+                      </label>
+                    </div>
+                    <label className="space-y-2 text-xs text-muted-foreground">
+                      <span>Boleto</span>
                       <div className="relative">
                         <input
                           className={`${fieldClass} pr-10`}
-                          placeholder="Cartão de crédito"
-                          value={discountCard}
-                          onChange={event => setDiscountCard(event.target.value)}
+                          placeholder="0"
+                          value={discountBoleto}
+                          onChange={event => setDiscountBoleto(event.target.value)}
                         />
                         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
                       </div>
-                      <div className="relative">
-                        <input
-                          className={`${fieldClass} pr-10`}
-                          placeholder="Pix"
-                          value={discountPix}
-                          onChange={event => setDiscountPix(event.target.value)}
-                        />
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input
-                        className={`${fieldClass} pr-10`}
-                        placeholder="Boleto"
-                        value={discountBoleto}
-                        onChange={event => setDiscountBoleto(event.target.value)}
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
-                    </div>
+                    </label>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="relative">
+                      <div className="relative mt-2">
                         <input
                           className={`${fieldClass} pr-8`}
                           placeholder="Limite de parcelas"
@@ -709,7 +751,7 @@ export function CheckoutEditor({
                         />
                         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
                       </div>
-                      <div className="relative">
+                      <div className="relative mt-2">
                         <input
                           className={`${fieldClass} pr-8`}
                           placeholder="Parcela pré-selecionada"
@@ -718,6 +760,40 @@ export function CheckoutEditor({
                         />
                         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
                       </div>
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      <p className="text-sm font-semibold text-foreground">Boleto</p>
+                      <label className="space-y-2 text-xs text-muted-foreground">
+                        <span>Dias para vencimento</span>
+                        <select
+                          className={`${fieldClass} appearance-none`}
+                          value={boletoDueDays}
+                          onChange={event => setBoletoDueDays(event.target.value)}
+                        >
+                          {["1", "2", "3", "4", "5"].map(day => (
+                            <option key={day} value={day}>
+                              {day} dia{day === "1" ? "" : "s"}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-foreground">Pix</p>
+                      <label className="space-y-2 text-xs text-muted-foreground">
+                        <span>Tempo de expiração</span>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            className={`${fieldClass} pr-16`}
+                            placeholder="00"
+                            min={0}
+                            value={pixExpireMinutes}
+                            onChange={event => setPixExpireMinutes(event.target.value.replace(/\D/g, ""))}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">Minutos</span>
+                        </div>
+                      </label>
                     </div>
                   </div>
                 )}
@@ -947,13 +1023,34 @@ export function CheckoutEditor({
                                 <span className="text-xs text-foreground">{item.active ? "Ativo" : "Inativo"}</span>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              className="rounded-[6px] border border-foreground/20 bg-card px-2 py-1 text-xs text-rose-300"
-                              onClick={() => setTestimonials(prev => prev.filter((_, i) => i !== idx))}
-                            >
-                              Excluir
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-[6px] border border-blue-500/40 bg-blue-500/10 px-2 py-1 text-xs text-blue-200 transition hover:border-blue-500/70"
+                                onClick={() => {
+                                  setEditingTestimonialIndex(idx);
+                                  setTestimonialDraft({
+                                    name: item.name,
+                                    text: item.text,
+                                    rating: item.rating ?? 5,
+                                  });
+                                }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-[6px] border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-xs text-rose-200 transition hover:border-rose-500/70"
+                                onClick={() => {
+                                  setTestimonials(prev => prev.filter((_, i) => i !== idx));
+                                  notify.success("Depoimento removido");
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Excluir
+                              </button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/70" />
@@ -971,7 +1068,9 @@ export function CheckoutEditor({
                       ))}
 
                       <div className="space-y-3 rounded-[10px] border border-foreground/15 bg-card p-3">
-                        <p className="text-sm font-semibold text-foreground">Novo depoimento</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {editingTestimonialIndex !== null ? "Editar depoimento" : "Novo depoimento"}
+                        </p>
                         <div className="flex items-center gap-2 text-sm text-foreground">
                           <span>Classificação</span>
                           <div className="flex gap-1 text-[#8ea000]">
@@ -1004,19 +1103,25 @@ export function CheckoutEditor({
                           type="button"
                           className="rounded-[8px] bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
                           onClick={() => {
-                            setTestimonials(prev => [
-                              ...prev,
-                              {
-                                name: testimonialDraft.name || "Nome",
-                                text: testimonialDraft.text || "Depoimento do cliente",
-                                rating: testimonialDraft.rating,
-                                active: true,
-                              },
-                            ]);
+                            const nextItem = {
+                              name: testimonialDraft.name || "Nome",
+                              text: testimonialDraft.text || "Depoimento do cliente",
+                              rating: testimonialDraft.rating,
+                              active: true,
+                            };
+                            setTestimonials(prev => {
+                              if (editingTestimonialIndex === null) {
+                                notify.success("Depoimento adicionado");
+                                return [nextItem, ...prev];
+                              }
+                              notify.success("Depoimento atualizado");
+                              return prev.map((item, i) => (i === editingTestimonialIndex ? { ...item, ...nextItem } : item));
+                            });
                             setTestimonialDraft({ name: "", text: "", rating: 5 });
+                            setEditingTestimonialIndex(null);
                           }}
                         >
-                          Inserir novo depoimento
+                          {editingTestimonialIndex !== null ? "Salvar edição" : "Inserir novo depoimento"}
                         </button>
                       </div>
                     </div>

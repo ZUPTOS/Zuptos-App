@@ -475,6 +475,102 @@ export const productApi = {
     }
   },
 
+  createCheckoutDepoiment: async (
+    productId: string,
+    checkoutId: string,
+    payload: {
+      image?: string;
+      name: string;
+      depoiment: string;
+      active?: boolean;
+      ratting?: string | number;
+    },
+    token?: string
+  ): Promise<{ id?: string; status?: string; message?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for checkout depoiments");
+    }
+    return request(`/product/${productId}/checkouts/${checkoutId}/depoiments`, {
+      method: "POST",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getCheckoutDepoiment: async (
+    productId: string,
+    checkoutId: string,
+    depoimentId: string,
+    token?: string
+  ): Promise<{ id?: string; status?: string; message?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for checkout depoiment");
+    }
+    return request(`/product/${productId}/checkout/${checkoutId}/depoiments/${depoimentId}`, {
+      method: "GET",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+  },
+
+  updateCheckoutDepoiment: async (
+    productId: string,
+    checkoutId: string,
+    depoimentId: string,
+    payload: {
+      image?: string;
+      name?: string;
+      depoiment?: string;
+      active?: boolean;
+      ratting?: string | number;
+    },
+    token?: string
+  ): Promise<{ id?: string; status?: string; message?: string }> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for checkout depoiment");
+    }
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined)
+    );
+    return request(`/product/${productId}/checkout/${checkoutId}/depoiments/${depoimentId}`, {
+      method: "PATCH",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+  },
+
+  deleteCheckoutDepoiment: async (
+    productId: string,
+    checkoutId: string,
+    depoimentId: string,
+    token?: string
+  ): Promise<void> => {
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for checkout depoiment");
+    }
+    await request(`/product/${productId}/checkout/${checkoutId}/depoiments/${depoimentId}`, {
+      method: "DELETE",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+  },
+
   getPlansByProductId: async (productId: string, token?: string): Promise<ProductPlan[]> => {
     const authToken = token ?? readStoredToken();
     if (!authToken) {

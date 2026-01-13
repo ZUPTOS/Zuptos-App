@@ -207,6 +207,8 @@ export interface CheckoutPayload {
   discount_boleto?: number;
   installments_limit?: number;
   installments_preselected?: number;
+  boleto_due_days?: number;
+  pix_expire_minutes?: number;
   testimonials_enabled?: boolean;
   testimonials?: Testimonial[];
   sales_notifications_enabled?: boolean;

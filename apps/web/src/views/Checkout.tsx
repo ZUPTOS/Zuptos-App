@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useEffect, useMemo, useState } from "react";
 import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from "lucide-react";
 import Image from "next/image";
 import type { Checkout, Product, ProductOffer } from "@/lib/api";
@@ -58,10 +59,26 @@ export default function Checkout({ checkout, product, offer }: Props) {
     orderBumpNormal != null && orderBumpPromo != null && Number(orderBumpNormal) !== Number(orderBumpPromo);
   const formatBRL = (value: number) =>
     Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const availablePaymentMethods = useMemo(() => {
+    const methods = checkout?.payment_methods;
+    return methods && methods.length > 0 ? methods : ["card", "pix", "boleto"];
+  }, [checkout?.payment_methods]);
+  const [paymentMethod, setPaymentMethod] = useState<string>(availablePaymentMethods[0] ?? "card");
+  const visiblePaymentButtons = useMemo(
+    () => paymentButtons.filter(button => availablePaymentMethods.includes(button.id)),
+    [availablePaymentMethods]
+  );
   const inputClass = `
     h-10 w-full rounded-[6px] px-3 text-sm focus:outline-none
     ${isDark ? "border border-white/10 bg-[#0b0b0b] text-white placeholder:text-neutral-500" : "border border-black/10 bg-white text-[#0a0a0a] placeholder:text-neutral-500"}
   `;
+
+  useEffect(() => {
+    if (!availablePaymentMethods.length) return;
+    setPaymentMethod(prev =>
+      availablePaymentMethods.includes(prev) ? prev : availablePaymentMethods[0]
+    );
+  }, [availablePaymentMethods]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: background }}>
@@ -164,48 +181,83 @@ export default function Checkout({ checkout, product, offer }: Props) {
             </div>
 
             <div className="px-5 pt-3 flex items-center gap-3">
-              {paymentButtons.map(button => (
+              {visiblePaymentButtons.map(button => {
+                const isSelected = paymentMethod === button.id;
+                return (
                 <button
                   key={button.id}
                   type="button"
                   className={`flex h-10 w-10 items-center justify-center rounded-[6px] border transition ${
                     isDark ? "border-white/20 bg-[#111] text-white" : "border-black/10 bg-white text-[#0a0a0a]"
-                  } hover:border-emerald-500`}
+                  } hover:border-emerald-500 ${isSelected ? "border-emerald-500 ring-2 ring-emerald-500/30" : ""}`}
                   aria-label={button.label}
+                  onClick={() => setPaymentMethod(button.id)}
                 >
                   <Image src={button.iconSrc} alt={button.label} width={28} height={28} className="h-7 w-7 object-contain" />
                 </button>
-              ))}
+              )})}
             </div>
 
             <div className="px-5 pb-5 pt-3 space-y-5">
-              <label className="space-y-5 text-xs text-neutral-400">
-                <span>Nome do titular</span>
-                <input className={inputClass} placeholder="Digite um nome" />
-              </label>
+              {paymentMethod === "card" && (
+                <>
+                  <label className="space-y-5 text-xs text-neutral-400">
+                    <span>Nome do titular</span>
+                    <input className={inputClass} placeholder="Digite um nome" />
+                  </label>
 
-              <label className="space-y-5 text-xs text-neutral-400">
-                <span>Número do cartão</span>
-                <div className="relative">
-                  <input className={`${inputClass} pr-10`} placeholder="Digite um nome" />
-                  <CreditCard className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                  <label className="space-y-5 text-xs text-neutral-400">
+                    <span>Número do cartão</span>
+                    <div className="relative">
+                      <input className={`${inputClass} pr-10`} placeholder="Digite um nome" />
+                      <CreditCard className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                    </div>
+                  </label>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="space-y-5 text-xs text-neutral-400">
+                      <span>Vencimento</span>
+                      <input className={inputClass} placeholder="Digite um nome" />
+                    </label>
+                    <label className="space-y-5 text-xs text-neutral-400">
+                      <span>CVV</span>
+                      <input className={inputClass} placeholder="Digite um nome" />
+                    </label>
+                    <label className="space-y-5 text-xs text-neutral-400">
+                      <span>Parcelamento</span>
+                      <input className={inputClass} placeholder="Digite um nome" />
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {paymentMethod === "pix" && (
+                <div
+                  className="flex flex-col items-center gap-3 rounded-[10px] border px-4 py-5"
+                  style={{ backgroundColor: subCardBg, borderColor }}
+                >
+                  <div className="grid grid-cols-7 gap-1 rounded-[8px] bg-white p-2">
+                    {Array.from({ length: 49 }).map((_, idx) => (
+                      <span
+                        key={idx}
+                        className={`h-3 w-3 ${[1, 2, 5, 6, 9, 11, 13, 17, 18, 20, 24, 25, 28, 30, 33, 34, 36, 40, 41, 45, 47].includes(idx) ? "bg-black" : "bg-white"}`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
+                    Escaneie o QR Code para pagar com Pix
+                  </p>
                 </div>
-              </label>
+              )}
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <label className="space-y-5 text-xs text-neutral-400">
-                  <span>Vencimento</span>
-                  <input className={inputClass} placeholder="Digite um nome" />
-                </label>
-                <label className="space-y-5 text-xs text-neutral-400">
-                  <span>CVV</span>
-                  <input className={inputClass} placeholder="Digite um nome" />
-                </label>
-                <label className="space-y-5 text-xs text-neutral-400">
-                  <span>Parcelamento</span>
-                  <input className={inputClass} placeholder="Digite um nome" />
-                </label>
-              </div>
+              {paymentMethod === "boleto" && (
+                <div
+                  className="rounded-[10px] border px-4 py-4 text-xs"
+                  style={{ backgroundColor: subCardBg, borderColor, color: isDark ? "#a1a1aa" : "#4b5563" }}
+                >
+                  Boleto disponível em breve.
+                </div>
+              )}
             </div>
 
           </div>
