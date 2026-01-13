@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
 import { Pencil, Search, Trash2 } from "lucide-react";
-import { productApi } from "@/lib/api";
-import type { Coproducer, CreateCoproducerRequest } from "@/lib/api";
+import type { Coproducer } from "@/lib/api";
 import PaginatedTable from "@/components/PaginatedTable";
+import { useCoproducers } from "./hooks/useCoproducers";
 
 type Props = {
   productId?: string;
@@ -13,162 +12,29 @@ type Props = {
 };
 
 export function CoproducaoTab({ productId, token, withLoading }: Props) {
-  const [coproducers, setCoproducers] = useState<Coproducer[]>([]);
-  const [coproducersLoading, setCoproducersLoading] = useState(false);
-  const [coproducersError, setCoproducersError] = useState<string | null>(null);
-  const [selectedCoproducer, setSelectedCoproducer] = useState<Coproducer | null>(null);
-  const [showCoproductionModal, setShowCoproductionModal] = useState(false);
-  const [showCoproductionDetailModal, setShowCoproductionDetailModal] = useState(false);
-  const [coproducerSaving, setCoproducerSaving] = useState(false);
-  const [coproducerFormError, setCoproducerFormError] = useState<string | null>(null);
-  const [editingCoproducer, setEditingCoproducer] = useState<Coproducer | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Coproducer | null>(null);
-  const [deletingCoproducer, setDeletingCoproducer] = useState(false);
-  const [coproducerForm, setCoproducerForm] = useState({
-    name: "",
-    email: "",
-    commission: "",
-    durationMonths: "",
-    lifetime: false,
-    shareSalesDetails: false,
-    extendProductStrategies: false,
-    splitInvoice: false,
-  });
-
-  const normalizeCoproducers = useCallback((raw: unknown): Coproducer[] => {
-    if (Array.isArray(raw)) return raw;
-    const data = (raw as { data?: Coproducer[] } | null)?.data;
-    return Array.isArray(data) ? data : [];
-  }, []);
-
-  useEffect(() => {
-    const loadCoproducers = async () => {
-      if (!productId || !token) return;
-      setCoproducersLoading(true);
-      setCoproducersError(null);
-      try {
-        const data = await withLoading(
-          () => productApi.getCoproducersByProductId(productId, token),
-          "Carregando coprodutores"
-        );
-        setCoproducers(normalizeCoproducers(data));
-      } catch (error) {
-        console.error("Erro ao carregar coprodutores:", error);
-        setCoproducersError("Não foi possível carregar os coprodutores agora.");
-      } finally {
-        setCoproducersLoading(false);
-      }
-    };
-    void loadCoproducers();
-  }, [productId, token, withLoading, normalizeCoproducers]);
-
-  const resetCoproducerForm = useCallback(() => {
-    setCoproducerForm({
-      name: "",
-      email: "",
-      commission: "",
-      durationMonths: "",
-      lifetime: false,
-      shareSalesDetails: false,
-      extendProductStrategies: false,
-      splitInvoice: false,
-    });
-    setEditingCoproducer(null);
-  }, []);
-
-  const openEditCoproducer = useCallback(
-    (coproducer: Coproducer) => {
-      const durationMonths = coproducer.duration_months ?? 0;
-      const isLifetime = durationMonths === 0;
-      const commissionValue =
-        coproducer.revenue_share_percentage ??
-        coproducer.commission_percentage ??
-        (typeof coproducer.commission === "number"
-          ? coproducer.commission
-          : Number(coproducer.commission));
-      setCoproducerForm({
-        name: coproducer.name ?? "",
-        email: coproducer.email ?? "",
-        commission: Number.isNaN(commissionValue) ? "" : String(commissionValue),
-        durationMonths: isLifetime ? "" : String(durationMonths),
-        lifetime: isLifetime,
-        shareSalesDetails: Boolean(coproducer.share_sales_details),
-        extendProductStrategies: Boolean(coproducer.extend_product_strategies),
-        splitInvoice: Boolean(coproducer.split_invoice),
-      });
-      setEditingCoproducer(coproducer);
-      setShowCoproductionModal(true);
-    },
-    []
-  );
-
-  const handleSaveCoproducer = async () => {
-    if (!productId || !token) return;
-    setCoproducerFormError(null);
-
-    const commissionValue = Number(coproducerForm.commission);
-    if (Number.isNaN(commissionValue)) {
-      setCoproducerFormError("Informe uma comissão válida.");
-      return;
-    }
-
-    const payload: CreateCoproducerRequest = {
-      name: coproducerForm.name.trim(),
-      email: coproducerForm.email.trim(),
-      duration_months: coproducerForm.lifetime ? 0 : Number(coproducerForm.durationMonths || 0),
-      revenue_share_percentage: commissionValue,
-      share_sales_details: Boolean(coproducerForm.shareSalesDetails),
-      extend_product_strategies: Boolean(coproducerForm.extendProductStrategies),
-      split_invoice: Boolean(coproducerForm.splitInvoice),
-    };
-
-    setCoproducerSaving(true);
-    try {
-      if (editingCoproducer?.id) {
-        console.log("[coproducer] Enviando atualização:", payload);
-        const response = await withLoading(
-          () => productApi.updateCoproducer(productId, editingCoproducer.id!, payload, token),
-          "Atualizando coprodutor"
-        );
-        console.log("[coproducer] Resposta atualização:", response);
-      } else {
-        console.log("[coproducer] Enviando criação:", payload);
-        const response = await withLoading(
-          () => productApi.createCoproducer(productId, payload, token),
-          "Criando coprodutor"
-        );
-        console.log("[coproducer] Resposta do servidor:", response);
-      }
-      const refreshed = await productApi.getCoproducersByProductId(productId, token);
-      setCoproducers(normalizeCoproducers(refreshed));
-      resetCoproducerForm();
-      setShowCoproductionModal(false);
-    } catch (error) {
-      console.error("Erro ao salvar coprodutor:", error);
-      setCoproducerFormError("Não foi possível salvar o coprodutor.");
-    } finally {
-      setCoproducerSaving(false);
-    }
-  };
-
-  const handleDeleteCoproducer = useCallback(async () => {
-    if (!productId || !token || !deleteTarget?.id) return;
-    setDeletingCoproducer(true);
-    try {
-      await withLoading(
-        () => productApi.deleteCoproducer(productId, deleteTarget.id!, token),
-        "Excluindo coprodutor"
-      );
-      setDeleteTarget(null);
-      const refreshed = await productApi.getCoproducersByProductId(productId, token);
-      setCoproducers(normalizeCoproducers(refreshed));
-    } catch (error) {
-      console.error("Erro ao excluir coprodutor:", error);
-      setCoproducerFormError("Não foi possível excluir o coprodutor.");
-    } finally {
-      setDeletingCoproducer(false);
-    }
-  }, [productId, token, deleteTarget, withLoading, normalizeCoproducers]);
+  const {
+    coproducers,
+    coproducersLoading,
+    coproducersError,
+    selectedCoproducer,
+    showCoproductionModal,
+    showCoproductionDetailModal,
+    coproducerSaving,
+    coproducerFormError,
+    editingCoproducer,
+    deleteTarget,
+    deletingCoproducer,
+    coproducerForm,
+    setCoproducerForm,
+    setDeleteTarget,
+    openCreateCoproducer,
+    closeCoproductionModal,
+    openEditCoproducer,
+    handleSaveCoproducer,
+    handleDeleteCoproducer,
+    openDetailModal,
+    closeDetailModal,
+  } = useCoproducers({ productId, token, withLoading });
 
   return (
     <>
@@ -188,10 +54,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
           <button
             type="button"
             className="whitespace-nowrap rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-            onClick={() => {
-              resetCoproducerForm();
-              setShowCoproductionModal(true);
-            }}
+            onClick={openCreateCoproducer}
           >
             Adicionar
           </button>
@@ -208,10 +71,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
         tableContainerClassName="rounded-[12px] border border-foreground/10 bg-card/80"
         headerRowClassName="text-foreground"
         tableClassName="text-left"
-        onRowClick={item => {
-          setSelectedCoproducer(item);
-          setShowCoproductionDetailModal(true);
-        }}
+        onRowClick={openDetailModal}
         columns={[
           {
             id: "nome",
@@ -297,7 +157,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
         <div className="fixed inset-0 z-50 flex">
           <div
             className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowCoproductionModal(false)}
+            onClick={closeCoproductionModal}
             aria-label="Fechar modal coprodução"
           />
           <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
@@ -308,8 +168,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
               <button
                 type="button"
                 onClick={() => {
-                  setShowCoproductionModal(false);
-                  resetCoproducerForm();
+                  closeCoproductionModal();
                 }}
                 className="text-lg text-muted-foreground transition hover:text-foreground"
                 aria-label="Fechar"
@@ -439,10 +298,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
                 <button
                   type="button"
                   className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-foreground/40"
-                  onClick={() => {
-                    setShowCoproductionModal(false);
-                    resetCoproducerForm();
-                  }}
+                  onClick={closeCoproductionModal}
                 >
                   Cancelar
                 </button>
@@ -498,10 +354,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
         <div className="fixed inset-0 z-50 flex">
           <div
             className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => {
-              setSelectedCoproducer(null);
-              setShowCoproductionDetailModal(false);
-            }}
+            onClick={closeDetailModal}
             aria-label="Fechar detalhes coprodução"
           />
           <div className="relative h-full w-full max-w-[520px] overflow-y-auto rounded-[12px] border border-foreground/10 bg-card px-8 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.45)]">
@@ -512,8 +365,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedCoproducer(null);
-                  setShowCoproductionDetailModal(false);
+                  closeDetailModal();
                 }}
                 className="text-lg text-muted-foreground transition hover:text-foreground"
                 aria-label="Fechar"
@@ -567,10 +419,7 @@ export function CoproducaoTab({ productId, token, withLoading }: Props) {
                 <button
                   type="button"
                   className="rounded-[8px] bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] transition hover:bg-primary/90"
-                  onClick={() => {
-                    setSelectedCoproducer(null);
-                    setShowCoproductionDetailModal(false);
-                  }}
+                  onClick={closeDetailModal}
                 >
                   Fechar
                 </button>

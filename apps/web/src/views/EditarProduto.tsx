@@ -97,7 +97,6 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   }, [initialTab]);
 
   const navigateToTab = (tab: TabLabel) => {
-    setActiveTab(tab);
     const slug = tabToSlug[tab] ?? tab.toLowerCase();
     if (productId) {
       router.push(`/editar-produto/${encodeURIComponent(productId)}/${slug}`);

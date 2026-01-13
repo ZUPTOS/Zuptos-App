@@ -1,12 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Trash2 } from "lucide-react";
-import { productApi } from "@/lib/api";
 import type { Checkout } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import PaginatedTable from "@/components/PaginatedTable";
+import { useCheckouts } from "./hooks/useCheckouts";
 
 type Props = {
   productId?: string;
@@ -16,47 +15,15 @@ type Props = {
 
 export function CheckoutsTab({ productId, token, withLoading }: Props) {
   const router = useRouter();
-  const [checkouts, setCheckouts] = useState<Checkout[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Checkout | null>(null);
-  const [deletingCheckout, setDeletingCheckout] = useState(false);
-
-  const load = useCallback(async () => {
-    if (!productId || !token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getCheckoutsByProductId(productId, token),
-        "Carregando checkouts"
-      );
-      setCheckouts(data);
-    } catch (err) {
-      console.error("Erro ao carregar checkouts:", err);
-      setError("Não foi possível carregar os checkouts agora.");
-    } finally {
-      setLoading(false);
-    }
-  }, [productId, token, withLoading]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const handleDeleteCheckout = async () => {
-    if (!productId || !token || !deleteTarget?.id) return;
-    setDeletingCheckout(true);
-    try {
-      await productApi.deleteCheckout(productId, deleteTarget.id, token);
-      setDeleteTarget(null);
-      await load();
-    } catch (err) {
-      console.error("Erro ao excluir checkout:", err);
-    } finally {
-      setDeletingCheckout(false);
-    }
-  };
+  const {
+    checkouts,
+    loading,
+    error,
+    deleteTarget,
+    deletingCheckout,
+    setDeleteTarget,
+    handleDeleteCheckout,
+  } = useCheckouts({ productId, token, withLoading });
 
   return (
     <>
