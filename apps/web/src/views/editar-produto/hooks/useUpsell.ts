@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
 import type { CreateProductStrategyRequest, ProductOffer, ProductStrategy } from "@/lib/api";
+import { readCache, writeCache } from "./tabCache";
 
 type Params = {
   productId?: string;
@@ -11,13 +12,21 @@ type Params = {
 };
 
 export function useUpsell({ productId, token, withLoading }: Params) {
-  const [strategies, setStrategies] = useState<ProductStrategy[]>([]);
-  const [strategiesLoading, setStrategiesLoading] = useState(false);
+  const strategiesCacheKey = productId ? `strategies:${productId}` : null;
+  const offersCacheKey = productId ? `offers:${productId}` : null;
+  const cachedStrategies = strategiesCacheKey ? readCache<ProductStrategy[]>(strategiesCacheKey) : undefined;
+  const cachedOffers = offersCacheKey ? readCache<ProductOffer[]>(offersCacheKey) : undefined;
+  const hasCachedStrategies = Array.isArray(cachedStrategies)
+    ? cachedStrategies.length > 0
+    : Boolean(cachedStrategies);
+  const hasCachedOffers = Array.isArray(cachedOffers) ? cachedOffers.length > 0 : Boolean(cachedOffers);
+  const [strategies, setStrategies] = useState<ProductStrategy[]>(cachedStrategies ?? []);
+  const [strategiesLoading, setStrategiesLoading] = useState(!hasCachedStrategies);
   const [strategiesError, setStrategiesError] = useState<string | null>(null);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [savingStrategy, setSavingStrategy] = useState(false);
-  const [offers, setOffers] = useState<ProductOffer[]>([]);
-  const [offersLoading, setOffersLoading] = useState(false);
+  const [offers, setOffers] = useState<ProductOffer[]>(cachedOffers ?? []);
+  const [offersLoading, setOffersLoading] = useState(!hasCachedOffers);
   const [editingStrategy, setEditingStrategy] = useState<ProductStrategy | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProductStrategy | null>(null);
   const [deletingStrategy, setDeletingStrategy] = useState(false);
@@ -33,6 +42,10 @@ export function useUpsell({ productId, token, withLoading }: Params) {
     rejectAction: "",
     rejectUrl: "",
   });
+  const strategiesLoadRef = useRef<Promise<void> | null>(null);
+  const offersLoadRef = useRef<Promise<void> | null>(null);
+  const strategiesLoadIdRef = useRef(0);
+  const offersLoadIdRef = useRef(0);
 
   const resolveStrategyList = (raw: unknown): ProductStrategy[] => {
     if (Array.isArray(raw)) return raw;
@@ -118,48 +131,108 @@ export function useUpsell({ productId, token, withLoading }: Params) {
     resetStrategyForm();
   }, [resetStrategyForm]);
 
-  const loadStrategies = useCallback(async () => {
-    if (!productId || !token) return;
-    setStrategiesLoading(true);
-    setStrategiesError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getProductStrategy(productId, token),
-        "Carregando upsells"
-      );
-      console.log("Estratégias data:", data);
-      setStrategies(resolveStrategyList(data));
-    } catch (error) {
-      console.error("Erro ao carregar upsells:", error);
-      setStrategiesError("Não foi possível carregar as estratégias agora.");
-    } finally {
+  useEffect(() => {
+    if (!strategiesCacheKey) return;
+    const cached = readCache<ProductStrategy[]>(strategiesCacheKey);
+    const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+    if (hasCache) {
+      setStrategies(cached ?? []);
       setStrategiesLoading(false);
     }
-  }, [productId, token, withLoading]);
+  }, [strategiesCacheKey]);
+
+  const loadStrategies = useCallback(
+    async (force = false) => {
+      if (!productId || !token) return;
+      if (!force && strategiesLoadRef.current) return strategiesLoadRef.current;
+      const requestId = ++strategiesLoadIdRef.current;
+      const cached = strategiesCacheKey ? readCache<ProductStrategy[]>(strategiesCacheKey) : undefined;
+      const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+      const shouldShowSkeleton = force || !hasCache;
+      if (shouldShowSkeleton) {
+        setStrategiesLoading(true);
+      }
+      setStrategiesError(null);
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getProductStrategy(productId, token);
+          const data = hasCache ? await fetcher() : await withLoading(fetcher, "Carregando upsells");
+          console.log("Estratégias data:", data);
+          const normalized = resolveStrategyList(data);
+          setStrategies(normalized);
+          if (strategiesCacheKey) {
+            writeCache(strategiesCacheKey, normalized);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar upsells:", error);
+          setStrategiesError("Não foi possível carregar as estratégias agora.");
+        } finally {
+          if (requestId === strategiesLoadIdRef.current) {
+            setStrategiesLoading(false);
+          }
+        }
+      })();
+      strategiesLoadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (strategiesLoadRef.current === task) {
+          strategiesLoadRef.current = null;
+        }
+      }
+      return task;
+    },
+    [productId, token, withLoading, strategiesCacheKey, resolveStrategyList]
+  );
 
   useEffect(() => {
     void loadStrategies();
   }, [loadStrategies]);
 
   useEffect(() => {
-    const loadOffers = async () => {
+    const loadOffers = async (force = false) => {
       if (!token || !productId) return;
-      setOffersLoading(true);
-      try {
-        const data = await withLoading(
-          () => productApi.getOffersByProductId(productId, token),
-          "Carregando ofertas"
-        );
-        setOffers(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Erro ao carregar ofertas para estratégia:", error);
-        setOffers([]);
-      } finally {
-        setOffersLoading(false);
+      if (!force && offersLoadRef.current) return offersLoadRef.current;
+      const requestId = ++offersLoadIdRef.current;
+      const cached = offersCacheKey ? readCache<ProductOffer[]>(offersCacheKey) : undefined;
+      const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+      const shouldShowSkeleton = force || !hasCache;
+      if (shouldShowSkeleton) {
+        setOffersLoading(true);
       }
+      if (hasCache) {
+        setOffers(cached ?? []);
+      }
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getOffersByProductId(productId, token);
+          const data = hasCache ? await fetcher() : await withLoading(fetcher, "Carregando ofertas");
+          const normalized = Array.isArray(data) ? data : [];
+          setOffers(normalized);
+          if (offersCacheKey) {
+            writeCache(offersCacheKey, normalized);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar ofertas para estratégia:", error);
+          setOffers([]);
+        } finally {
+          if (requestId === offersLoadIdRef.current) {
+            setOffersLoading(false);
+          }
+        }
+      })();
+      offersLoadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (offersLoadRef.current === task) {
+          offersLoadRef.current = null;
+        }
+      }
+      return task;
     };
     void loadOffers();
-  }, [token, productId, withLoading]);
+  }, [token, productId, withLoading, offersCacheKey]);
 
   const handleCopyScript = useCallback(async (scriptUrl?: string, strategyId?: string) => {
     if (!scriptUrl || scriptUrl === "-") return;
@@ -217,7 +290,7 @@ export function useUpsell({ productId, token, withLoading }: Params) {
         await withLoading(() => productApi.createProductStrategy(productId, payload, token), "Criando estratégia");
       }
       closeUpsellModal();
-      await loadStrategies();
+      await loadStrategies(true);
     } catch (error) {
       console.error("Erro ao salvar estratégia:", error);
     } finally {
@@ -231,7 +304,7 @@ export function useUpsell({ productId, token, withLoading }: Params) {
     try {
       await productApi.deleteProductStrategy(productId, deleteTarget.id, token);
       setDeleteTarget(null);
-      await loadStrategies();
+      await loadStrategies(true);
     } catch (error) {
       console.error("Erro ao excluir estratégia:", error);
     } finally {

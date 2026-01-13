@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
 import type { Coproducer, CreateCoproducerRequest } from "@/lib/api";
+import { readCache, writeCache } from "./tabCache";
 
 type Params = {
   productId?: string;
@@ -22,8 +23,13 @@ const emptyCoproducerForm = {
 };
 
 export function useCoproducers({ productId, token, withLoading }: Params) {
-  const [coproducers, setCoproducers] = useState<Coproducer[]>([]);
-  const [coproducersLoading, setCoproducersLoading] = useState(false);
+  const cacheKey = productId ? `coproducers:${productId}` : null;
+  const cachedCoproducers = cacheKey ? readCache<Coproducer[]>(cacheKey) : undefined;
+  const hasCachedCoproducers = Array.isArray(cachedCoproducers)
+    ? cachedCoproducers.length > 0
+    : Boolean(cachedCoproducers);
+  const [coproducers, setCoproducers] = useState<Coproducer[]>(cachedCoproducers ?? []);
+  const [coproducersLoading, setCoproducersLoading] = useState(!hasCachedCoproducers);
   const [coproducersError, setCoproducersError] = useState<string | null>(null);
   const [selectedCoproducer, setSelectedCoproducer] = useState<Coproducer | null>(null);
   const [showCoproductionModal, setShowCoproductionModal] = useState(false);
@@ -34,6 +40,8 @@ export function useCoproducers({ productId, token, withLoading }: Params) {
   const [deleteTarget, setDeleteTarget] = useState<Coproducer | null>(null);
   const [deletingCoproducer, setDeletingCoproducer] = useState(false);
   const [coproducerForm, setCoproducerForm] = useState({ ...emptyCoproducerForm });
+  const loadRef = useRef<Promise<void> | null>(null);
+  const loadIdRef = useRef(0);
 
   const normalizeCoproducers = useCallback((raw: unknown): Coproducer[] => {
     if (Array.isArray(raw)) return raw;
@@ -41,23 +49,58 @@ export function useCoproducers({ productId, token, withLoading }: Params) {
     return Array.isArray(data) ? data : [];
   }, []);
 
-  const loadCoproducers = useCallback(async () => {
-    if (!productId || !token) return;
-    setCoproducersLoading(true);
-    setCoproducersError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getCoproducersByProductId(productId, token),
-        "Carregando coprodutores"
-      );
-      setCoproducers(normalizeCoproducers(data));
-    } catch (error) {
-      console.error("Erro ao carregar coprodutores:", error);
-      setCoproducersError("Não foi possível carregar os coprodutores agora.");
-    } finally {
+  useEffect(() => {
+    if (!cacheKey) return;
+    const cached = readCache<Coproducer[]>(cacheKey);
+    const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+    if (hasCache) {
+      setCoproducers(cached ?? []);
       setCoproducersLoading(false);
     }
-  }, [productId, token, withLoading, normalizeCoproducers]);
+  }, [cacheKey]);
+
+  const loadCoproducers = useCallback(
+    async (force = false) => {
+      if (!productId || !token) return;
+      if (!force && loadRef.current) return loadRef.current;
+      const requestId = ++loadIdRef.current;
+      const cached = cacheKey ? readCache<Coproducer[]>(cacheKey) : undefined;
+      const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+      const shouldShowSkeleton = force || !hasCache;
+      if (shouldShowSkeleton) {
+        setCoproducersLoading(true);
+      }
+      setCoproducersError(null);
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getCoproducersByProductId(productId, token);
+          const data = hasCache ? await fetcher() : await withLoading(fetcher, "Carregando coprodutores");
+          const normalized = normalizeCoproducers(data);
+          setCoproducers(normalized);
+          if (cacheKey) {
+            writeCache(cacheKey, normalized);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar coprodutores:", error);
+          setCoproducersError("Não foi possível carregar os coprodutores agora.");
+        } finally {
+          if (requestId === loadIdRef.current) {
+            setCoproducersLoading(false);
+          }
+        }
+      })();
+      loadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (loadRef.current === task) {
+          loadRef.current = null;
+        }
+      }
+      return task;
+    },
+    [productId, token, withLoading, normalizeCoproducers, cacheKey]
+  );
 
   useEffect(() => {
     void loadCoproducers();

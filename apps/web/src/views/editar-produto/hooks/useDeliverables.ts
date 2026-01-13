@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
 import type { ProductDeliverable } from "@/lib/api";
 import { notify } from "@/components/ui/notification-toast";
+import { readCache, writeCache } from "./tabCache";
 
 type Params = {
   productId?: string;
@@ -18,8 +19,13 @@ const normalizeDeliverables = (data: unknown): ProductDeliverable[] => {
 };
 
 export function useDeliverables({ productId, token, withLoading }: Params) {
-  const [deliverables, setDeliverables] = useState<ProductDeliverable[]>([]);
-  const [loading, setLoading] = useState(false);
+  const cacheKey = productId ? `deliverables:${productId}` : null;
+  const cachedDeliverables = cacheKey ? readCache<ProductDeliverable[]>(cacheKey) : undefined;
+  const hasCachedDeliverables = Array.isArray(cachedDeliverables)
+    ? cachedDeliverables.length > 0
+    : Boolean(cachedDeliverables);
+  const [deliverables, setDeliverables] = useState<ProductDeliverable[]>(cachedDeliverables ?? []);
+  const [loading, setLoading] = useState(!hasCachedDeliverables);
   const [error, setError] = useState<string | null>(null);
   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
   const [deliverableTab, setDeliverableTab] = useState<"arquivo" | "link">("arquivo");
@@ -33,27 +39,64 @@ export function useDeliverables({ productId, token, withLoading }: Params) {
   const [deleteTarget, setDeleteTarget] = useState<ProductDeliverable | null>(null);
   const [deletingDeliverable, setDeletingDeliverable] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const loadRef = useRef<Promise<void> | null>(null);
+  const loadIdRef = useRef(0);
 
   const isEditing = Boolean(editingDeliverable);
 
-  const loadDeliverables = useCallback(async () => {
-    if (!productId || !token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getDeliverablesByProductId(productId, token),
-        "Carregando entregáveis"
-      );
-      console.log("Entregáveis carregados:", data);
-      setDeliverables(normalizeDeliverables(data));
-    } catch (err) {
-      console.error("Erro ao carregar entregáveis:", err);
-      setError("Não foi possível carregar os entregáveis agora.");
-    } finally {
+  useEffect(() => {
+    if (!cacheKey) return;
+    const cached = readCache<ProductDeliverable[]>(cacheKey);
+    const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+    if (hasCache) {
+      setDeliverables(cached ?? []);
       setLoading(false);
     }
-  }, [productId, token, withLoading]);
+  }, [cacheKey]);
+
+  const loadDeliverables = useCallback(
+    async (force = false) => {
+    if (!productId || !token) return;
+    if (!force && loadRef.current) return loadRef.current;
+    const requestId = ++loadIdRef.current;
+    const cached = cacheKey ? readCache<ProductDeliverable[]>(cacheKey) : undefined;
+    const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+    const shouldShowSkeleton = force || !hasCache;
+    if (shouldShowSkeleton) {
+      setLoading(true);
+    }
+    setError(null);
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getDeliverablesByProductId(productId, token);
+          const data = hasCache ? await fetcher() : await withLoading(fetcher, "Carregando entregáveis");
+          console.log("Entregáveis carregados:", data);
+          const normalized = normalizeDeliverables(data);
+          setDeliverables(normalized);
+          if (cacheKey) {
+            writeCache(cacheKey, normalized);
+          }
+        } catch (err) {
+          console.error("Erro ao carregar entregáveis:", err);
+          setError("Não foi possível carregar os entregáveis agora.");
+        } finally {
+          if (requestId === loadIdRef.current) {
+            setLoading(false);
+          }
+        }
+      })();
+      loadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (loadRef.current === task) {
+          loadRef.current = null;
+        }
+      }
+      return task;
+    },
+    [productId, token, withLoading, cacheKey]
+  );
 
   useEffect(() => {
     void loadDeliverables();
@@ -156,7 +199,7 @@ export function useDeliverables({ productId, token, withLoading }: Params) {
         }
       }
       notify.success("Entregável criado");
-      await loadDeliverables();
+      await loadDeliverables(true);
       closeDeliverableModal();
     } catch (err) {
       console.error("Erro ao criar entregável:", err);
@@ -219,7 +262,7 @@ export function useDeliverables({ productId, token, withLoading }: Params) {
         }
       }
       notify.success("Entregável atualizado");
-      await loadDeliverables();
+      await loadDeliverables(true);
       closeDeliverableModal();
     } catch (err) {
       console.error("Erro ao atualizar entregável:", err);
@@ -245,7 +288,7 @@ export function useDeliverables({ productId, token, withLoading }: Params) {
     try {
       await productApi.deleteDeliverable(productId, deleteTarget.id, token);
       notify.success("Entregável deletado");
-      await loadDeliverables();
+      await loadDeliverables(true);
       setDeleteTarget(null);
     } catch (err) {
       console.error("Erro ao excluir entregável:", err);

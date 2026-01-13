@@ -17,6 +17,7 @@ import { ConfiguracoesTab } from "./editar-produto/ConfiguracoesTab";
 import { CheckoutsTab } from "./editar-produto/CheckoutsTab";
 import { OfertasTab } from "./editar-produto/OfertasTab";
 import { EntregavelTab } from "./editar-produto/EntregavelTab";
+import { readCache, writeCache } from "./editar-produto/hooks/tabCache";
 
 const tabs = [
   "Entregável",
@@ -67,22 +68,41 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   }, [params, searchParams]);
   const { token } = useAuth();
   const { withLoading } = useLoadingOverlay();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [productLoading, setProductLoading] = useState(false);
+  const productCacheKey = productId ? `product:${productId}` : null;
+  const cachedProduct = productCacheKey ? readCache<Product>(productCacheKey) : undefined;
+  const [product, setProduct] = useState<Product | null>(cachedProduct ?? null);
+  const [productLoading, setProductLoading] = useState(!cachedProduct);
   const initialTabLabel = (initialTab && tabSlugMap[initialTab]) || "Entregável";
   const [activeTab, setActiveTab] = useState<TabLabel>(initialTabLabel);
 
   const router = useRouter();
   useEffect(() => {
+    if (!productCacheKey) return;
+    const cached = readCache<Product>(productCacheKey);
+    if (cached) {
+      setProduct(cached);
+      setProductLoading(false);
+    }
+  }, [productCacheKey]);
+
+  useEffect(() => {
     const fetchProduct = async () => {
       if (!productId || !token) return;
-      setProductLoading(true);
+      const cached = productCacheKey ? readCache<Product>(productCacheKey) : undefined;
+      if (!cached) {
+        setProductLoading(true);
+      }
       try {
-        const data = await withLoading(
-          () => productApi.getProductById(productId, token),
-          "Carregando produto"
-        );
+        const data = cached
+          ? await productApi.getProductById(productId, token)
+          : await withLoading(
+              () => productApi.getProductById(productId, token),
+              "Carregando produto"
+            );
         setProduct(data);
+        if (productCacheKey && data) {
+          writeCache(productCacheKey, data);
+        }
       } catch (error) {
         console.error("Erro ao carregar produto:", error);
       } finally {
@@ -90,7 +110,89 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
       }
     };
     void fetchProduct();
-  }, [productId, token, withLoading]);
+  }, [productId, token, withLoading, productCacheKey]);
+
+  useEffect(() => {
+    if (!productId || !token) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      const tasks: Promise<void>[] = [];
+
+      if (!readCache(`deliverables:${productId}`)) {
+        tasks.push(
+          productApi
+            .getDeliverablesByProductId(productId, token)
+            .then(data => writeCache(`deliverables:${productId}`, data))
+            .catch(() => undefined)
+        );
+      }
+      if (!readCache(`offers:${productId}`)) {
+        tasks.push(
+          productApi
+            .getOffersByProductId(productId, token)
+            .then(data => writeCache(`offers:${productId}`, Array.isArray(data) ? data : []))
+            .catch(() => undefined)
+        );
+      }
+      if (!readCache(`checkouts:${productId}`)) {
+        tasks.push(
+          productApi
+            .getCheckoutsByProductId(productId, token)
+            .then(data => writeCache(`checkouts:${productId}`, data))
+            .catch(() => undefined)
+        );
+      }
+      if (!readCache(`settings:${productId}`)) {
+        tasks.push(
+          productApi
+            .getProductSettings(productId, token)
+            .then(data => writeCache(`settings:${productId}`, data))
+            .catch(() => undefined)
+        );
+      }
+      if (!readCache(`trackings:${productId}`)) {
+        tasks.push(
+          productApi
+            .getPlansByProductId(productId, token)
+            .then(data => writeCache(`trackings:${productId}`, data))
+            .catch(() => undefined)
+        );
+      }
+      if (!readCache(`strategies:${productId}`)) {
+        tasks.push(
+          productApi
+            .getProductStrategy(productId, token)
+            .then(data => writeCache(`strategies:${productId}`, Array.isArray(data) ? data : []))
+            .catch(() => undefined)
+        );
+      }
+      if (!readCache(`coupons:${productId}`)) {
+        tasks.push(
+          productApi
+            .getProductCoupons(productId, token)
+            .then(data => writeCache(`coupons:${productId}`, data))
+            .catch(() => undefined)
+        );
+      }
+      if (!readCache(`coproducers:${productId}`)) {
+        tasks.push(
+          productApi
+            .getCoproducersByProductId(productId, token)
+            .then(data => writeCache(`coproducers:${productId}`, Array.isArray(data) ? data : []))
+            .catch(() => undefined)
+        );
+      }
+
+      if (!cancelled && tasks.length > 0) {
+        void Promise.allSettled(tasks);
+      }
+    }, 150);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [productId, token]);
 
   useEffect(() => {
     setActiveTab((initialTab && tabSlugMap[initialTab]) || "Entregável");

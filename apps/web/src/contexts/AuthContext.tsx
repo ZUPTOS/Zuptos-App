@@ -26,6 +26,8 @@ export interface User {
   status?: string;
   kyc?: {
     status?: string;
+    accountType?: string;
+    account_type?: string;
   };
 }
 
@@ -47,6 +49,7 @@ const normalizeUser = (rawUser: Partial<User> | null | undefined, fallbackEmail:
   const status =
     (rawUser as { status?: string } | undefined)?.status ??
     (rawUser as { kyc?: { status?: string } } | undefined)?.kyc?.status;
+  const kyc = (rawUser as { kyc?: User["kyc"] } | undefined)?.kyc;
 
   return {
     id: (rawUser?.id as string) || "",
@@ -57,6 +60,7 @@ const normalizeUser = (rawUser: Partial<User> | null | undefined, fallbackEmail:
     role: (rawUser?.role as User["role"]) || "default",
     isAdmin: Boolean(rawUser?.isAdmin),
     status: status ? String(status) : undefined,
+    kyc,
   };
 };
 
@@ -159,16 +163,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         try {
           const meResponse = await authApi.getCurrentUser(response.access_token);
           console.log("🔍 [AuthContext] /auth/me response on login:", meResponse);
+          const meKyc = (meResponse as { data?: { kyc?: User["kyc"] } })?.data?.kyc;
           const meUser =
-            (meResponse as { data?: { user?: Partial<User>; kyc?: { status?: string } }; user?: Partial<User> })
+            (meResponse as { data?: { user?: Partial<User>; kyc?: User["kyc"] }; user?: Partial<User> })
               ?.data?.user ??
             (meResponse as { user?: Partial<User> }).user ??
             (meResponse as { data?: Partial<User> }).data ??
             (meResponse as Partial<User>);
+          const meUserWithKyc = meKyc ? { ...meUser, kyc: meKyc } : meUser;
           const meUserWithKycStatus =
-            meUser && (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc
-              ? { ...meUser, status: (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc?.status }
-              : meUser;
+            meUserWithKyc && meKyc?.status ? { ...meUserWithKyc, status: meKyc.status } : meUserWithKyc;
           userData = normalizeUser(meUserWithKycStatus ?? userFromApi, credentials.email);
         } catch (meError) {
           console.log("⚠️ [AuthContext] Falha ao consultar /auth/me:", meError);
@@ -202,16 +206,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       if (!token) return;
       try {
         const meResponse = await authApi.getCurrentUser(token);
+        const meKyc = (meResponse as { data?: { kyc?: User["kyc"] } })?.data?.kyc;
         const meUser =
-          (meResponse as { data?: { user?: Partial<User>; kyc?: { status?: string } }; user?: Partial<User> })
+          (meResponse as { data?: { user?: Partial<User>; kyc?: User["kyc"] }; user?: Partial<User> })
             ?.data?.user ??
           (meResponse as { user?: Partial<User> }).user ??
           (meResponse as { data?: Partial<User> }).data ??
           (meResponse as Partial<User>);
+        const meUserWithKyc = meKyc ? { ...meUser, kyc: meKyc } : meUser;
         const meUserWithKycStatus =
-          meUser && (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc
-            ? { ...meUser, status: (meResponse as { data?: { kyc?: { status?: string } } }).data?.kyc?.status }
-            : meUser;
+          meUserWithKyc && meKyc?.status ? { ...meUserWithKyc, status: meKyc.status } : meUserWithKyc;
         const normalized = normalizeUser(meUserWithKycStatus, meUser?.email || user?.email || "");
         setUser(normalized);
         localStorage.setItem("authUser", JSON.stringify(normalized));

@@ -43,6 +43,9 @@ export default function Header({
     userName ||
     "Usuário"
   ).slice(0, 6);
+  const accountType = (user?.kyc?.accountType || user?.kyc?.account_type || "").toUpperCase();
+  const accountBadge =
+    accountType.includes("CNPJ") ? "PJ" : accountType.includes("CPF") ? "PF" : userLocation;
   
   const handleLogout = async () => {
     try {
@@ -141,7 +144,7 @@ export default function Header({
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-semibold text-foreground">{displayName}</p>
-                  <span className={badgeClasses}>{userLocation}</span>
+                  <span className={badgeClasses}>{accountBadge}</span>
                 </div>
               </div>
               <div className={dividerClasses} aria-hidden="true" />

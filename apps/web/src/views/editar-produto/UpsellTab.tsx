@@ -69,7 +69,7 @@ export function UpsellTab({ productId, token, withLoading }: Props) {
         data={strategies}
         rowsPerPage={6}
         rowKey={item => item.id ?? `${item.type}-${item.offer}`}
-        isLoading={strategiesLoading}
+        isLoading={strategiesLoading || offersLoading}
         emptyMessage={strategiesError || "Nenhuma estratégia cadastrada."}
         wrapperClassName="space-y-3"
         tableContainerClassName="rounded-[12px] border border-foreground/10 bg-card/80"

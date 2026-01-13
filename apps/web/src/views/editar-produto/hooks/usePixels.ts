@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi, ProviderTrackingName, TrackingStatus, TrackingType } from "@/lib/api";
 import type { CreateProductTrackingRequest, ProductPlan } from "@/lib/api";
+import { readCache, writeCache } from "./tabCache";
 
 type Params = {
   productId?: string;
@@ -18,8 +19,11 @@ const defaultEvents = {
 };
 
 export function usePixels({ productId, token, withLoading }: Params) {
-  const [trackings, setTrackings] = useState<ProductPlan[]>([]);
-  const [trackingsLoading, setTrackingsLoading] = useState(false);
+  const cacheKey = productId ? `trackings:${productId}` : null;
+  const cachedTrackings = cacheKey ? readCache<ProductPlan[]>(cacheKey) : undefined;
+  const hasCachedTrackings = Array.isArray(cachedTrackings) ? cachedTrackings.length > 0 : Boolean(cachedTrackings);
+  const [trackings, setTrackings] = useState<ProductPlan[]>(cachedTrackings ?? []);
+  const [trackingsLoading, setTrackingsLoading] = useState(!hasCachedTrackings);
   const [trackingsError, setTrackingsError] = useState<string | null>(null);
   const [showPixelModal, setShowPixelModal] = useState(false);
   const [pixelsRefreshKey, setPixelsRefreshKey] = useState(0);
@@ -36,6 +40,8 @@ export function usePixels({ productId, token, withLoading }: Params) {
   const [trackingToken, setTrackingToken] = useState("");
   const [trackingStatus, setTrackingStatus] = useState<TrackingStatus>(TrackingStatus.ACTIVE);
   const [trackingEvents, setTrackingEvents] = useState(defaultEvents);
+  const loadRef = useRef<Promise<void> | null>(null);
+  const loadIdRef = useRef(0);
 
   const resolvePlatform = useCallback((pixel: ProductPlan): ProviderTrackingName | null => {
     const raw = (pixel.provider_tracking_name ?? pixel.platform ?? "").toString().toLowerCase();
@@ -68,27 +74,61 @@ export function usePixels({ productId, token, withLoading }: Params) {
     resetForm();
   }, [resetForm]);
 
-  const loadTrackings = useCallback(async () => {
-    if (!productId || !token) return;
-    setTrackingsLoading(true);
-    setTrackingsError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getPlansByProductId(productId, token),
-        "Carregando pixels"
-      );
-      setTrackings(data);
-      console.log("data", data);
-    } catch (error) {
-      console.error("Erro ao carregar pixels:", error);
-      setTrackingsError("Não foi possível carregar os pixels agora.");
-    } finally {
+  useEffect(() => {
+    if (!cacheKey) return;
+    const cached = readCache<ProductPlan[]>(cacheKey);
+    const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+    if (hasCache) {
+      setTrackings(cached ?? []);
       setTrackingsLoading(false);
     }
-  }, [productId, token, withLoading]);
+  }, [cacheKey]);
+
+  const loadTrackings = useCallback(
+    async (force = false) => {
+      if (!productId || !token) return;
+      if (!force && loadRef.current) return loadRef.current;
+      const requestId = ++loadIdRef.current;
+      const cached = cacheKey ? readCache<ProductPlan[]>(cacheKey) : undefined;
+      const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+      const shouldShowSkeleton = force || !hasCache;
+      if (shouldShowSkeleton) {
+        setTrackingsLoading(true);
+      }
+      setTrackingsError(null);
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getPlansByProductId(productId, token);
+          const data = hasCache ? await fetcher() : await withLoading(fetcher, "Carregando pixels");
+          setTrackings(data);
+          console.log("data", data);
+          if (cacheKey) {
+            writeCache(cacheKey, data);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar pixels:", error);
+          setTrackingsError("Não foi possível carregar os pixels agora.");
+        } finally {
+          if (requestId === loadIdRef.current) {
+            setTrackingsLoading(false);
+          }
+        }
+      })();
+      loadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (loadRef.current === task) {
+          loadRef.current = null;
+        }
+      }
+      return task;
+    },
+    [productId, token, withLoading, cacheKey]
+  );
 
   useEffect(() => {
-    void loadTrackings();
+    void loadTrackings(pixelsRefreshKey > 0);
   }, [loadTrackings, pixelsRefreshKey]);
 
   const handleSaveTracking = useCallback(async () => {

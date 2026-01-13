@@ -29,6 +29,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isPinned, setIsPinned] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const { theme } = useTheme();
   const isLightMode = theme === "light";
   const handleLogoClick = () => {
@@ -161,15 +162,17 @@ export default function Sidebar() {
     } catch {
       // ignore
     }
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!isHydrated) return;
     try {
       localStorage.setItem("sidebarPinned", isPinned ? "true" : "false");
     } catch {
       // ignore
     }
-  }, [isPinned]);
+  }, [isPinned, isHydrated]);
 
   const isVisible = isExpanded || isPinned;
 

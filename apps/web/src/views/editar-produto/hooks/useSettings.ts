@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
 import type { Product, ProductSettings, UpdateProductSettingsRequest } from "@/lib/api";
 import { notify } from "@/components/ui/notification-toast";
+import { readCache, writeCache } from "./tabCache";
 
 type Params = {
   productId?: string;
@@ -12,9 +13,13 @@ type Params = {
 };
 
 export function useSettings({ productId, token, withLoading }: Params) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [settings, setSettings] = useState<ProductSettings | null>(null);
-  const [loading, setLoading] = useState(false);
+  const productCacheKey = productId ? `product:${productId}` : null;
+  const settingsCacheKey = productId ? `settings:${productId}` : null;
+  const cachedProduct = productCacheKey ? readCache<Product>(productCacheKey) : undefined;
+  const cachedSettings = settingsCacheKey ? readCache<ProductSettings>(settingsCacheKey) : undefined;
+  const [product, setProduct] = useState<Product | null>(cachedProduct ?? null);
+  const [settings, setSettings] = useState<ProductSettings | null>(cachedSettings ?? null);
+  const [loading, setLoading] = useState(!cachedSettings);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -28,48 +33,84 @@ export function useSettings({ productId, token, withLoading }: Params) {
     name: "",
     description: "",
   });
-  const [statusDraft, setStatusDraft] = useState<"active" | "inactive">("active");
+  const loadRef = useRef<Promise<void> | null>(null);
+  const loadIdRef = useRef(0);
+  const [statusDraft, setStatusDraft] = useState<"active" | "inactive">(
+    cachedSettings?.status === "inactive" ? "inactive" : "active"
+  );
 
   useEffect(() => {
     const loadProduct = async () => {
       if (!productId || !token) return;
+      const cached = productCacheKey ? readCache<Product>(productCacheKey) : undefined;
+      if (cached) {
+        setProduct(cached);
+      }
       try {
-        const data = await withLoading(
-          () => productApi.getProductById(productId, token),
-          "Carregando produto"
-        );
+        const fetcher = () => productApi.getProductById(productId, token);
+        const data = cached ? await fetcher() : await withLoading(fetcher, "Carregando produto");
         setProduct(data);
+        if (productCacheKey && data) {
+          writeCache(productCacheKey, data);
+        }
       } catch (err) {
         console.error("Erro ao carregar produto:", err);
       }
     };
     void loadProduct();
-  }, [productId, token, withLoading]);
+  }, [productId, token, withLoading, productCacheKey]);
 
   useEffect(() => {
     const loadSettings = async () => {
       if (!productId || !token) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await withLoading(
-          () => productApi.getProductSettings(productId, token),
-          "Carregando configurações"
-        );
-        setSettings(data);
-        console.log("Configurações carregadas:", data);
-        if (data?.status) {
-          setStatusDraft(data.status === "inactive" ? "inactive" : "active");
+      if (loadRef.current) return loadRef.current;
+      const cached = settingsCacheKey ? readCache<ProductSettings>(settingsCacheKey) : undefined;
+      if (cached) {
+        setSettings(cached);
+        if (cached.status) {
+          setStatusDraft(cached.status === "inactive" ? "inactive" : "active");
         }
-      } catch (err) {
-        console.error("Erro ao carregar configurações:", err);
-        setError("Não foi possível carregar as configurações agora.");
-      } finally {
         setLoading(false);
       }
+      const requestId = ++loadIdRef.current;
+      const shouldShowSkeleton = !cached;
+      if (shouldShowSkeleton) {
+        setLoading(true);
+      }
+      setError(null);
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getProductSettings(productId, token);
+          const data = cached ? await fetcher() : await withLoading(fetcher, "Carregando configurações");
+          setSettings(data);
+          console.log("Configurações carregadas:", data);
+          if (data?.status) {
+            setStatusDraft(data.status === "inactive" ? "inactive" : "active");
+          }
+          if (settingsCacheKey && data) {
+            writeCache(settingsCacheKey, data);
+          }
+        } catch (err) {
+          console.error("Erro ao carregar configurações:", err);
+          setError("Não foi possível carregar as configurações agora.");
+        } finally {
+          if (requestId === loadIdRef.current) {
+            setLoading(false);
+          }
+        }
+      })();
+      loadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (loadRef.current === task) {
+          loadRef.current = null;
+        }
+      }
+      return task;
     };
     void loadSettings();
-  }, [productId, token, withLoading]);
+  }, [productId, token, withLoading, settingsCacheKey]);
 
   const handleSave = useCallback(async () => {
     if (!productId || !token) return;
@@ -127,6 +168,12 @@ export function useSettings({ productId, token, withLoading }: Params) {
         ]);
         nextSettings = freshSettings ?? nextSettings;
         nextProduct = freshProduct ?? nextProduct;
+        if (settingsCacheKey && freshSettings) {
+          writeCache(settingsCacheKey, freshSettings);
+        }
+        if (productCacheKey && freshProduct) {
+          writeCache(productCacheKey, freshProduct);
+        }
       } catch (refreshError) {
         console.warn("Falha ao atualizar dados após salvar configurações:", refreshError);
       }

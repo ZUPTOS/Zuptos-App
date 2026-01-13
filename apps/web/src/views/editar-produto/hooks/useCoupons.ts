@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
 import type { CreateProductCouponRequest, ProductCoupon } from "@/lib/api";
 import { formatBRLInput, parseBRLToNumber, formatPercentInput, parsePercentToNumber } from "./couponUtils";
+import { readCache, writeCache } from "./tabCache";
 
 type Params = {
   productId?: string;
@@ -23,8 +24,11 @@ const emptyCouponForm = {
 };
 
 export function useCoupons({ productId, token, withLoading }: Params) {
-  const [coupons, setCoupons] = useState<ProductCoupon[]>([]);
-  const [couponsLoading, setCouponsLoading] = useState(false);
+  const cacheKey = productId ? `coupons:${productId}` : null;
+  const cachedCoupons = cacheKey ? readCache<ProductCoupon[]>(cacheKey) : undefined;
+  const hasCachedCoupons = Array.isArray(cachedCoupons) ? cachedCoupons.length > 0 : Boolean(cachedCoupons);
+  const [coupons, setCoupons] = useState<ProductCoupon[]>(cachedCoupons ?? []);
+  const [couponsLoading, setCouponsLoading] = useState(!hasCachedCoupons);
   const [couponsError, setCouponsError] = useState<string | null>(null);
   const [couponSaving, setCouponSaving] = useState(false);
   const [couponUnit, setCouponUnit] = useState<"valor" | "percent">("valor");
@@ -34,25 +38,61 @@ export function useCoupons({ productId, token, withLoading }: Params) {
   const [deleteTarget, setDeleteTarget] = useState<ProductCoupon | null>(null);
   const [deletingCoupon, setDeletingCoupon] = useState(false);
   const [couponForm, setCouponForm] = useState({ ...emptyCouponForm });
+  const loadRef = useRef<Promise<void> | null>(null);
+  const loadIdRef = useRef(0);
 
-  const loadCoupons = useCallback(async () => {
-    if (!productId || !token) return;
-    setCouponsLoading(true);
-    setCouponsError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getProductCoupons(productId, token),
-        "Carregando cupons"
-      );
-      console.log("Cupons carregados:", data);
-      setCoupons(data);
-    } catch (error) {
-      console.error("Erro ao carregar cupons:", error);
-      setCouponsError("Não foi possível carregar os cupons agora.");
-    } finally {
+  useEffect(() => {
+    if (!cacheKey) return;
+    const cached = readCache<ProductCoupon[]>(cacheKey);
+    const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+    if (hasCache) {
+      setCoupons(cached ?? []);
       setCouponsLoading(false);
     }
-  }, [productId, token, withLoading]);
+  }, [cacheKey]);
+
+  const loadCoupons = useCallback(
+    async (force = false) => {
+      if (!productId || !token) return;
+      if (!force && loadRef.current) return loadRef.current;
+      const requestId = ++loadIdRef.current;
+      const cached = cacheKey ? readCache<ProductCoupon[]>(cacheKey) : undefined;
+      const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+      const shouldShowSkeleton = force || !hasCache;
+      if (shouldShowSkeleton) {
+        setCouponsLoading(true);
+      }
+      setCouponsError(null);
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getProductCoupons(productId, token);
+          const data = hasCache ? await fetcher() : await withLoading(fetcher, "Carregando cupons");
+          console.log("Cupons carregados:", data);
+          setCoupons(data);
+          if (cacheKey) {
+            writeCache(cacheKey, data);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar cupons:", error);
+          setCouponsError("Não foi possível carregar os cupons agora.");
+        } finally {
+          if (requestId === loadIdRef.current) {
+            setCouponsLoading(false);
+          }
+        }
+      })();
+      loadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (loadRef.current === task) {
+          loadRef.current = null;
+        }
+      }
+      return task;
+    },
+    [productId, token, withLoading, cacheKey]
+  );
 
   useEffect(() => {
     void loadCoupons();
@@ -132,7 +172,7 @@ export function useCoupons({ productId, token, withLoading }: Params) {
         );
         console.log("[coupon] Resposta do servidor:", response);
       }
-      await loadCoupons();
+      await loadCoupons(true);
       resetCouponForm();
       setShowCouponModal(false);
     } catch (error) {
@@ -173,7 +213,7 @@ export function useCoupons({ productId, token, withLoading }: Params) {
         "Excluindo cupom"
       );
       setDeleteTarget(null);
-      await loadCoupons();
+      await loadCoupons(true);
     } catch (error) {
       console.error("Erro ao excluir cupom:", error);
       setCouponsError("Não foi possível excluir o cupom.");

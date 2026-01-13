@@ -34,6 +34,7 @@ export const authApi = {
       baseUrl: AUTH_BASE,
       headers: { Authorization: `Bearer ${token}` },
     });
+    console.log("Resposta da API /auth/me", response)
     return response;
   },
 

@@ -13,6 +13,7 @@ import type {
 } from "@/lib/api";
 import { ProductOfferType } from "@/lib/api";
 import { formatBRLInput, parseBRLToNumber } from "./offerUtils";
+import { readCache, writeCache } from "./tabCache";
 
 type OrderBumpOfferOption = ProductOffer & { productId?: string; productName?: string };
 const createEmptyOrderBumpForm = () => ({
@@ -31,8 +32,12 @@ type Params = {
 };
 
 export function useOffers({ productId, token, withLoading }: Params) {
-  const [offers, setOffers] = useState<ProductOffer[]>([]);
-  const [loading, setLoading] = useState(false);
+  const offersCacheKey = productId ? `offers:${productId}` : null;
+  const checkoutsCacheKey = productId ? `checkouts:${productId}` : null;
+  const cachedOffers = offersCacheKey ? readCache<ProductOffer[]>(offersCacheKey) : undefined;
+  const hasCachedOffers = Array.isArray(cachedOffers) ? cachedOffers.length > 0 : Boolean(cachedOffers);
+  const [offers, setOffers] = useState<ProductOffer[]>(cachedOffers ?? []);
+  const [loading, setLoading] = useState(!hasCachedOffers);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -71,6 +76,8 @@ export function useOffers({ productId, token, withLoading }: Params) {
   const [offerDeleteTarget, setOfferDeleteTarget] = useState<ProductOffer | null>(null);
   const [copiedOfferId, setCopiedOfferId] = useState<string | null>(null);
   const copyTimeoutRef = useRef<number | null>(null);
+  const loadRef = useRef<Promise<void> | null>(null);
+  const loadIdRef = useRef(0);
   const lastCopiedRef = useRef<{ id?: string; at: number } | null>(null);
 
   const resetOrderBumpForm = useCallback(() => {
@@ -149,27 +156,62 @@ export function useOffers({ productId, token, withLoading }: Params) {
     resetOfferForm();
   }, [resetOfferForm]);
 
-  const loadOffers = useCallback(async () => {
-    if (!productId || !token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await withLoading(
-        () => productApi.getOffersByProductId(productId, token),
-        "Carregando ofertas"
-      );
-      console.log("[offerApi] Ofertas carregadas:", data);
-      setOffers(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Erro ao carregar ofertas:", err);
-      setError("Não foi possível carregar as ofertas agora.");
-    } finally {
+  useEffect(() => {
+    if (!offersCacheKey) return;
+    const cached = readCache<ProductOffer[]>(offersCacheKey);
+    const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+    if (hasCache) {
+      setOffers(cached ?? []);
       setLoading(false);
     }
-  }, [productId, token, withLoading]);
+  }, [offersCacheKey]);
+
+  const loadOffers = useCallback(
+    async (force = false) => {
+      if (!productId || !token) return;
+      if (!force && loadRef.current) return loadRef.current;
+      const requestId = ++loadIdRef.current;
+      const cached = offersCacheKey ? readCache<ProductOffer[]>(offersCacheKey) : undefined;
+      const hasCache = Array.isArray(cached) ? cached.length > 0 : Boolean(cached);
+      const shouldShowSkeleton = force || !hasCache;
+      if (shouldShowSkeleton) {
+        setLoading(true);
+      }
+      setError(null);
+      const task = (async () => {
+        try {
+          const fetcher = () => productApi.getOffersByProductId(productId, token);
+          const data = hasCache ? await fetcher() : await withLoading(fetcher, "Carregando ofertas");
+          console.log("[offerApi] Ofertas carregadas:", data);
+          const normalized = Array.isArray(data) ? data : [];
+          setOffers(normalized);
+          if (offersCacheKey) {
+            writeCache(offersCacheKey, normalized);
+          }
+        } catch (err) {
+          console.error("Erro ao carregar ofertas:", err);
+          setError("Não foi possível carregar as ofertas agora.");
+        } finally {
+          if (requestId === loadIdRef.current) {
+            setLoading(false);
+          }
+        }
+      })();
+      loadRef.current = task;
+      try {
+        await task;
+      } finally {
+        if (loadRef.current === task) {
+          loadRef.current = null;
+        }
+      }
+      return task;
+    },
+    [productId, token, withLoading, offersCacheKey]
+  );
 
   useEffect(() => {
-    void loadOffers();
+    void loadOffers(refreshKey > 0);
   }, [loadOffers, refreshKey]);
 
   const handleCopyAccess = useCallback(async (accessUrl?: string, offerId?: string) => {
@@ -200,12 +242,14 @@ export function useOffers({ productId, token, withLoading }: Params) {
       if (!productId || !token || !showOfferModal) return;
       setCheckoutOptionsLoading(true);
       try {
-        const data = await withLoading(
-          () => productApi.getCheckoutsByProductId(productId, token),
-          "Carregando checkouts"
-        );
+        const cached = checkoutsCacheKey ? readCache<Checkout[]>(checkoutsCacheKey) : undefined;
+        const fetcher = () => productApi.getCheckoutsByProductId(productId, token);
+        const data = cached ? await fetcher() : await withLoading(fetcher, "Carregando checkouts");
         console.log("[productApi] Checkouts carregados:", data);
         setCheckoutOptions(data);
+        if (checkoutsCacheKey) {
+          writeCache(checkoutsCacheKey, data);
+        }
       } catch (error) {
         console.error("Erro ao carregar checkouts para oferta:", error);
       } finally {
@@ -213,7 +257,7 @@ export function useOffers({ productId, token, withLoading }: Params) {
       }
     };
     void loadCheckoutOptions();
-  }, [productId, token, showOfferModal, withLoading]);
+  }, [productId, token, showOfferModal, withLoading, checkoutsCacheKey]);
 
   useEffect(() => {
     const loadOrderBumpOffers = async () => {

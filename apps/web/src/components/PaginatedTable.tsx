@@ -55,9 +55,10 @@ export default function PaginatedTable<T>({
 }: PaginatedTableProps<T>) {
   const safeColumns = useMemo(() => columns ?? [], [columns]);
   const safeData = useMemo(() => data ?? [], [data]);
-  const totalPages = Math.max(1, Math.ceil(safeData.length / rowsPerPage));
+  const showSkeleton = isLoading;
+  const displayData = useMemo(() => (showSkeleton ? [] : safeData), [showSkeleton, safeData]);
+  const totalPages = Math.max(1, Math.ceil(displayData.length / rowsPerPage));
   const [currentPage, setCurrentPage] = useState(Math.min(initialPage, totalPages));
-  const showSkeleton = isLoading && safeData.length === 0;
 
   useEffect(() => {
     setCurrentPage(prev => Math.min(prev, totalPages));
@@ -65,12 +66,12 @@ export default function PaginatedTable<T>({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [safeData, rowsPerPage, initialPage]);
+  }, [displayData, rowsPerPage, initialPage]);
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * rowsPerPage;
-    return safeData.slice(start, start + rowsPerPage);
-  }, [currentPage, rowsPerPage, safeData]);
+    return displayData.slice(start, start + rowsPerPage);
+  }, [currentPage, rowsPerPage, displayData]);
 
   const pageIndicators = useMemo(() => buildPageIndicators(totalPages, currentPage), [totalPages, currentPage]);
 
