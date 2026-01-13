@@ -1,15 +1,33 @@
-import type { CreateSaleRequest, Sale, SaleListResponse } from "../api-types";
+import type { ApiError, CreateSaleRequest, Sale, SaleListResponse } from "../api-types";
 import { API_BASE_URL, readStoredToken, readStoredUserId, request } from "../request";
 
 const SALES_BASE = API_BASE_URL;
 
 export const salesApi = {
-  listSales: async (token?: string): Promise<SaleListResponse> =>
-    request<SaleListResponse>("/sale", {
-      method: "GET",
-      baseUrl: SALES_BASE,
-      headers: (token ?? readStoredToken()) ? { Authorization: `Bearer ${token ?? readStoredToken()}` } : undefined,
-    }),
+  listSales: async (token?: string): Promise<SaleListResponse> => {
+    const auth = token ?? readStoredToken();
+    const headers = auth ? { Authorization: `Bearer ${auth}` } : undefined;
+    const paths = ["/sale", "/sales"];
+    let lastError: unknown;
+
+    for (const path of paths) {
+      try {
+        console.log("[salesApi] GET", `${SALES_BASE}${path}`);
+        return await request<SaleListResponse>(path, {
+          method: "GET",
+          baseUrl: SALES_BASE,
+          headers,
+        });
+      } catch (err) {
+        lastError = err;
+        const status = (err as ApiError).status;
+        if (status !== 404 || path === paths[paths.length - 1]) {
+          throw err;
+        }
+      }
+    }
+    throw lastError;
+  },
 
   getSaleById: async (id: string, token?: string): Promise<{ user_id: string; sale: Sale }> =>
     request<{ user_id: string; sale: Sale }>(`/sale/${id}`, {

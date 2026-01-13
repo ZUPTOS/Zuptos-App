@@ -236,13 +236,6 @@ export default function Sales() {
   const salesColumns: Column<Sale>[] = useMemo(
     () => [
       {
-        id: "id",
-        header: "ID",
-        width: "10%",
-        cellClassName: "whitespace-nowrap font-semibold text-foreground/90 text-fs-body px-3 py-3",
-        render: sale => sale.id
-      },
-      {
         id: "product",
         header: "Produto",
         width: "17%",
@@ -388,21 +381,34 @@ export default function Sales() {
       setFetchError(null);
       try {
         const response = await salesApi.listSales(token ?? undefined);
-        const normalizedSales: Sale[] = (response.sales ?? []).map(item => ({
-          id: item.sale_id ?? item.product_id ?? "sem-id",
-          productName: item.product_id ?? "Produto",
-          productType: item.sale_type ?? "Produto",
-          buyerName: "-",
-          buyerEmail: "-",
-          saleType: item.sale_type ?? "Produtor",
-          saleDate: item.sale_date ?? new Date().toISOString(),
-          paymentMethod: normalizePayment(item.payment_method),
-          plan: item.sale_type ?? "Plano",
-          total: item.amount ?? 0,
-          status: normalizeStatus(item.status),
-          coupon: undefined,
-          utm: undefined
-        }));
+        console.log("[sales] Resposta do servidor:", response);
+
+        // O backend pode retornar { sales: [...] } ou um array direto
+        const rawList = Array.isArray(response) ? response : response.sales ?? [];
+        const normalizedSales: Sale[] = rawList.map(item => {
+          const amountValue =
+            typeof item.amount === "number"
+              ? item.amount
+              : typeof item.amount === "string"
+                ? Number(item.amount)
+                : 0;
+          const saleId = item.sale_id ?? item.id ?? item.product_id ?? "sem-id";
+          return {
+            id: saleId,
+            productName: item.product_id ?? "Produto",
+            productType: item.sale_type ?? "Produto",
+            buyerName: "-",
+            buyerEmail: "-",
+            saleType: item.sale_type ?? "Produtor",
+            saleDate: item.sale_date ?? new Date().toISOString(),
+            paymentMethod: normalizePayment(item.payment_method),
+            plan: item.sale_type ?? "Plano",
+            total: Number.isFinite(amountValue) ? amountValue : 0,
+            status: normalizeStatus(item.status),
+            coupon: undefined,
+            utm: undefined
+          };
+        });
 
         if (!active) return;
         setSales(normalizedSales);
@@ -512,6 +518,8 @@ export default function Sales() {
               columns={salesColumns}
               rowKey={sale => sale.id}
               rowsPerPage={rowsPerPage}
+              isLoading={isLoading}
+              loadingRows={rowsPerPage}
               emptyMessage="Nenhuma venda encontrada para o filtro aplicado."
               tableContainerClassName="overflow-hidden xl:max-w-[1200px] rounded-[8px] border border-muted bg-card"
               tableClassName="xl:max-w-[1200px] 2xl:text-fs-body"

@@ -104,12 +104,6 @@ export default function KycReminder() {
   })();
 
   const goToKyc = () => {
-    if (isPending) {
-      if (pathname !== "/perfil") {
-        router.push("/perfil");
-      }
-      return;
-    }
     if (pathname !== "/kyc") {
       router.push("/kyc");
     }

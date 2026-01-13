@@ -74,6 +74,7 @@ export function useOffers({ productId, token, withLoading }: Params) {
   const [savingOffer, setSavingOffer] = useState(false);
   const [offerType, setOfferType] = useState<"preco_unico" | "assinatura">("preco_unico");
   const [offerDeleteTarget, setOfferDeleteTarget] = useState<ProductOffer | null>(null);
+  const [deletingOffer, setDeletingOffer] = useState(false);
   const [copiedOfferId, setCopiedOfferId] = useState<string | null>(null);
   const copyTimeoutRef = useRef<number | null>(null);
   const loadRef = useRef<Promise<void> | null>(null);
@@ -466,6 +467,20 @@ export function useOffers({ productId, token, withLoading }: Params) {
     }
   };
 
+  const handleDeleteOffer = useCallback(async () => {
+    if (!productId || !token || !offerDeleteTarget?.id) return;
+    setDeletingOffer(true);
+    try {
+      await productApi.deleteOffer(productId, offerDeleteTarget.id, token);
+      setOfferDeleteTarget(null);
+      await loadOffers(true);
+    } catch (error) {
+      console.error("Erro ao excluir oferta:", error);
+    } finally {
+      setDeletingOffer(false);
+    }
+  }, [productId, token, offerDeleteTarget, loadOffers]);
+
   return {
     offers,
     loading,
@@ -538,5 +553,7 @@ export function useOffers({ productId, token, withLoading }: Params) {
     handleDeleteOrderBump,
     handleCancelOrderBumpEdit,
     handleCreateOffer,
+    handleDeleteOffer,
+    deletingOffer,
   };
 }

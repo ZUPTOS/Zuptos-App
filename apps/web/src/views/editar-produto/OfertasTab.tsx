@@ -66,6 +66,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
     savingOffer,
     offerType,
     offerDeleteTarget,
+    deletingOffer,
     copiedOfferId,
     setOfferName,
     setOfferPrice,
@@ -99,6 +100,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
     handleDeleteOrderBump,
     handleCancelOrderBumpEdit,
     handleCreateOffer,
+    handleDeleteOffer,
   } = useOffers({ productId, token, withLoading });
 
   return (
@@ -912,7 +914,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
           <div className="relative w-full max-w-sm rounded-[12px] border border-foreground/10 bg-card p-6 shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
             <h3 className="text-lg font-semibold text-foreground">Excluir oferta</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              A exclusão ainda não está disponível no backend. Este modal já está pronto para quando a rota existir.
+              Deseja excluir a oferta <span className="font-semibold text-foreground">{offerDeleteTarget.name || "sem nome"}</span>?
             </p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
@@ -924,10 +926,11 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
               </button>
               <button
                 type="button"
-                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white opacity-50"
-                disabled
+                className="rounded-[8px] bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500/90 disabled:opacity-60"
+                onClick={handleDeleteOffer}
+                disabled={deletingOffer}
               >
-                Excluir
+                {deletingOffer ? "Excluindo..." : "Excluir"}
               </button>
             </div>
           </div>

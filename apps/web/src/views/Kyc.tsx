@@ -102,6 +102,7 @@ export default function KycView() {
     () => token ?? (typeof window !== "undefined" ? localStorage.getItem("authToken") : null),
     [token]
   );
+  const [prefilled, setPrefilled] = useState(false);
 
   const displayName =
     user?.username || user?.fullName || user?.email || mockData.user.name;
@@ -258,6 +259,42 @@ export default function KycView() {
     };
   };
 
+  useEffect(() => {
+    const loadExistingKyc = async () => {
+      if (!resolvedToken || prefilled) return;
+      try {
+        const data = await kycApi.get(resolvedToken);
+        if (!data) return;
+        console.log("[KYC] Dados existentes carregados:", data);
+        const isPF = (data.account_type ?? "").toUpperCase() !== "CNPJ";
+        setAccountType(isPF ? "pf" : "pj");
+        setFormValues(prev => ({
+          ...prev,
+          telefone: data.phone ?? "",
+          faturamento: data.average_revenue ?? "",
+          ticket: data.medium_ticket ?? "",
+          link: prev.link ?? "",
+          nomeCompleto: isPF ? data.owner_name ?? data.social_name ?? "" : prev.nomeCompleto ?? "",
+          cpf: isPF ? data.document ?? "" : prev.cpf ?? "",
+          cnpj: !isPF ? data.document ?? "" : prev.cnpj ?? "",
+          razao: !isPF ? data.social_name ?? "" : prev.razao ?? "",
+          representante: !isPF ? data.owner_name ?? "" : prev.representante ?? "",
+          rua: data.address?.address ?? "",
+          numero: data.address?.number ?? "",
+          complemento: data.address?.complement ?? "",
+          estado: data.address?.state ?? "",
+          cidade: data.address?.city ?? "",
+          bairro: data.address?.neighborhood ?? "",
+        }));
+        setCurrentStep("documentos");
+        setPrefilled(true);
+      } catch (error) {
+        console.warn("[KYC] Falha ao carregar KYC existente", error);
+      }
+    };
+    void loadExistingKyc();
+  }, [resolvedToken, prefilled]);
+
   const handleFileChange = (documentType: DocumentType, file: File | null) => {
     setSelectedFiles(prev => ({ ...prev, [documentType]: file }));
   };
@@ -285,7 +322,23 @@ export default function KycView() {
       console.log("[KYC] Enviando payload:", payload);
       const response = await kycApi.create(payload, resolvedToken);
       console.log("[KYC] Resposta do servidor:", response);
-      notify.success("Dados enviados", "Cadastro salvo. Enviaremos os documentos depois.");
+
+      // Envia os documentos selecionados para o endpoint dedicado
+      const uploads = activeDocumentSlots
+        .map(slot => {
+          const file = selectedFiles[slot.documentType];
+          if (!file) return null;
+          console.log("[KYC] Enviando documento:", slot.documentType, "arquivo:", file.name);
+          return kycApi.uploadDocument(slot.documentType, file, resolvedToken);
+        })
+        .filter(Boolean) as Promise<unknown>[];
+
+      if (uploads.length) {
+        await Promise.all(uploads);
+        console.log("[KYC] Upload de documentos concluído");
+      }
+
+      notify.success("Dados enviados", uploads.length ? "Cadastro e documentos enviados." : "Cadastro salvo.");
     } catch (error) {
       const status = (error as ApiError | undefined)?.status;
       const data = (error as ApiError & { data?: unknown } | undefined)?.data;

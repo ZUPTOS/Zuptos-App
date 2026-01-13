@@ -12,13 +12,22 @@ const paymentButtons = [
   { id: "boleto", label: "Boleto", iconSrc: "/images/boleto.svg" },
 ];
 
+const paymentMethodMap: Record<string, "CREDIT_CARD" | "PIX" | "TICKET"> = {
+  card: "CREDIT_CARD",
+  pix: "PIX",
+  boleto: "TICKET",
+};
+
 type Props = {
   checkout?: Checkout | null;
   product?: Product | null;
   offer?: ProductOffer | null;
+  offerId?: string;
+  productId?: string;
+  publicApiBase?: string;
 };
 
-export default function Checkout({ checkout, product, offer }: Props) {
+export default function Checkout({ checkout, product, offer, offerId, productId, publicApiBase }: Props) {
   const accent = checkout?.defaultColor || "#0f864b";
   const title = product?.name || checkout?.name || "Produto";
   const showCountdown = Boolean(checkout?.countdown_active && checkout?.countdown);
@@ -64,6 +73,7 @@ export default function Checkout({ checkout, product, offer }: Props) {
     return methods && methods.length > 0 ? methods : ["card", "pix", "boleto"];
   }, [checkout?.payment_methods]);
   const [paymentMethod, setPaymentMethod] = useState<string>(availablePaymentMethods[0] ?? "card");
+  const [submittingPayment, setSubmittingPayment] = useState(false);
   const visiblePaymentButtons = useMemo(
     () => paymentButtons.filter(button => availablePaymentMethods.includes(button.id)),
     [availablePaymentMethods]
@@ -79,6 +89,31 @@ export default function Checkout({ checkout, product, offer }: Props) {
       availablePaymentMethods.includes(prev) ? prev : availablePaymentMethods[0]
     );
   }, [availablePaymentMethods]);
+
+  const handleConfirmPayment = async () => {
+    if (!offerId || !productId) return;
+    const baseUrl = publicApiBase ?? "";
+    setSubmittingPayment(true);
+    try {
+      const payload = {
+        payment_method: paymentMethodMap[paymentMethod] ?? paymentMethodMap.card,
+        offer_id: offerId,
+        product_id: productId,
+      };
+      console.log("[publicCheckout] Enviando pagamento:", payload);
+      const response = await fetch(`${baseUrl}/public/sale/${offerId}/product/${productId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => null);
+      console.log("[publicCheckout] Resposta do pagamento:", { status: response.status, data });
+    } catch (error) {
+      console.error("[publicCheckout] Erro ao confirmar pagamento:", error);
+    } finally {
+      setSubmittingPayment(false);
+    }
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: background }}>
@@ -322,8 +357,10 @@ export default function Checkout({ checkout, product, offer }: Props) {
             type="button"
             className="mt-1 w-full rounded-[6px] px-4 py-2.5 text-sm font-semibold uppercase tracking-tight text-white transition hover:brightness-110"
             style={{ backgroundColor: accent }}
+            onClick={handleConfirmPayment}
+            disabled={submittingPayment || !offerId || !productId}
           >
-            Comprar agora
+            {submittingPayment ? "Confirmando..." : "Confirmar pagamento"}
           </button>
         </section>
 

@@ -319,7 +319,7 @@ export const productApi = {
     );
 
     console.log("🔄 [productApi] Enviando atualização de oferta:", body);
-    const response = await request<ProductOffer>(`/products/${productId}/offers/${offerId}`, {
+    const response = await request<ProductOffer>(`/product/${productId}/offers/${offerId}`, {
       method: "PATCH",
       baseUrl: PRODUCTS_BASE,
       headers: {
@@ -330,6 +330,24 @@ export const productApi = {
     });
     console.log("✅ [productApi] Resposta atualização de oferta:", response);
     return response;
+  },
+
+  deleteOffer: async (productId: string, offerId: string, token?: string): Promise<void> => {
+    if (!productId || !offerId) {
+      throw new Error("Missing product id or offer id for offer deletion");
+    }
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for offer deletion");
+    }
+    console.log("🔄 [productApi] Deletando oferta:", { productId, offerId });
+    await request(`/product/${productId}/offers/${offerId}`, {
+      method: "DELETE",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
   },
 
   createCheckout: async (
