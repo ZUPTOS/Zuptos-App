@@ -324,9 +324,9 @@ export interface ProductSettings {
   product_id: string;
   support_email?: string;
   phone_support?: string;
-  language?: string;
-  currency?: string;
-  status?: string;
+  language?: ProductSettingsLanguage | string;
+  currency?: ProductSettingsCurrency | string;
+  status?: ProductSettingsStatus | string;
   created_at?: string;
   updated_at?: string;
 }
@@ -334,14 +334,31 @@ export interface ProductSettings {
 export interface UpdateProductSettingsRequest {
   support_email?: string;
   phone_support?: string;
-  language?: string;
-  currency?: string;
-  status?: string;
+  language?: ProductSettingsLanguage | string;
+  currency?: ProductSettingsCurrency | string;
+  status?: ProductSettingsStatus | string;
   product?: {
     id?: string;
     name?: string;
     description?: string;
   };
+}
+
+export enum ProductSettingsLanguage {
+  EN = "en",
+  ES = "es",
+  PT_BR = "pt-BR",
+}
+
+export enum ProductSettingsCurrency {
+  USD = "USD",
+  EUR = "EUR",
+  BRL = "BRL",
+}
+
+export enum ProductSettingsStatus {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
 }
 
 export interface ProductPlan {

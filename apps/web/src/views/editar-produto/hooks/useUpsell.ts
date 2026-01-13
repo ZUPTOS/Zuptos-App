@@ -47,11 +47,11 @@ export function useUpsell({ productId, token, withLoading }: Params) {
   const strategiesLoadIdRef = useRef(0);
   const offersLoadIdRef = useRef(0);
 
-  const resolveStrategyList = (raw: unknown): ProductStrategy[] => {
+  const resolveStrategyList = useCallback((raw: unknown): ProductStrategy[] => {
     if (Array.isArray(raw)) return raw;
     const data = (raw as { data?: ProductStrategy[] } | null)?.data;
     return Array.isArray(data) ? data : [];
-  };
+  }, []);
 
   const toText = (value: unknown) => (typeof value === "string" && value.trim() ? value : undefined);
 

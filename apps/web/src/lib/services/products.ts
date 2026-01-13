@@ -18,6 +18,7 @@ import type {
   CreateCoproducerRequest,
   SubscriptionPlanPayload,
   CreateOrderBumpRequest,
+  ProductSettingsStatus,
 } from "../api-types";
 import { API_BASE_URL, buildQuery, readStoredToken, request } from "../request";
 
@@ -347,6 +348,31 @@ export const productApi = {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
+    });
+  },
+
+  updateProductStatus: async (
+    productId: string,
+    status: ProductSettingsStatus,
+    token?: string
+  ): Promise<Product> => {
+    if (!productId) {
+      throw new Error("Missing product id for status update");
+    }
+    const authToken = token ?? readStoredToken();
+    if (!authToken) {
+      throw new Error("Missing authentication token for product status update");
+    }
+    const body = { status };
+    console.log("🔄 [productApi] Atualizando status do produto:", { productId, status });
+    return request<Product>(`/product/${productId}`, {
+      method: "PATCH",
+      baseUrl: PRODUCTS_BASE,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(body),
     });
   },
 

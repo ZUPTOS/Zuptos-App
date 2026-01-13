@@ -1,6 +1,7 @@
 'use client';
 
 import Image from "next/image";
+import { ProductSettingsStatus } from "@/lib/api";
 import { useSettings } from "./hooks/useSettings";
 
 type Props = {
@@ -129,17 +130,21 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
           </div>
           <button
             className={`relative inline-flex h-5 w-10 items-center rounded-full ${
-              statusDraft === "active" ? "bg-primary/70" : "bg-muted"
+              statusDraft === ProductSettingsStatus.ACTIVE ? "bg-primary/70" : "bg-muted"
             }`}
             onClick={() =>
-              setStatusDraft(current => (current === "active" ? "inactive" : "active"))
+              setStatusDraft(current =>
+                current === ProductSettingsStatus.ACTIVE
+                  ? ProductSettingsStatus.INACTIVE
+                  : ProductSettingsStatus.ACTIVE
+              )
             }
             disabled={loading || saving}
             type="button"
           >
             <span
               className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                statusDraft === "active" ? "left-[calc(100%-18px)]" : "left-[6px]"
+                statusDraft === ProductSettingsStatus.ACTIVE ? "left-[calc(100%-18px)]" : "left-[6px]"
               }`}
             />
           </button>

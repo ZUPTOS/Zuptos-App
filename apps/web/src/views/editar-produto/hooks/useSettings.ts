@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
+import { ProductSettingsStatus } from "@/lib/api";
 import type { Product, ProductSettings, UpdateProductSettingsRequest } from "@/lib/api";
 import { notify } from "@/components/ui/notification-toast";
 import { readCache, writeCache } from "./tabCache";
@@ -35,8 +36,10 @@ export function useSettings({ productId, token, withLoading }: Params) {
   });
   const loadRef = useRef<Promise<void> | null>(null);
   const loadIdRef = useRef(0);
-  const [statusDraft, setStatusDraft] = useState<"active" | "inactive">(
-    cachedSettings?.status === "inactive" ? "inactive" : "active"
+  const [statusDraft, setStatusDraft] = useState<ProductSettingsStatus>(
+    cachedSettings?.status === ProductSettingsStatus.INACTIVE
+      ? ProductSettingsStatus.INACTIVE
+      : ProductSettingsStatus.ACTIVE
   );
 
   useEffect(() => {
@@ -68,7 +71,11 @@ export function useSettings({ productId, token, withLoading }: Params) {
       if (cached) {
         setSettings(cached);
         if (cached.status) {
-          setStatusDraft(cached.status === "inactive" ? "inactive" : "active");
+          setStatusDraft(
+            cached.status === ProductSettingsStatus.INACTIVE
+              ? ProductSettingsStatus.INACTIVE
+              : ProductSettingsStatus.ACTIVE
+          );
         }
         setLoading(false);
       }
@@ -85,7 +92,11 @@ export function useSettings({ productId, token, withLoading }: Params) {
           setSettings(data);
           console.log("Configurações carregadas:", data);
           if (data?.status) {
-            setStatusDraft(data.status === "inactive" ? "inactive" : "active");
+            setStatusDraft(
+              data.status === ProductSettingsStatus.INACTIVE
+                ? ProductSettingsStatus.INACTIVE
+                : ProductSettingsStatus.ACTIVE
+            );
           }
           if (settingsCacheKey && data) {
             writeCache(settingsCacheKey, data);
@@ -158,6 +169,7 @@ export function useSettings({ productId, token, withLoading }: Params) {
         () => productApi.updateProductSettings(productId, payload, token),
         "Salvando configurações"
       );
+      console.log("[settings] Resposta do servidor ao salvar configurações:", updatedSettings);
       let nextSettings = updatedSettings ?? settings;
       let nextProduct = product;
 
@@ -198,21 +210,49 @@ export function useSettings({ productId, token, withLoading }: Params) {
     } finally {
       setSaving(false);
     }
-  }, [productId, token, formValues, productForm, statusDraft, settings, product, withLoading]);
+  }, [
+    productId,
+    token,
+    formValues,
+    productForm,
+    statusDraft,
+    settings,
+    product,
+    withLoading,
+    productCacheKey,
+    settingsCacheKey,
+  ]);
 
   const handleDeactivateProduct = useCallback(async () => {
     if (!productId || !token) return;
     setSaving(true);
     setError(null);
-    const payload = { status: "inactive" };
     try {
-      console.log("[settings] Enviando atualização de status:", payload);
-      const response = await withLoading(
-        () => productApi.updateProductSettings(productId, payload, token),
+      console.log("[settings] Enviando atualização de status para inativo (settings)");
+      const updatedSettings = await withLoading(
+        () =>
+          productApi.updateProductSettings(
+            productId,
+            { status: ProductSettingsStatus.INACTIVE },
+            token
+          ),
         "Desativando produto"
       );
-      console.log("[settings] Resposta desativação:", response);
-      setStatusDraft("inactive");
+      console.log("[settings] Resposta desativação (settings):", updatedSettings);
+      setStatusDraft(ProductSettingsStatus.INACTIVE);
+      if (settingsCacheKey && updatedSettings) {
+        writeCache(settingsCacheKey, updatedSettings);
+        setSettings(updatedSettings);
+      }
+      try {
+        const refreshedProduct = await productApi.getProductById(productId, token);
+        if (productCacheKey && refreshedProduct) {
+          writeCache(productCacheKey, refreshedProduct);
+        }
+        setProduct(refreshedProduct);
+      } catch (refreshErr) {
+        console.warn("Falha ao atualizar produto após desativação:", refreshErr);
+      }
       notify.success("Produto desativado");
     } catch (err) {
       console.error("Erro ao desativar produto:", err);
@@ -220,7 +260,7 @@ export function useSettings({ productId, token, withLoading }: Params) {
     } finally {
       setSaving(false);
     }
-  }, [productId, token, withLoading]);
+  }, [productId, token, withLoading, productCacheKey, settingsCacheKey]);
 
   return {
     product,
