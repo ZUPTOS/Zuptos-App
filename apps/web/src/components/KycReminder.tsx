@@ -14,6 +14,8 @@ export default function KycReminder() {
   const pathname = usePathname();
   const [status, setStatus] = useState<KycState>("idle");
   const isKycPage = pathname?.startsWith("/kyc");
+  const isProfilePage =
+    pathname?.startsWith("/minha-conta") || pathname?.startsWith("/perfil") || pathname?.startsWith("/profile");
 
   useEffect(() => {
     let active = true;
@@ -86,9 +88,11 @@ export default function KycReminder() {
     // Evita piscar enquanto consulta status
     if (status === "idle" || status === "loading") return false;
     if (status === "complete") return false;
-    // Mantém aviso em caso de erro, KYC inexistente ou em análise
+    // Em análise: mostra apenas no perfil
+    if (status === "pending") return isProfilePage;
+    // Mantém aviso em caso de erro ou KYC inexistente
     return true;
-  }, [isAuthenticated, status, isKycPage]);
+  }, [isAuthenticated, status, isKycPage, isProfilePage]);
 
   if (!shouldShow) return null;
 

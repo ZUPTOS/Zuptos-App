@@ -266,10 +266,10 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
                     <button
                       type="button"
                       onClick={() => navigateToTab(tab)}
-                      className={`w-full px-2 py-2 text-left transition ${
+                      className={`w-full rounded-[8px] px-3 py-2 text-left transition ${
                         isActive
-                          ? "text-foreground drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]"
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "border border-primary/30 bg-primary/5 text-foreground shadow-[0_0_12px_rgba(95,23,255,0.18)]"
+                          : "text-muted-foreground hover:text-foreground hover:border hover:border-primary/10"
                       }`}
                     >
                       {tab}

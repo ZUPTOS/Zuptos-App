@@ -304,21 +304,6 @@ export interface Checkout extends CheckoutPayload {
   updated_at?: string;
 }
 
-export interface UpdateProductRequest {
-  name?: string;
-  type?: string;
-  image_url?: string;
-  total_invoiced?: number;
-  total_sold?: number;
-  description?: string;
-  category?: string;
-  internal_description?: string;
-  sale_url?: string;
-  login_username?: string;
-  login_password?: string;
-  status?: string;
-}
-
 export interface ProductSettings {
   id: string;
   product_id: string;

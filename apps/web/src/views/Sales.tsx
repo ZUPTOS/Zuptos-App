@@ -1,48 +1,16 @@
 'use client';
 
 import DashboardLayout from "@/components/DashboardLayout";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Image from "next/image";
-import {
-  Eye,
-  Filter,
-  Search,
-  Upload,
-  X
-} from "lucide-react";
+import { Eye, Filter, Search, Upload, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { salesApi } from "@/lib/api";
 import SalesFilterPanel, { SalesFilters, OfferFilter } from "@/views/components/SalesFilterPanel";
 import SalesDetailPanel from "@/views/components/SalesDetailPanel";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import { useAuth } from "@/contexts/AuthContext";
-
-export type PaymentMethod = "credit_card" | "pix" | "boleto";
-export type SaleStatus = "aprovada" | "recusada" | "expirada";
-
-export interface Sale {
-  id: string;
-  productName: string;
-  productType: string;
-  buyerName: string;
-  buyerEmail: string;
-  saleType: string;
-  saleDate: string;
-  paymentMethod: PaymentMethod;
-  plan: string;
-  total: number;
-  status: SaleStatus;
-  coupon?: string;
-  utm?: string;
-}
-
-interface MetricCard {
-  id: string;
-  title: string;
-  value: number;
-  change: number;
-  data: { label: string; value: number }[];
-}
+import type { MetricCard, PaymentMethod, Sale, SaleStatus } from "@/views/sales/types";
 
 const emptyMetrics: MetricCard[] = [
   { id: "faturamento", title: "Faturamento", value: 0, change: 0, data: [] },
@@ -236,6 +204,21 @@ export default function Sales() {
   const salesColumns: Column<Sale>[] = useMemo(
     () => [
       {
+        id: "id",
+        header: "ID",
+        width: "12%",
+        cellClassName: "px-3 py-3",
+        render: sale => {
+          const fullId = sale.id ?? "-";
+          const shortId = fullId.length > 8 ? `${fullId.slice(0, 8)}...` : fullId;
+          return (
+            <span className="truncate text-sm font-semibold text-card-foreground" title={fullId}>
+              {shortId}
+            </span>
+          );
+        }
+      },
+      {
         id: "product",
         header: "Produto",
         width: "17%",
@@ -350,31 +333,76 @@ export default function Sales() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const normalizeStatus = useCallback((status?: string): SaleStatus => {
+    const value = (status ?? "").toLowerCase();
+    if (["completed", "success", "approved"].includes(value)) return "aprovada";
+    if (["failed", "refused", "canceled", "cancelled", "denied", "rejected"].includes(value)) return "recusada";
+    return "expirada";
+  }, []);
+
+  const normalizePayment = useCallback((method?: string): PaymentMethod => {
+    const value = (method ?? "").toLowerCase();
+    if (value.includes("pix")) return "pix";
+    if (value.includes("boleto")) return "boleto";
+    return "credit_card";
+  }, []);
+
+  const mapSaleItem = useCallback(
+    (item: Record<string, unknown>): Sale => {
+      const amount = item.amount as unknown;
+      const amountValue =
+        typeof amount === "number"
+          ? amount
+          : typeof amount === "string"
+            ? Number(amount)
+            : 0;
+      const saleId =
+        (item.sale_id as string | undefined) ??
+        (item.id as string | undefined) ??
+        (item.product_id as string | undefined) ??
+        "sem-id";
+      const productName =
+        (typeof (item as { product?: { name?: string } }).product?.name === "string" &&
+          (item as { product?: { name?: string } }).product?.name) ||
+        (item.product_name as string | undefined) ||
+        (item.productName as string | undefined) ||
+        "Produto";
+      return {
+        id: saleId,
+        productName,
+        productType: (item.sale_type as string | undefined) ?? "Produto",
+        buyerName: (item.buyer_name as string | undefined) ?? "-",
+        buyerEmail: (item.buyer_email as string | undefined) ?? "-",
+        saleType: (item.sale_type as string | undefined) ?? "Produtor",
+        saleDate: (item.sale_date as string | undefined) ?? new Date().toISOString(),
+        paymentMethod: normalizePayment(item.payment_method as string | undefined),
+        plan: (item.sale_type as string | undefined) ?? "Plano",
+        total: Number.isFinite(amountValue) ? amountValue : 0,
+        status: normalizeStatus(item.status as string | undefined),
+        coupon: item.coupon as string | undefined,
+        utm: item.utm as string | undefined,
+        orderBumps: Array.isArray((item as { productOfferBumps?: unknown }).productOfferBumps)
+          ? ((item as { productOfferBumps?: unknown[] }).productOfferBumps as Sale["orderBumps"])
+          : undefined
+      };
+    },
+    [normalizePayment, normalizeStatus]
+  );
+
+  const buildMetrics = useCallback((list: Sale[]): MetricCard[] => {
+    const total = list.reduce((acc, item) => acc + (item.total ?? 0), 0);
+    const approvedTotal = list
+      .filter(item => item.status === "aprovada")
+      .reduce((acc, item) => acc + (item.total ?? 0), 0);
+    return [
+      { id: "faturamento", title: "Faturamento", value: total, change: 0, data: [] },
+      { id: "receita", title: "Receita líquida", value: approvedTotal, change: 0, data: [] },
+      { id: "total-vendas", title: "Total de vendas", value: list.length, change: 0, data: [] }
+    ];
+  }, []);
+
   useEffect(() => {
     let active = true;
-    const normalizeStatus = (status?: string): SaleStatus => {
-      const value = (status ?? "").toLowerCase();
-      if (["completed", "success", "approved"].includes(value)) return "aprovada";
-      if (["failed", "refused", "canceled", "cancelled", "denied", "rejected"].includes(value)) return "recusada";
-      return "expirada";
-    };
-    const normalizePayment = (method?: string): PaymentMethod => {
-      const value = (method ?? "").toLowerCase();
-      if (value.includes("pix")) return "pix";
-      if (value.includes("boleto")) return "boleto";
-      return "credit_card";
-    };
-    const buildMetrics = (list: Sale[]): MetricCard[] => {
-      const total = list.reduce((acc, item) => acc + (item.total ?? 0), 0);
-      const approvedTotal = list
-        .filter(item => item.status === "aprovada")
-        .reduce((acc, item) => acc + (item.total ?? 0), 0);
-      return [
-        { id: "faturamento", title: "Faturamento", value: total, change: 0, data: [] },
-        { id: "receita", title: "Receita líquida", value: approvedTotal, change: 0, data: [] },
-        { id: "total-vendas", title: "Total de vendas", value: list.length, change: 0, data: [] }
-      ];
-    };
 
     const loadSales = async () => {
       setIsLoading(true);
@@ -385,30 +413,7 @@ export default function Sales() {
 
         // O backend pode retornar { sales: [...] } ou um array direto
         const rawList = Array.isArray(response) ? response : response.sales ?? [];
-        const normalizedSales: Sale[] = rawList.map(item => {
-          const amountValue =
-            typeof item.amount === "number"
-              ? item.amount
-              : typeof item.amount === "string"
-                ? Number(item.amount)
-                : 0;
-          const saleId = item.sale_id ?? item.id ?? item.product_id ?? "sem-id";
-          return {
-            id: saleId,
-            productName: item.product_id ?? "Produto",
-            productType: item.sale_type ?? "Produto",
-            buyerName: "-",
-            buyerEmail: "-",
-            saleType: item.sale_type ?? "Produtor",
-            saleDate: item.sale_date ?? new Date().toISOString(),
-            paymentMethod: normalizePayment(item.payment_method),
-            plan: item.sale_type ?? "Plano",
-            total: Number.isFinite(amountValue) ? amountValue : 0,
-            status: normalizeStatus(item.status),
-            coupon: undefined,
-            utm: undefined
-          };
-        });
+        const normalizedSales: Sale[] = (rawList as Record<string, unknown>[]).map(mapSaleItem);
 
         if (!active) return;
         setSales(normalizedSales);
@@ -428,7 +433,26 @@ export default function Sales() {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [token, mapSaleItem, buildMetrics]);
+
+  const handleRowClick = useCallback(
+    async (sale: Sale) => {
+      if (!sale?.id) return;
+      setIsLoading(true);
+      try {
+        const detail = await salesApi.getSaleById(sale.id, token ?? undefined);
+        const payload = ((detail as { sale?: unknown }).sale ?? detail) as Record<string, unknown>;
+        const mapped = mapSaleItem(payload);
+        setSelectedSale(mapped);
+      } catch (err) {
+        console.error("Erro ao carregar detalhes da venda:", err);
+        setSelectedSale(sale);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [mapSaleItem, token]
+  );
 
   return (
     <DashboardLayout
@@ -438,10 +462,10 @@ export default function Sales() {
     >
       <div className="min-h-full py-4">
         <div
-          className="mx-auto flex 2xl:w-[1500px] xl:w-[1100px] flex-col gap-2 2xl:px-4 xl:px-6"
-          style={{ maxWidth: "var(--dash-layout-width)" }}
+          className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 sm:px-4 lg:px-6"
+          style={{ maxWidth: "var(--dash-layout-width, 1200px)" }}
         >
-          <section className="grid gap-2 md:grid-cols-3">
+          <section className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {metricCards.map(card => {
               const displayValue = hideSensitive
                 ? "..."
@@ -467,9 +491,9 @@ export default function Sales() {
           </section>
 
           <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end">
               <label
-                className="flex h-[46px] items-center gap-3 rounded-[8px] border border-muted bg-background px-3 text-fs-body text-muted-foreground focus-within:border-primary/60 focus-within:text-primary"
+                className="flex h-[46px] items-center gap-3 rounded-[8px] border border-muted bg-background px-3 text-fs-body text-muted-foreground focus-within:border-primary/60 focus-within:text-primary md:min-w-[260px] lg:min-w-[320px]"
               >
                 <Search className="h-4 w-4" aria-hidden />
                 <input
@@ -477,10 +501,10 @@ export default function Sales() {
                   value={searchTerm}
                   onChange={event => setSearchTerm(event.target.value)}
                   placeholder="Buscar por CPF, ID da transação, e-mail ou nome"
-                  className="2xl:w-[300px] xl:w-[200px] w-full bg-transparent text-fs-body text-card-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="w-full bg-transparent text-fs-body text-card-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
-              <div className="relative flex items-center gap-2" ref={filterAreaRef}>
+              <div className="relative flex flex-wrap items-center gap-2" ref={filterAreaRef}>
                 <button
                   type="button"
                   onClick={() => setFilterOpen(prev => !prev)}
@@ -521,12 +545,12 @@ export default function Sales() {
               isLoading={isLoading}
               loadingRows={rowsPerPage}
               emptyMessage="Nenhuma venda encontrada para o filtro aplicado."
-              tableContainerClassName="overflow-hidden xl:max-w-[1200px] rounded-[8px] border border-muted bg-card"
-              tableClassName="xl:max-w-[1200px] 2xl:text-fs-body"
+              tableContainerClassName="overflow-x-auto rounded-[8px] border border-muted bg-card"
+              tableClassName="min-w-[960px] 2xl:text-fs-body"
               headerRowClassName="bg-card/30 text-fs-body h-[44px]"
               paginationContainerClassName="mx-auto w-full max-w-[1200px]"
-              wrapperClassName="w-full xl:max-w-[1200px]"
-              onRowClick={setSelectedSale}
+              wrapperClassName="w-full"
+              onRowClick={handleRowClick}
               minWidth="xl:1000px 2xl:1300px"
             />
         </section>

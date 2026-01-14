@@ -383,13 +383,13 @@ export default function Products() {
       <DashboardLayout userName={displayName} userLocation="RJ" pageTitle="Produtos">
         <div className="min-h-full py-6">
           <div
-            className="mx-auto flex w-full flex-col gap-6 px-4 md:px-6"
-            style={{ maxWidth: "var(--dash-layout-width)" }}
+            className="mx-auto flex w-full flex-col gap-6 px-3 sm:px-4 md:px-6"
+            style={{ maxWidth: "var(--dash-layout-width, 1200px)" }}
           >
-          <section className="flex flex-wrap items-center gap-3">
+          <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <label
               className="flex h-[49px] items-center gap-3 rounded-[8px] border border-muted bg-background px-3 text-fs-body text-muted-foreground focus-within:border-primary/60 focus-within:text-primary"
-              style={{ width: "clamp(280px, 32vw, 440px)" }}
+              style={{ width: "100%", maxWidth: "440px" }}
             >
               <Search className="h-5 w-5" aria-hidden />
               <input
@@ -411,7 +411,7 @@ export default function Products() {
             <button
               type="button"
               onClick={handleAddProductClick}
-              className="flex h-12 items-center justify-center gap-2 rounded-[8px] bg-primary px-6 text-sm font-semibold text-white transition-transform disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-12 items-center justify-center gap-2 rounded-[8px] bg-primary px-6 text-sm font-semibold text-white transition-transform disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto w-full"
             >
               <Plus className="h-5 w-5" aria-hidden />
               Adicionar produto
@@ -448,8 +448,22 @@ export default function Products() {
               </div>
             )}
             {isLoading ? (
-              <div className="flex h-56 items-center justify-center rounded-[12px] border border-dashed border-muted/60 bg-card/30 text-muted-foreground">
-                Carregando produtos...
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: itemsPerPage }).map((_, index) => (
+                  <div
+                    key={`skeleton-${index}`}
+                    className="flex min-h-[140px] w-full flex-col gap-4 rounded-[16px] border border-muted bg-card/40 p-4"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-[90px] w-[90px] rounded-[12px] bg-muted/40" />
+                      <div className="flex flex-1 flex-col gap-3">
+                        <div className="h-4 w-2/3 rounded bg-muted/50" />
+                        <div className="h-3 w-1/2 rounded bg-muted/40" />
+                        <div className="h-5 w-20 rounded-full bg-muted/30" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : paginatedProducts.length === 0 ? (
               <div className="flex h-56 flex-col items-center justify-center rounded-[12px] border border-dashed border-muted/60 bg-card/30 text-center text-muted-foreground">
@@ -478,11 +492,11 @@ export default function Products() {
                     <article
                       key={product.id}
                       onClick={handleOpenProduct}
-                      className="flex min-h-[140px] w-full cursor-pointer items-center gap-4 rounded-[16px] border border-muted bg-card/60 p-4 transition hover:border-primary/50 hover:bg-card/80"
+                      className="flex min-h-[140px] w-full cursor-pointer flex-col gap-4 rounded-[16px] border border-muted bg-card/60 p-4 transition hover:border-primary/50 hover:bg-card/80 sm:flex-row sm:items-center"
                     >
                       <div
                         className="flex flex-shrink-0 items-center justify-center rounded-[16px] bg-background/60"
-                        style={{ width: "clamp(86px, 11vw, 110px)", height: "clamp(86px, 11vw, 110px)" }}
+                        style={{ width: "clamp(86px, 18vw, 110px)", height: "clamp(86px, 18vw, 110px)" }}
                       >
                         <Image
                           src={thumbnailSrc}
@@ -651,8 +665,7 @@ export default function Products() {
           onKeyDown={event => handleOverlayKeyDown(event, closeNewProductModal)}
         />
         <aside
-          className="fixed right-0 top-0 z-[60] flex h-full w-full flex-col border-l border-muted bg-card p-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)]"
-          style={{ maxWidth: "clamp(360px, 30vw, 500px)" }}
+          className="fixed right-0 top-0 z-[60] flex h-full w-full max-w-[98%] flex-col border-l border-muted bg-card p-5 shadow-[0_20px_80px_rgba(0,0,0,0.6)] sm:max-w-[420px] md:max-w-[480px] xl:max-w-[520px]"
         >
           <div className="flex items-start justify-between border-b border-muted pb-4">
           <div>

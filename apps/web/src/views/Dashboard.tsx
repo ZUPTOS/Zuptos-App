@@ -366,15 +366,15 @@ export default function Dashboard() {
       userLocation={mockData.user.location}
       pageTitle="Dashboard"
     >
-      <div className="py-5 space-y-3 mx-auto 2xl:w-[1198px] xl:w-[900px]">
+      <div className="mx-auto w-full max-w-6xl space-y-3 py-4 sm:px-4 lg:px-6">
         {/* Linha 1 - Data + filtro */}
-        <section className="grid grid-cols-[minmax(0,clamp(240px,20vw,320px))_1fr] items-start gap-2">
+        <section className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,clamp(200px,18vw,260px))_1fr] lg:items-start lg:gap-3">
           <div className="w-full">
             <DateFilter />
           </div>
 
-          <div className="flex justify-end gap-2">
-            <div className="relative flex w-full max-w-[394px] items-center gap-3" ref={filterDropdownRef}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <div className="relative flex w-full max-w-[300px] items-center gap-3" ref={filterDropdownRef}>
               <button
                 type="button"
                 onClick={() => setFilterDropdownOpen(prev => !prev)}
@@ -391,8 +391,8 @@ export default function Dashboard() {
 
               {isFilterDropdownOpen && (
                 <div
-                  className="absolute left-0 top-[calc(100%+10px)] z-40 rounded-[16px] border border-muted/70 bg-card shadow-none dark:shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
-                  style={{ width: "clamp(340px, 28vw, 395px)", maxHeight: "420px" }}
+                  className="absolute left-0 top-[calc(100%+10px)] z-40 w-full max-w-[420px] rounded-[16px] border border-muted/70 bg-card shadow-none dark:shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
+                  style={{ maxHeight: "420px" }}
                 >
                   <div className="flex items-center justify-between border-b border-muted/60 px-5 py-4">
                     <p className="text-fs-body font-semibold text-foreground">Filtrar por...</p>
@@ -722,7 +722,7 @@ export default function Dashboard() {
                   }}
                 />
               </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {mockData.levels.map((level, index) => {
                 const isCurrentLevel = level.id === mockData.user.level;
                 const isActiveTier = index < 2;
@@ -794,9 +794,9 @@ export default function Dashboard() {
           {mockData.paymentMethods.map(method => (
             <div
               key={method.id}
-              className={`${cardSurface} px-4 py-4 w-full`}
+              className={`${cardSurface} px-4 py-3 w-full`}
             >
-              <div className="mb-2 flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <div className="h-15 w-15">
                   {getPaymentIcon(method.id)}
                 </div>

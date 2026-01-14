@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Copy, Phone, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PaymentMethod, Sale, SaleStatus } from "@/views/Sales";
+import { PaymentMethod, Sale, SaleStatus } from "@/views/sales/types";
 
 interface SalesDetailPanelProps {
   sale: Sale | null;
@@ -38,19 +38,19 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
   const [isRefundModalOpen, setRefundModalOpen] = useState(false);
   const detailData = useMemo(() => {
     if (!sale) return null;
+    const hasOrderBumps = Array.isArray(sale.orderBumps) && sale.orderBumps.length > 0;
+    const orderBumps =
+      hasOrderBumps && sale.orderBumps
+        ? sale.orderBumps
+        : [
+            {
+              title: sale.productName,
+              type: sale.productType,
+              price: sale.total
+            }
+          ];
     return {
-      orderBumps: [
-        {
-          title: sale.productName,
-          type: sale.productType,
-          price: sale.total
-        },
-        {
-          title: "Order Bump 01",
-          type: "Curso",
-          price: 97
-        }
-      ],
+      orderBumps,
       buyer: {
         name: sale.buyerName,
         cpf: "999.999.999-99",
@@ -86,8 +86,14 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
   };
 
   return (
-    <aside className="absolute inset-0 z-50 flex items-start justify-end bg-black/30" onClick={handleBackdropClick}>
-      <div className="relative mr-2 w-[420px] h-full bg-card shadow-2xl custom-scrollbar overflow-y-auto" onClick={event => event.stopPropagation()}>
+    <aside
+      className="absolute inset-0 z-50 flex items-start justify-center bg-black/30 sm:justify-end"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="relative h-full w-full max-w-full overflow-y-auto bg-card shadow-2xl custom-scrollbar sm:w-[420px] sm:max-w-[420px] sm:mr-2 lg:max-w-[360px] xl:max-w-[420px] 2xl:max-w-[480px]"
+        onClick={event => event.stopPropagation()}
+      >
         <header className="flex items-center justify-between border-b border-muted px-7 py-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
             <span>ID da transação: #{sale.id}</span>
@@ -114,25 +120,27 @@ export default function SalesDetailPanel({ sale, onClose }: SalesDetailPanelProp
                   <div className="flex items-center gap-3">
                     <Image
                       src="/images/logoSide.svg"
-                      alt={item.title}
+                      alt={item.title ?? "Produto"}
                       width={48}
                       height={48}
                       className="h-12 w-12 rounded-[10px] border border-muted bg-card object-cover"
                     />
                     <div>
-                      <p className="font-semibold text-card-foreground">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">{item.type}</p>
+                      <p className="font-semibold text-card-foreground">{item.title ?? "Produto"}</p>
+                      <p className="text-xs text-muted-foreground">{item.type ?? ""}</p>
                     </div>
                   </div>
                   <span className="text-sm font-semibold text-card-foreground">
-                    {item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    {(item.price ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </span>
                 </div>
                 {index === 0 && detailData.orderBumps.length > 1 ? (
                   <div className="flex items-center gap-2 px-1 text-base font-semibold text-foreground">
                     <Image src="/images/order-bump.svg" alt="Order bump" width={18} height={18} className="h-[18px] w-[18px]" />
                     <span>Order Bumps</span>
-                    <span className="rounded-[6px] bg-foreground/20 px-2 py-[2px] text-xs font-semibold text-foreground">1</span>
+                    <span className="rounded-[6px] bg-foreground/20 px-2 py-[2px] text-xs font-semibold text-foreground">
+                      {detailData.orderBumps.length - 1}
+                    </span>
                   </div>
                 ) : null}
               </div>
