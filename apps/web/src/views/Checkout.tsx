@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import type { Checkout, Product, ProductOffer } from "@/lib/api";
 
 const paymentButtons = [
@@ -12,10 +13,10 @@ const paymentButtons = [
   { id: "boleto", label: "Boleto", iconSrc: "/images/boleto.svg" },
 ];
 
-const paymentMethodMap: Record<string, "CREDIT_CARD" | "PIX" | "TICKET"> = {
-  card: "CREDIT_CARD",
-  pix: "PIX",
-  boleto: "TICKET",
+const paymentMethodMap: Record<string, "credit_card" | "pix" | "ticket"> = {
+  card: "credit_card",
+  pix: "pix",
+  boleto: "ticket",
 };
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
 };
 
 export default function Checkout({ checkout, product, offer, offerId, productId, publicApiBase }: Props) {
+  const router = useRouter();
   const accent = checkout?.defaultColor || "#0f864b";
   const title = product?.name || checkout?.name || "Produto";
   const showCountdown = Boolean(checkout?.countdown_active && checkout?.countdown);
@@ -74,6 +76,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
   }, [checkout?.payment_methods]);
   const [paymentMethod, setPaymentMethod] = useState<string>(availablePaymentMethods[0] ?? "card");
   const [submittingPayment, setSubmittingPayment] = useState(false);
+  const [selectedBumps, setSelectedBumps] = useState<Record<string, boolean>>({});
   const visiblePaymentButtons = useMemo(
     () => paymentButtons.filter(button => availablePaymentMethods.includes(button.id)),
     [availablePaymentMethods]
@@ -90,15 +93,33 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     );
   }, [availablePaymentMethods]);
 
+  useEffect(() => {
+    if (!offer?.order_bumps?.length) return;
+    const nextSelected: Record<string, boolean> = {};
+    offer.order_bumps.forEach(bump => {
+      if (bump.id) {
+        nextSelected[bump.id] = true;
+      }
+    });
+    setSelectedBumps(nextSelected);
+  }, [offer?.order_bumps]);
+
   const handleConfirmPayment = async () => {
     if (!offerId || !productId) return;
     const baseUrl = publicApiBase ?? "";
     setSubmittingPayment(true);
     try {
+      const bumpsPayload = offer?.order_bumps
+        ? offer.order_bumps
+            .map(bump => bump.id)
+            .filter(id => id)
+            .map(id => ({ id }))
+        : [];
       const payload = {
         payment_method: paymentMethodMap[paymentMethod] ?? paymentMethodMap.card,
         offer_id: offerId,
         product_id: productId,
+        ...(bumpsPayload.length ? { bumps: bumpsPayload } : {}),
       };
       console.log("[publicCheckout] Enviando pagamento:", payload);
       const response = await fetch(`${baseUrl}/public/sale/${offerId}/product/${productId}`, {
@@ -108,6 +129,21 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       });
       const data = await response.json().catch(() => null);
       console.log("[publicCheckout] Resposta do pagamento:", { status: response.status, data });
+      if (response.ok) {
+        const priceValue =
+          offer?.free
+            ? 0
+            : offerType === "subscription"
+              ? Number(planPromo ?? planNormal ?? offerBasePrice ?? 0)
+              : Number(offerBasePrice ?? 0);
+        const params = new URLSearchParams({
+          product: title,
+          price: Number.isFinite(priceValue) ? String(priceValue) : "0",
+          method: paymentMethodMap[paymentMethod] ?? paymentMethodMap.card,
+          image: product?.image_url || "/images/produto.png",
+        });
+        router.push(`/pagamento-confirmado?${params.toString()}`);
+      }
     } catch (error) {
       console.error("[publicCheckout] Erro ao confirmar pagamento:", error);
     } finally {
@@ -317,10 +353,21 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                       </p>
                     )}
                     <div className="flex items-center gap-3">
+                      {(() => {
+                        const isChecked = Boolean(bump.id && selectedBumps[bump.id]);
+                        return (
                       <input
                         type="checkbox"
-                        className="h-5 w-5 rounded border border-foreground/30 bg-transparent"
+                        className={`h-5 w-5 rounded border transition ${
+                          isChecked
+                            ? "border-[#6C27D7] bg-[#6C27D7]"
+                            : "border-foreground/30 bg-transparent"
+                        }`}
+                        checked={isChecked}
+                        disabled
                       />
+                        );
+                      })()}
                       <Image
                         src="/images/produto.png"
                         alt={bump.title || "Order bump"}
