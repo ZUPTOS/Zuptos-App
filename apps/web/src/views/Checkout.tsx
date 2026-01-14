@@ -38,9 +38,11 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
   const showBirthdate = checkout?.required_birthdate ?? false;
   const showPhone = checkout?.required_phone ?? false;
   const showAddress = checkout?.required_address ?? false;
-  const showTestimonials = Boolean(
-    checkout?.testimonials_enabled && Array.isArray(checkout?.testimonials) && checkout.testimonials.length > 0
+  const testimonials = useMemo(
+    () => (checkout?.testimonials ?? []).filter(item => item.active !== false),
+    [checkout?.testimonials]
   );
+  const showTestimonials = Boolean(checkout?.testimonials_enabled && testimonials.length > 0);
   const isDark = (checkout?.theme || "dark") === "dark";
   const background = isDark ? "#060606" : "#f6f6f6";
   const cardBg = isDark ? "#0b0b0b" : "#ffffff";
@@ -85,6 +87,19 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     h-10 w-full rounded-[6px] px-3 text-sm focus:outline-none
     ${isDark ? "border border-white/10 bg-[#0b0b0b] text-white placeholder:text-neutral-500" : "border border-black/10 bg-white text-[#0a0a0a] placeholder:text-neutral-500"}
   `;
+  const resolveTestimonialImage = (
+    item: NonNullable<Checkout["testimonials"]>[number]
+  ) => {
+    const raw = item as Record<string, unknown>;
+    return (
+      item.image ||
+      item.avatar ||
+      (typeof raw.image_url === "string" ? raw.image_url : undefined) ||
+      (typeof raw.imageUrl === "string" ? raw.imageUrl : undefined) ||
+      (typeof raw.avatar_url === "string" ? raw.avatar_url : undefined) ||
+      (typeof raw.avatarUrl === "string" ? raw.avatarUrl : undefined)
+    );
+  };
 
   useEffect(() => {
     if (!availablePaymentMethods.length) return;
@@ -467,14 +482,24 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
               <div className="space-y-3">
                 <p className={`text-lg font-semibold ${textPrimary}`}>Depoimentos</p>
                 <div className="flex flex-col gap-3">
-                  {checkout?.testimonials?.map((item, idx) => (
+                  {testimonials.map((item, idx) => (
                     <div
                       key={item.id ?? idx}
                       className="space-y-2 rounded-[10px] border border-white/10 p-3"
                       style={{ backgroundColor: subCardBg }}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/70" />
+                        {resolveTestimonialImage(item) ? (
+                          <Image
+                            src={resolveTestimonialImage(item) || "/images/produto.png"}
+                            alt={item.name || "Depoimento"}
+                            width={56}
+                            height={56}
+                            className="h-14 w-14 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/70" />
+                        )}
                         <div className="flex flex-col gap-1">
                           <p className={`text-sm font-semibold ${textPrimary}`}>{item.name || "Nome e sobrenome"}</p>
                           <div className="flex gap-1 text-[#8ea000]">

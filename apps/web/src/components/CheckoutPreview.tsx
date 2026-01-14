@@ -6,6 +6,11 @@ export type CheckoutPreviewProps = {
   theme: "Light" | "Dark" | "light" | "dark";
   showLogo: boolean;
   showBanner: boolean;
+  logoSrc?: string;
+  bannerSrc?: string;
+  logoPosition?: "left" | "center" | "right";
+  showTestimonials?: boolean;
+  showOrderBumps?: boolean;
   requiredAddress: boolean;
   requiredPhone: boolean;
   requiredBirthdate: boolean;
@@ -21,6 +26,11 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
     theme,
     showLogo,
     showBanner,
+    logoSrc,
+    bannerSrc,
+    logoPosition = "left",
+    showTestimonials = false,
+    showOrderBumps = false,
     requiredAddress,
     requiredPhone,
     requiredBirthdate,
@@ -42,14 +52,45 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
     const placeholder = (h: number, w = "100%", mb = 10) =>
       `<div style="width:${w};height:${h}px;border-radius:10px;background:${neutral};border:${border};margin-bottom:${mb}px;"></div>`;
 
-    const logoHtml = showLogo
-      ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-            <div style="width:46px;height:46px;border-radius:14px;background:${neutral};border:${border};"></div>
-            <div style="flex:1;height:18px;border-radius:6px;background:${neutral};"></div>
+    const logoAlignment =
+      logoPosition === "center" ? "center" : logoPosition === "right" ? "flex-end" : "flex-start";
+    const logoInlineHtml = showLogo
+      ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;justify-content:${logoAlignment};">
+            ${
+              logoSrc
+                ? `<img src="${logoSrc}" style="width:46px;height:46px;border-radius:14px;object-fit:cover;border:${border};" />`
+                : `<div style="width:46px;height:46px;border-radius:14px;background:${neutral};border:${border};"></div>`
+            }
+            <div style="flex:1;max-width:60%;height:18px;border-radius:6px;background:${neutral};${
+              logoAlignment !== "flex-start" ? "margin-left:8px;" : ""
+            }"></div>
          </div>`
       : "";
+    const bannerAlignStyle =
+      logoPosition === "center"
+        ? "left:50%;transform:translate(-50%, 50%);"
+        : logoPosition === "right"
+        ? "right:18px;transform:translate(0, 50%);"
+        : "left:18px;transform:translate(0, 50%);";
     const bannerHtml = showBanner
-      ? `<div style="width:100%;height:140px;border-radius:14px;background:${neutral};border:${border};margin-bottom:18px;"></div>`
+      ? `<div style="position:relative;margin-bottom:${showLogo ? "30px" : "18px"};">
+            ${
+              bannerSrc
+            ? `<img src="${bannerSrc}" style="width:100%;height:70px;border-radius:14px;object-fit:cover;border:${border};" />`
+            : `<div style="width:100%;height:70px;border-radius:14px;background:${neutral};border:${border};"></div>`
+            }
+            ${
+              showLogo
+                ? `<div style="position:absolute;bottom:0;${bannerAlignStyle}width:52px;height:52px;border-radius:50%;background:${cardBg};border:${border};display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(0,0,0,0.35);">
+                      ${
+                        logoSrc
+                          ? `<img src="${logoSrc}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />`
+                          : `<div style="width:48px;height:48px;border-radius:50%;background:${neutral};"></div>`
+                      }
+                   </div>`
+                : ""
+            }
+         </div>`
       : "";
 
     const requiredBlocks = [
@@ -61,7 +102,130 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
       .filter(Boolean)
       .join("");
 
-    const countdownHtml = `<div style="height:36px;border-radius:8px;background:${counterBgColor};color:${counterTextColor};border:${border};margin-top:12px;"></div>`;
+    const producerHtml = `
+      <div class="card">
+        <div class="row">
+          <div class="icon"></div>
+          <div style="flex:1;">
+            ${placeholder(12, "60%", 6)}
+            ${placeholder(10, "40%", 0)}
+          </div>
+        </div>
+        ${placeholder(10, "85%", 8)}
+        ${placeholder(10, "55%", 0)}
+      </div>
+    `;
+
+    const productHtml = `
+      <div class="card">
+        <div class="row">
+          <div class="thumb"></div>
+          <div style="flex:1;">
+            ${placeholder(12, "70%", 6)}
+            ${placeholder(10, "45%", 0)}
+          </div>
+        </div>
+      </div>
+    `;
+
+    const paymentHtml = `
+      <div class="card">
+        ${placeholder(12, "40%", 12)}
+        <div class="row">
+          <div class="pill"></div>
+          <div class="pill"></div>
+          <div class="pill"></div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          ${placeholder(30, "50%", 0)}
+          ${placeholder(30, "50%", 0)}
+        </div>
+        <div style="margin-top:10px;">${requiredBlocks}</div>
+        ${placeholder(32, "100%", 0)}
+      </div>
+    `;
+
+    const testimonialItem = `
+      <div class="row">
+        <div class="avatar"></div>
+        <div style="flex:1;">
+          ${placeholder(10, "55%", 6)}
+          ${placeholder(10, "40%", 0)}
+        </div>
+      </div>
+      ${placeholder(10, "100%", 0)}
+    `;
+
+    const benefitItem = `
+      <div class="row">
+        <div class="icon"></div>
+        <div style="flex:1;">
+          ${placeholder(10, "70%", 6)}
+          ${placeholder(8, "90%", 0)}
+        </div>
+      </div>
+    `;
+    const benefitsHtml = `
+      <div class="card">
+        <div class="stack">
+          ${benefitItem}
+          ${benefitItem}
+          ${benefitItem}
+          ${benefitItem}
+        </div>
+      </div>
+    `;
+
+    const emptyRightHtml = `
+      <div class="card muted">
+        ${placeholder(12, "45%", 12)}
+        ${placeholder(10, "85%", 8)}
+        ${placeholder(10, "65%", 0)}
+      </div>
+    `;
+
+    const testimonialsHtml = showTestimonials
+      ? `
+        <div class="card">
+          ${placeholder(12, "40%", 12)}
+          <div class="stack">
+            ${testimonialItem}
+            ${testimonialItem}
+          </div>
+        </div>
+      `
+      : emptyRightHtml;
+
+    const rightColumnHtml = `
+      <div class="stack">
+        ${benefitsHtml}
+        ${testimonialsHtml}
+      </div>
+    `;
+
+    const orderBumpsHtml = showOrderBumps
+      ? `
+        <div class="card">
+          ${placeholder(12, "35%", 12)}
+          <div class="stack">
+            <div class="row">
+              <div class="checkbox"></div>
+              <div style="flex:1;">
+                ${placeholder(10, "60%", 6)}
+                ${placeholder(10, "45%", 0)}
+              </div>
+            </div>
+            <div class="row">
+              <div class="checkbox"></div>
+              <div style="flex:1;">
+                ${placeholder(10, "60%", 6)}
+                ${placeholder(10, "45%", 0)}
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+      : emptyRightHtml;
 
     return `
       <html>
@@ -70,61 +234,38 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
             body { margin:0; padding:0; background:${bg}; font-family: Inter, system-ui, -apple-system, sans-serif; color:#cbd5e1; }
             .top { height:64px; background:${accent}; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
             .progress { height:56px; background:#d1d5db; }
-            .wrap { padding:28px; display:flex; gap:20px; }
-            .main { flex:2; display:flex; flex-direction:column; gap:18px; }
-            .side { flex:1; display:flex; flex-direction:column; gap:16px; }
+            .wrap { padding:24px; }
+            .content { display:flex; flex-direction:column; gap:16px; }
+            .grid { display:grid; grid-template-columns: 1.25fr 0.75fr; gap:16px; }
             .card { background:${cardBg}; border:${border}; border-radius:16px; padding:18px; }
-            .side-card { background:${sideCardBg}; border:${border}; border-radius:16px; padding:16px; }
             .row { display:flex; gap:12px; }
+            .stack { display:flex; flex-direction:column; gap:12px; }
             .btn { height:46px; border-radius:10px; background:${accent}; border:none; }
+            .span-2 { grid-column: span 2; }
+            .icon { width:38px; height:38px; border-radius:12px; background:${neutral}; border:${border}; }
+            .thumb { width:54px; height:54px; border-radius:12px; background:${neutral}; border:${border}; }
+            .pill { width:68px; height:26px; border-radius:8px; background:${neutral}; border:${border}; }
+            .avatar { width:38px; height:38px; border-radius:50%; background:${neutral}; border:${border}; }
+            .checkbox { width:20px; height:20px; border-radius:6px; background:${neutral}; border:${border}; }
+            .muted { opacity:0.65; }
           </style>
         </head>
         <body>
           ${countdownEnabled ? `<div class="top"></div>` : ""}
           ${countdownEnabled ? `<div class="progress"></div>` : ""}
           <div class="wrap">
-            <div class="main">
-              <div class="card">
-                ${logoHtml}
-                ${bannerHtml}
-                ${placeholder(26, "20%", 12)}
-                ${placeholder(16, "100%", 12)}
-                <div class="row">
-                  ${placeholder(34, "55%", 0)}
-                  ${placeholder(34, "45%", 0)}
-                </div>
-                <div class="row" style="margin-top:10px;">
-                  ${placeholder(34, "45%", 0)}
-                  ${placeholder(34, "55%", 0)}
-                </div>
-                ${placeholder(34)}
-                ${requiredBlocks}
-                <div class="row" style="margin-top:12px; gap:10px;">
-                  ${placeholder(34, "32%", 0)}
-                  ${placeholder(34, "32%", 0)}
-                  ${placeholder(34, "32%", 0)}
-                </div>
-                ${placeholder(34, "100%", 10)}
-                ${placeholder(34, "48%", 10)}
-                ${placeholder(34, "48%", 10)}
-                <button class="btn"></button>
-                ${countdownHtml}
+            <div class="content">
+              ${showBanner ? bannerHtml : logoInlineHtml}
+              ${showBanner ? "" : bannerHtml}
+              <div class="grid">
+                ${producerHtml}
+                ${productHtml}
+                ${paymentHtml}
+                ${rightColumnHtml}
+                ${orderBumpsHtml}
+                ${emptyRightHtml}
               </div>
-            </div>
-            <div class="side">
-              <div class="side-card">
-                ${placeholder(32, "100%", 12)}
-                ${placeholder(16, "70%", 10)}
-                ${placeholder(12, "90%", 8)}
-                ${placeholder(12, "80%", 8)}
-                ${placeholder(12, "75%", 8)}
-              </div>
-              <div class="side-card">
-                ${placeholder(26, "40%", 10)}
-                ${placeholder(16, "90%", 8)}
-                ${placeholder(16, "90%", 8)}
-                ${placeholder(16, "90%", 8)}
-              </div>
+              <button class="btn"></button>
             </div>
           </div>
         </body>
@@ -134,6 +275,11 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
     theme,
     showLogo,
     showBanner,
+    logoSrc,
+    bannerSrc,
+    logoPosition,
+    showTestimonials,
+    showOrderBumps,
     requiredAddress,
     requiredPhone,
     requiredBirthdate,

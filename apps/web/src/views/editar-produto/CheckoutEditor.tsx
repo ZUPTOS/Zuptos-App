@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import Image from "next/image";
 import { productApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +49,79 @@ const SectionCard = ({
   </div>
 );
 
+type ImagePreview = {
+  src: string;
+  name: string;
+  ext: string;
+  size: number | null;
+  objectUrl?: string;
+};
+
+const formatBytes = (bytes: number | null) => {
+  if (bytes === null) return "-";
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let index = 0;
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024;
+    index += 1;
+  }
+  const precision = value < 10 && index > 0 ? 1 : 0;
+  return `${value.toFixed(precision)} ${units[index]}`;
+};
+
+const parseFileName = (src: string) => {
+  try {
+    const url = new URL(src);
+    const segment = url.pathname.split("/").pop();
+    return decodeURIComponent(segment || "imagem");
+  } catch {
+    const segment = src.split("/").pop();
+    return decodeURIComponent(segment || "imagem");
+  }
+};
+
+const buildPreviewFromUrl = (src: string): ImagePreview => {
+  const name = parseFileName(src);
+  const dotIndex = name.lastIndexOf(".");
+  const baseName = dotIndex > 0 ? name.slice(0, dotIndex) : name;
+  const ext = dotIndex > 0 ? name.slice(dotIndex + 1) : "";
+  return {
+    src,
+    name: baseName,
+    ext: ext.toUpperCase() || "IMG",
+    size: null,
+  };
+};
+
+const buildStoredPreview = (src: string, label: string): ImagePreview => {
+  if (src.startsWith("blob:")) {
+    return {
+      src,
+      name: label,
+      ext: "IMG",
+      size: null,
+    };
+  }
+  return buildPreviewFromUrl(src);
+};
+
+const buildPreviewFromFile = (file: File, srcOverride?: string): ImagePreview => {
+  const rawName = file.name || "imagem";
+  const dotIndex = rawName.lastIndexOf(".");
+  const baseName = dotIndex > 0 ? rawName.slice(0, dotIndex) : rawName;
+  const ext = dotIndex > 0 ? rawName.slice(dotIndex + 1) : "";
+  const objectUrl = srcOverride ? undefined : URL.createObjectURL(file);
+  return {
+    src: srcOverride ?? objectUrl ?? "",
+    name: baseName,
+    ext: ext.toUpperCase() || "IMG",
+    size: file.size,
+    objectUrl,
+  };
+};
+
 type Props = {
   productId?: string;
   checkoutId?: string;
@@ -84,8 +158,12 @@ export function CheckoutEditor({
   const [requiredEmailConfirmation, setRequiredEmailConfirmation] = useState(false);
   const [showLogo, setShowLogo] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [, setLogoFile] = useState<File | null>(null);
+  const [, setBannerFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<ImagePreview | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<ImagePreview | null>(null);
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [bannerDataUrl, setBannerDataUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<"left" | "center" | "right">("left");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [counterBgColor, setCounterBgColor] = useState("#111111");
@@ -106,17 +184,143 @@ export function CheckoutEditor({
   const [acceptedDocuments, setAcceptedDocuments] = useState<Array<"cpf" | "cnpj">>(["cpf"]);
   const [paymentMethods, setPaymentMethods] = useState<Array<"card" | "boleto" | "pix">>(["card"]);
   const [testimonials, setTestimonials] = useState<
-    { id?: string; name: string; text: string; rating: number; active: boolean; avatar?: string }[]
+    { id?: string; name: string; text: string; rating: number; active: boolean; image?: string }[]
   >([]);
-  const [testimonialDraft, setTestimonialDraft] = useState<{ name: string; text: string; rating: number }>({
+  const [testimonialDraft, setTestimonialDraft] = useState<{
+    name: string;
+    text: string;
+    rating: number;
+    image: string;
+  }>({
     name: "",
     text: "",
     rating: 5,
+    image: "",
   });
   const [editingTestimonialIndex, setEditingTestimonialIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
+  const testimonialImageInputRef = useRef<HTMLInputElement | null>(null);
+  const previewLogoSrc =
+    logoDataUrl ?? (logoPreview && !logoPreview.src.startsWith("blob:") ? logoPreview.src : undefined);
+  const previewBannerSrc =
+    bannerDataUrl ??
+    (bannerPreview && !bannerPreview.src.startsWith("blob:") ? bannerPreview.src : undefined);
+  const logoPreviewImageSrc = logoPreview && !logoPreview.src.startsWith("blob:") ? logoPreview.src : "";
+  const bannerPreviewImageSrc =
+    bannerPreview && !bannerPreview.src.startsWith("blob:") ? bannerPreview.src : "";
+
+  const readFileAsDataUrl = useCallback((file: File, onLoad: (value: string) => void) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (result) onLoad(result);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleTestimonialImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+      notify.error("Formato de imagem inválido. Use JPG ou PNG.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      notify.error("A imagem deve ter menos de 10MB.");
+      return;
+    }
+    readFileAsDataUrl(file, value => setTestimonialDraft(prev => ({ ...prev, image: value })));
+  }, [readFileAsDataUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview?.objectUrl) {
+        URL.revokeObjectURL(logoPreview.objectUrl);
+      }
+    };
+  }, [logoPreview?.objectUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (bannerPreview?.objectUrl) {
+        URL.revokeObjectURL(bannerPreview.objectUrl);
+      }
+    };
+  }, [bannerPreview?.objectUrl]);
+
+  useEffect(() => {
+    const fetchSize = async (
+      preview: ImagePreview,
+      setter: Dispatch<SetStateAction<ImagePreview | null>>
+    ) => {
+      if (preview.size !== null || preview.objectUrl) return;
+      if (preview.src.startsWith("blob:") || preview.src.startsWith("data:")) return;
+      try {
+        const response = await fetch(preview.src, { method: "HEAD" });
+        const size = response.headers.get("content-length");
+        if (!size) return;
+        const parsed = Number(size);
+        if (Number.isNaN(parsed)) return;
+        setter(current => (current && current.src === preview.src ? { ...current, size: parsed } : current));
+      } catch {
+      }
+    };
+
+    if (logoPreview) {
+      void fetchSize(logoPreview, setLogoPreview);
+    }
+    if (bannerPreview) {
+      void fetchSize(bannerPreview, setBannerPreview);
+    }
+  }, [logoPreview, bannerPreview]);
+
+  const handleToggleTestimonialActive = useCallback(
+    async (index: number) => {
+      const current = testimonials[index];
+      if (!current) return;
+      const nextActive = !current.active;
+      setTestimonials(prev => prev.map((item, i) => (i === index ? { ...item, active: nextActive } : item)));
+      if (!current.id || !productId || !checkoutId || !token) return;
+      try {
+        await productApi.updateCheckoutDepoiment(
+          productId,
+          checkoutId,
+          current.id,
+          { active: nextActive },
+          token
+        );
+        notify.success("Depoimento atualizado");
+      } catch (error) {
+        console.error("Erro ao atualizar depoimento:", error);
+        setTestimonials(prev => prev.map((item, i) => (i === index ? { ...item, active: current.active } : item)));
+        notify.error("Erro ao atualizar depoimento.");
+      }
+    },
+    [testimonials, productId, checkoutId, token]
+  );
+
+  const handleDeleteTestimonial = useCallback(
+    async (index: number) => {
+      const current = testimonials[index];
+      if (!current) return;
+      if (current.id && productId && checkoutId && token) {
+        try {
+          await productApi.deleteCheckoutDepoiment(productId, checkoutId, current.id, token);
+          notify.success("Depoimento removido");
+        } catch (error) {
+          console.error("Erro ao excluir depoimento:", error);
+          notify.error("Erro ao excluir depoimento.");
+          return;
+        }
+      } else {
+        notify.success("Depoimento removido");
+      }
+      setTestimonials(prev => prev.filter((_, i) => i !== index));
+    },
+    [testimonials, productId, checkoutId, token]
+  );
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -146,12 +350,56 @@ export function CheckoutEditor({
           "Carregando checkout"
         );
         console.log("[checkout] Dados carregados no GET /product/{id}/checkouts/{checkoutId}:", data);
+        let depoiments: unknown = [];
+        try {
+          depoiments = await productApi.getCheckoutDepoiments(productId, checkoutId, token);
+        } catch (error) {
+          console.error("Erro ao buscar depoimentos do checkout:", error);
+        }
+        const depoimentsList = Array.isArray(depoiments)
+          ? depoiments
+          : (depoiments as { depoiments?: unknown; data?: unknown } | null)?.depoiments ??
+            (depoiments as { data?: unknown } | null)?.data ??
+            [];
+        const mappedDepoiments = Array.isArray(depoimentsList)
+          ? depoimentsList.map(t => {
+              const raw = t as { [key: string]: unknown };
+              const imageValue =
+                (raw.image as string | undefined) ??
+                (raw.image_url as string | undefined) ??
+                (raw.imageUrl as string | undefined) ??
+                (raw.avatar as string | undefined) ??
+                (raw.avatar_url as string | undefined) ??
+                (raw.avatarUrl as string | undefined) ??
+                "";
+              return {
+                id: (raw.id as string | undefined) ?? undefined,
+                name: (raw.name as string | undefined) ?? "",
+                text: (raw.depoiment as string | undefined) ?? (raw.text as string | undefined) ?? "",
+                rating: Number(raw.ratting ?? raw.rating ?? 0),
+                active: (raw.active as boolean | undefined) ?? true,
+                image: imageValue,
+              };
+            })
+          : [];
         setCheckoutName(data.name || "Checkout");
         setTheme((data.theme as "dark" | "light") || "dark");
         setAccentColor(data.defaultColor || "#5f17ff");
         setShowLogo(Boolean(data.logo));
         setLogoPosition((data.position_logo as "left" | "center" | "right") || "left");
         setShowBanner(Boolean(data.banner));
+        if (data.logo) {
+          setLogoPreview(buildStoredPreview(String(data.logo), "Logo cadastrada"));
+        } else {
+          setLogoPreview(null);
+        }
+        setLogoDataUrl(null);
+        if (data.banner) {
+          setBannerPreview(buildStoredPreview(String(data.banner), "Banner cadastrado"));
+        } else {
+          setBannerPreview(null);
+        }
+        setBannerDataUrl(null);
         setRequiredEmailConfirmation(Boolean(data.required_email_confirmation));
         setCountdownEnabled(Boolean(data.countdown_active || data.countdown));
         setCounterBgColor(data.countdown_background || "#111111");
@@ -176,18 +424,30 @@ export function CheckoutEditor({
         setPixExpireMinutes(data.pix_expire_minutes != null ? String(data.pix_expire_minutes) : "");
         setSalesNotificationsEnabled(Boolean(data.sales_notifications_enabled));
         setSocialProofEnabled(Boolean(data.social_proof_enabled));
-        setReviewsEnabled(Boolean(data.testimonials_enabled));
-        setTestimonials(
-          Array.isArray(data.testimonials)
-            ? data.testimonials.map(t => ({
+        const payloadTestimonials = Array.isArray(data.testimonials)
+          ? data.testimonials.map(t => {
+              const raw = t as { [key: string]: unknown };
+              const imageValue =
+                t.image ||
+                t.avatar ||
+                (raw.image_url as string | undefined) ||
+                (raw.imageUrl as string | undefined) ||
+                (raw.avatar_url as string | undefined) ||
+                (raw.avatarUrl as string | undefined) ||
+                "";
+              return {
                 id: t.id,
                 name: t.name || "",
                 text: t.text || "",
                 rating: t.rating ?? 0,
                 active: t.active ?? true,
-              }))
-            : []
-        );
+                image: imageValue,
+              };
+            })
+          : [];
+        const resolvedTestimonials = mappedDepoiments.length ? mappedDepoiments : payloadTestimonials;
+        setReviewsEnabled(Boolean(data.testimonials_enabled) || resolvedTestimonials.length > 0);
+        setTestimonials(resolvedTestimonials);
       } catch (error) {
         console.error("Erro ao carregar checkout para edição:", error);
       } finally {
@@ -241,14 +501,23 @@ export function CheckoutEditor({
       payload.countdown_background = counterBgColor;
       payload.countdown_text_color = counterTextColor;
     }
-    if (showLogo && logoFile) payload.logo = URL.createObjectURL(logoFile);
+    const logoValue = logoDataUrl ?? logoPreview?.src ?? undefined;
+    if (showLogo && logoValue) payload.logo = logoValue;
     if (showLogo) payload.position_logo = logoPosition;
-    if (showBanner && bannerFile) payload.banner = URL.createObjectURL(bannerFile);
+    const bannerValue = bannerDataUrl ?? bannerPreview?.src ?? undefined;
+    if (showBanner && bannerValue) payload.banner = bannerValue;
     payload.social_proof_enabled = socialProofEnabled;
     payload.sales_notifications_enabled = salesNotificationsEnabled;
     payload.testimonials_enabled = reviewsEnabled;
     if (reviewsEnabled && testimonials.length) {
-      payload.testimonials = testimonials;
+      payload.testimonials = testimonials.map(item => ({
+        id: item.id,
+        name: item.name,
+        text: item.text,
+        rating: item.rating,
+        active: item.active,
+        image: item.image || undefined,
+      }));
     }
 
     setIsSaving(true);
@@ -259,23 +528,35 @@ export function CheckoutEditor({
         : await productApi.createCheckout(productId, payload, token);
       console.log("[checkout] Resposta do servidor:", response);
       const targetCheckoutId = checkoutId ?? (response as { id?: string } | undefined)?.id;
-      if (reviewsEnabled && targetCheckoutId && testimonials.length > 0) {
-        await Promise.all(
-          testimonials.map(item =>
-            productApi.createCheckoutDepoiment(
-              productId,
-              targetCheckoutId,
-              {
-                image: item.avatar,
-                name: item.name || "Nome",
-                depoiment: item.text || "Depoimento",
-                active: item.active ?? true,
-                ratting: String(item.rating ?? ""),
-              },
-              token
+      if (reviewsEnabled && targetCheckoutId) {
+        const newTestimonials = testimonials.filter(item => !item.id);
+        if (newTestimonials.length > 0) {
+          const created = await Promise.all(
+            newTestimonials.map(item =>
+              productApi.createCheckoutDepoiment(
+                productId,
+                targetCheckoutId,
+                {
+                  ...(item.image ? { image: item.image } : {}),
+                  name: item.name || "Nome",
+                  depoiment: item.text || "Depoimento",
+                  active: item.active ?? true,
+                  ratting: String(item.rating ?? ""),
+                },
+                token
+              )
             )
-          )
-        );
+          );
+          setTestimonials(prev => {
+            let createdIndex = 0;
+            return prev.map(item => {
+              if (item.id) return item;
+              const createdItem = created[createdIndex];
+              createdIndex += 1;
+              return { ...item, id: (createdItem as { id?: string } | undefined)?.id ?? item.id };
+            });
+          });
+        }
       }
       if (onSaved) onSaved();
     } catch (error) {
@@ -433,20 +714,87 @@ export function CheckoutEditor({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={event => setLogoFile(event.target.files?.[0] ?? null)}
+                        onChange={event => {
+                          const file = event.target.files?.[0] ?? null;
+                          setLogoFile(file);
+                          if (file) {
+                            readFileAsDataUrl(file, value => {
+                              setLogoPreview(buildPreviewFromFile(file, value));
+                              setLogoDataUrl(value);
+                            });
+                          } else {
+                            setLogoDataUrl(null);
+                          }
+                        }}
                       />
-                      <button
-                        type="button"
-                        onClick={() => logoInputRef.current?.click()}
-                        className="flex w-full items-center justify-center gap-1 rounded-[12px] border border-foreground/20 bg-card/50 px-4 py-6 text-base font-semibold text-foreground transition hover:border-primary/60 hover:text-primary"
-                      >
-                        <span>Arraste a imagem ou</span>
-                        <span className="underline">clique aqui</span>
-                      </button>
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>Aceitamos os formatos .jpg, .jpeg e .png com menos de 10mb.</p>
-                        <p>Sugestão de tamanho: 300 X 300</p>
-                      </div>
+                      {logoPreview ? (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => logoInputRef.current?.click()}
+                          onKeyDown={event => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              logoInputRef.current?.click();
+                            }
+                          }}
+                          className="relative flex cursor-pointer items-center gap-3 rounded-[10px] border border-foreground/15 bg-card/60 p-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        >
+                          <button
+                            type="button"
+                            aria-label="Remover logo"
+                            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-foreground/20 bg-card text-xs text-muted-foreground transition hover:text-foreground"
+                            onClick={event => {
+                              event.stopPropagation();
+                              setLogoFile(null);
+                              setLogoPreview(null);
+                              setLogoDataUrl(null);
+                              if (logoInputRef.current) {
+                                logoInputRef.current.value = "";
+                              }
+                            }}
+                          >
+                            X
+                          </button>
+                          <div className="h-12 w-12 overflow-hidden rounded-[10px] border border-foreground/10 bg-foreground/5">
+                            {logoPreviewImageSrc ? (
+                              <img
+                                src={logoPreviewImageSrc}
+                                alt={logoPreview.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
+                                IMG
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p className="text-sm font-semibold text-foreground">
+                              {logoPreview.name}
+                              <span className="ml-2 text-xs font-semibold text-muted-foreground">
+                                {logoPreview.ext}
+                              </span>
+                            </p>
+                            <p>Tamanho: {formatBytes(logoPreview.size)}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => logoInputRef.current?.click()}
+                            className="flex w-full items-center justify-center gap-1 rounded-[12px] border border-foreground/20 bg-card/50 px-4 py-6 text-base font-semibold text-foreground transition hover:border-primary/60 hover:text-primary"
+                          >
+                            <span>Arraste a imagem ou</span>
+                            <span className="underline">clique aqui</span>
+                          </button>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>Aceitamos os formatos .jpg, .jpeg e .png com menos de 10mb.</p>
+                            <p>Sugestão de tamanho: 300 X 300</p>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                   {showLogo && (
@@ -497,19 +845,86 @@ export function CheckoutEditor({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={event => setBannerFile(event.target.files?.[0] ?? null)}
+                        onChange={event => {
+                          const file = event.target.files?.[0] ?? null;
+                          setBannerFile(file);
+                          if (file) {
+                            readFileAsDataUrl(file, value => {
+                              setBannerPreview(buildPreviewFromFile(file, value));
+                              setBannerDataUrl(value);
+                            });
+                          } else {
+                            setBannerDataUrl(null);
+                          }
+                        }}
                       />
-                      <button
-                        type="button"
-                        onClick={() => bannerInputRef.current?.click()}
-                        className="flex w-full items-center justify-center gap-1 rounded-[12px] border border-foreground/20 bg-card/50 px-4 py-6 text-base font-semibold text-foreground transition hover:border-primary/60 hover:text-primary"
-                      >
-                        Arraste a imagem ou <span className="underline">clique aqui</span>
-                      </button>
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>Aceitamos os formatos .jpg, .jpeg e .png com menos de 10mb.</p>
-                        <p>Sugestão de tamanho: 300 X 300</p>
-                      </div>
+                      {bannerPreview ? (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => bannerInputRef.current?.click()}
+                          onKeyDown={event => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              bannerInputRef.current?.click();
+                            }
+                          }}
+                          className="relative flex cursor-pointer items-center gap-3 rounded-[10px] border border-foreground/15 bg-card/60 p-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        >
+                          <button
+                            type="button"
+                            aria-label="Remover banner"
+                            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-foreground/20 bg-card text-xs text-muted-foreground transition hover:text-foreground"
+                            onClick={event => {
+                              event.stopPropagation();
+                              setBannerFile(null);
+                              setBannerPreview(null);
+                              setBannerDataUrl(null);
+                              if (bannerInputRef.current) {
+                                bannerInputRef.current.value = "";
+                              }
+                            }}
+                          >
+                            X
+                          </button>
+                          <div className="h-12 w-20 overflow-hidden rounded-[10px] border border-foreground/10 bg-foreground/5">
+                            {bannerPreviewImageSrc ? (
+                              <img
+                                src={bannerPreviewImageSrc}
+                                alt={bannerPreview.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
+                                IMG
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p className="text-sm font-semibold text-foreground">
+                              {bannerPreview.name}
+                              <span className="ml-2 text-xs font-semibold text-muted-foreground">
+                                {bannerPreview.ext}
+                              </span>
+                            </p>
+                            <p>Tamanho: {formatBytes(bannerPreview.size)}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => bannerInputRef.current?.click()}
+                            className="flex w-full items-center justify-center gap-1 rounded-[12px] border border-foreground/20 bg-card/50 px-4 py-6 text-base font-semibold text-foreground transition hover:border-primary/60 hover:text-primary"
+                          >
+                            Arraste a imagem ou <span className="underline">clique aqui</span>
+                          </button>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>Aceitamos os formatos .jpg, .jpeg e .png com menos de 10mb.</p>
+                            <p>Sugestão de tamanho: 300 X 300</p>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                   <div className="space-y-3">
@@ -585,6 +1000,11 @@ export function CheckoutEditor({
                     theme={theme}
                     showLogo={showLogo}
                     showBanner={showBanner}
+                    logoSrc={previewLogoSrc}
+                    bannerSrc={previewBannerSrc}
+                    logoPosition={logoPosition}
+                    showTestimonials={reviewsEnabled}
+                    showOrderBumps
                     requiredAddress={requiredAddress}
                     requiredPhone={requiredPhone}
                     requiredBirthdate={requiredBirthdate}
@@ -1008,11 +1428,7 @@ export function CheckoutEditor({
                                   className={`relative inline-flex h-5 w-10 items-center rounded-full ${
                                     item.active ? "bg-primary/70" : "bg-muted"
                                   }`}
-                                  onClick={() =>
-                                    setTestimonials(prev =>
-                                      prev.map((t, i) => (i === idx ? { ...t, active: !t.active } : t))
-                                    )
-                                  }
+                                  onClick={() => handleToggleTestimonialActive(idx)}
                                 >
                                   <span
                                     className={`absolute h-4 w-4 rounded-full bg-white transition ${
@@ -1029,11 +1445,12 @@ export function CheckoutEditor({
                                 className="inline-flex items-center gap-1 rounded-[6px] border border-blue-500/40 bg-blue-500/10 px-2 py-1 text-xs text-blue-200 transition hover:border-blue-500/70"
                                 onClick={() => {
                                   setEditingTestimonialIndex(idx);
-                                  setTestimonialDraft({
-                                    name: item.name,
-                                    text: item.text,
-                                    rating: item.rating ?? 5,
-                                  });
+                                    setTestimonialDraft({
+                                      name: item.name,
+                                      text: item.text,
+                                      rating: item.rating ?? 5,
+                                      image: item.image || "",
+                                    });
                                 }}
                               >
                                 <Pencil className="h-3 w-3" />
@@ -1042,10 +1459,7 @@ export function CheckoutEditor({
                               <button
                                 type="button"
                                 className="inline-flex items-center gap-1 rounded-[6px] border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-xs text-rose-200 transition hover:border-rose-500/70"
-                                onClick={() => {
-                                  setTestimonials(prev => prev.filter((_, i) => i !== idx));
-                                  notify.success("Depoimento removido");
-                                }}
+                                onClick={() => handleDeleteTestimonial(idx)}
                               >
                                 <Trash2 className="h-3 w-3" />
                                 Excluir
@@ -1053,7 +1467,17 @@ export function CheckoutEditor({
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/70" />
+                            {item.image ? (
+                              <Image
+                                src={item.image}
+                                alt={item.name || "Depoimento"}
+                                width={48}
+                                height={48}
+                                className="h-12 w-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/70" />
+                            )}
                             <div className="space-y-1">
                               <p className="text-xs font-semibold text-foreground">{item.name || "Nome"}</p>
                               <div className="flex gap-1 text-[#8ea000]">
@@ -1067,62 +1491,138 @@ export function CheckoutEditor({
                         </div>
                       ))}
 
-                      <div className="space-y-3 rounded-[10px] border border-foreground/15 bg-card p-3">
+                      <div className="space-y-4 rounded-[10px] border border-foreground/15 bg-card p-3">
                         <p className="text-sm font-semibold text-foreground">
                           {editingTestimonialIndex !== null ? "Editar depoimento" : "Novo depoimento"}
                         </p>
-                        <div className="flex items-center gap-2 text-sm text-foreground">
-                          <span>Classificação</span>
-                          <div className="flex gap-1 text-[#8ea000]">
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            className="flex w-full items-center justify-center rounded-[10px] border border-dashed border-foreground/20 bg-foreground/5 px-4 py-6 text-xs text-muted-foreground transition hover:border-primary/60"
+                            onClick={() => testimonialImageInputRef.current?.click()}
+                          >
+                            {testimonialDraft.image ? (
+                              <Image
+                                src={testimonialDraft.image}
+                                alt="Preview depoimento"
+                                width={120}
+                                height={120}
+                                className="h-20 w-20 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span>Arraste a imagem ou clique aqui</span>
+                            )}
+                          </button>
+                          <input
+                            ref={testimonialImageInputRef}
+                            type="file"
+                            accept="image/png,image/jpeg"
+                            className="hidden"
+                            onChange={handleTestimonialImageChange}
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            Aceitamos .jpg, .jpeg e .png com menos de 10mb. Sugestão de tamanho: 300 x 300.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="text-sm font-semibold text-foreground">Classificação</span>
+                          <div className="flex gap-1">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <button
                                 key={i}
                                 type="button"
                                 onClick={() => setTestimonialDraft(prev => ({ ...prev, rating: i + 1 }))}
-                                className="text-lg"
+                                className={`text-lg ${
+                                  i < testimonialDraft.rating ? "text-[#8ea000]" : "text-muted-foreground/50"
+                                }`}
                                 aria-label={`Nota ${i + 1}`}
+                                aria-pressed={i < testimonialDraft.rating}
                               >
                                 ★
                               </button>
                             ))}
                           </div>
                         </div>
-                        <input
-                          className={fieldClass}
-                          placeholder="Nome"
-                          value={testimonialDraft.name}
-                          onChange={event => setTestimonialDraft(prev => ({ ...prev, name: event.target.value }))}
-                        />
-                        <input
-                          className={fieldClass}
-                          placeholder="Depoimento"
-                          value={testimonialDraft.text}
-                          onChange={event => setTestimonialDraft(prev => ({ ...prev, text: event.target.value }))}
-                        />
-                        <button
-                          type="button"
-                          className="rounded-[8px] bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-                          onClick={() => {
-                            const nextItem = {
-                              name: testimonialDraft.name || "Nome",
-                              text: testimonialDraft.text || "Depoimento do cliente",
-                              rating: testimonialDraft.rating,
-                              active: true,
-                            };
-                            setTestimonials(prev => {
-                              if (editingTestimonialIndex === null) {
+
+                        <label className="space-y-2 text-xs text-muted-foreground">
+                          <span className="text-sm font-semibold text-foreground">Nome</span>
+                          <input
+                            className={fieldClass}
+                            placeholder="Insira um nome"
+                            value={testimonialDraft.name}
+                            onChange={event => setTestimonialDraft(prev => ({ ...prev, name: event.target.value }))}
+                          />
+                        </label>
+
+                        <label className="space-y-2 text-xs text-muted-foreground">
+                          <span className="text-sm font-semibold text-foreground">Depoimento</span>
+                          <textarea
+                            className="min-h-[96px] w-full rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                            placeholder="Insira um depoimento"
+                            value={testimonialDraft.text}
+                            onChange={event => setTestimonialDraft(prev => ({ ...prev, text: event.target.value }))}
+                          />
+                        </label>
+
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            className="rounded-[8px] bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                            onClick={async () => {
+                              const activeValue =
+                                editingTestimonialIndex !== null
+                                  ? testimonials[editingTestimonialIndex]?.active ?? true
+                                  : true;
+                              const nextItem = {
+                                name: testimonialDraft.name || "Nome",
+                                text: testimonialDraft.text || "Depoimento do cliente",
+                                rating: testimonialDraft.rating,
+                                active: activeValue,
+                                image: testimonialDraft.image || "",
+                              };
+                              if (editingTestimonialIndex !== null) {
+                                const current = testimonials[editingTestimonialIndex];
+                                if (current?.id && productId && checkoutId && token) {
+                                  try {
+                                    await productApi.updateCheckoutDepoiment(
+                                      productId,
+                                      checkoutId,
+                                      current.id,
+                                      {
+                                        ...(nextItem.image ? { image: nextItem.image } : {}),
+                                        name: nextItem.name,
+                                        depoiment: nextItem.text,
+                                        active: nextItem.active,
+                                        ratting: String(nextItem.rating ?? ""),
+                                      },
+                                      token
+                                    );
+                                    notify.success("Depoimento atualizado");
+                                  } catch (error) {
+                                    console.error("Erro ao atualizar depoimento:", error);
+                                    notify.error("Erro ao atualizar depoimento.");
+                                    return;
+                                  }
+                                } else {
+                                  notify.success("Depoimento atualizado");
+                                }
+                              } else {
                                 notify.success("Depoimento adicionado");
-                                return [nextItem, ...prev];
                               }
-                              notify.success("Depoimento atualizado");
-                              return prev.map((item, i) => (i === editingTestimonialIndex ? { ...item, ...nextItem } : item));
-                            });
-                            setTestimonialDraft({ name: "", text: "", rating: 5 });
-                            setEditingTestimonialIndex(null);
-                          }}
-                        >
-                          {editingTestimonialIndex !== null ? "Salvar edição" : "Inserir novo depoimento"}
-                        </button>
+                              setTestimonials(prev => {
+                                if (editingTestimonialIndex === null) {
+                                  return [nextItem, ...prev];
+                                }
+                                return prev.map((item, i) => (i === editingTestimonialIndex ? { ...item, ...nextItem } : item));
+                              });
+                              setTestimonialDraft({ name: "", text: "", rating: 5, image: "" });
+                              setEditingTestimonialIndex(null);
+                            }}
+                          >
+                            {editingTestimonialIndex !== null ? "Salvar edição" : "Inserir novo depoimento"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
