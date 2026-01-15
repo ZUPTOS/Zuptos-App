@@ -10,7 +10,7 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { authApi, type SignInRequest, type SignUpRequest } from '@/lib/api';
 import { notify } from '@/components/ui/notification-toast';
 import { UNAUTHORIZED_EVENT } from '@/lib/request';
@@ -73,6 +73,7 @@ const logError = (...args: unknown[]) => {
 
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -261,6 +262,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setError(null);
 
     try {
+      const isAdminRoute = typeof pathname === "string" && pathname.startsWith("/admin");
+      const redirectTarget = isAdminRoute ? "/admin-login" : "/";
       const headerToken = token ?? localStorage.getItem('authToken') ?? undefined;
       if (headerToken) {
         console.log("📤 [AuthContext] Chamando API de logout");
@@ -280,7 +283,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
       console.log("✅ [AuthContext] State limpo, redirecionando para home");
       // Redirecionar para login
-      router.push('/');
+      router.push(redirectTarget);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during logout';
       logError("⚠️ [AuthContext] Erro no signOut (continuando logout local):", errorMessage);
@@ -290,14 +293,15 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       localStorage.removeItem('authUser');
       setToken(null);
       setUser(null);
-      router.push('/');
+      const isAdminRoute = typeof pathname === "string" && pathname.startsWith("/admin");
+      router.push(isAdminRoute ? "/admin-login" : "/");
       
       setError(errorMessage);
       return Promise.reject(err);
     } finally {
       setIsLoading(false);
     }
-  }, [token, router]);
+  }, [token, router, pathname]);
 
   const contextValue = useMemo(
     () => ({

@@ -4,21 +4,13 @@ import { Filter, Search, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PaginatedTable, { type Column } from "@/components/PaginatedTable";
-import adminUsersData from "@/data/admin-usuarios.json";
 import { useRouter } from "next/navigation";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import DateFilter from "@/components/DateFilter";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useAdminUsers, type AdminUserRow } from "@/admin/hooks";
 
-const metricCards = [
-  { id: "ativos", title: "Número de usuários ativos", value: "00" },
-  { id: "pendentes", title: "Número de usuários pendentes", value: "00" },
-  { id: "suspensos", title: "Número de usuários suspensos", value: "00" }
-] as const;
-
-type UsersData = typeof adminUsersData;
-type UserRow = UsersData["users"][number];
-const usersData: UsersData = adminUsersData;
+type UserRow = AdminUserRow;
 
 const statusBadge = {
   Aprovado: "bg-emerald-500/15 text-emerald-400",
@@ -38,18 +30,18 @@ const columns: Column<UserRow>[] = [
     headerClassName: "text-center",
     cellClassName: "text-center",
     render: row => (
-      <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadge[row.status as keyof typeof statusBadge] ?? "bg-muted/30 text-muted-foreground"}`}>
-        {row.status}
+      <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadge[row.statusLabel as keyof typeof statusBadge] ?? "bg-muted/30 text-muted-foreground"}`}>
+        {row.statusLabel}
       </span>
     )
   },
-  { id: "total", header: "Total faturado", headerClassName: "text-center", cellClassName: "text-center", render: row => row.total },
+  { id: "total", header: "Total faturado", headerClassName: "text-center", cellClassName: "text-center", render: row => row.totalLabel },
   {
     id: "tax",
     header: "Taxa",
     headerClassName: "text-center",
     cellClassName: "text-center",
-    render: row => <span className="inline-flex items-center justify-center rounded-[8px] border border-foreground/10 px-3 py-1 text-xs text-muted-foreground">{row.tax}</span>
+    render: row => <span className="inline-flex items-center justify-center rounded-[8px] border border-foreground/10 px-3 py-1 text-xs text-muted-foreground">{row.taxLabel}</span>
   }
 ];
 
@@ -59,7 +51,9 @@ export default function AdminUsuarios() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const { users, isLoading, summary } = useAdminUsers({ pageSize: 60 });
 
   useEffect(() => {
     const handleResize = () => {
@@ -84,9 +78,25 @@ export default function AdminUsuarios() {
   };
 
   const filteredUsers = useMemo(() => {
-    if (!selectedStatuses.length) return usersData.users;
-    return usersData.users.filter(user => selectedStatuses.includes(user.status));
-  }, [selectedStatuses]);
+    const byStatus = selectedStatuses.length
+      ? users.filter(user => selectedStatuses.includes(user.statusLabel))
+      : users;
+    if (!searchTerm.trim()) return byStatus;
+    const term = searchTerm.toLowerCase();
+    return byStatus.filter(user => {
+      return (
+        (user.name ?? "").toLowerCase().includes(term) ||
+        (user.email ?? "").toLowerCase().includes(term) ||
+        (user.document ?? "").toLowerCase().includes(term)
+      );
+    });
+  }, [users, selectedStatuses, searchTerm]);
+
+  const metricCards = [
+    { id: "ativos", title: "Número de usuários ativos", value: String(summary.active ?? summary.total ?? 0) },
+    { id: "pendentes", title: "Número de usuários pendentes", value: String(summary.pending ?? 0) },
+    { id: "suspensos", title: "Número de usuários suspensos", value: String(summary.suspended ?? 0) }
+  ] as const;
 
   return (
     <>
@@ -105,6 +115,8 @@ export default function AdminUsuarios() {
                 <input
                   type="text"
                   placeholder="Buscar usuário"
+                  value={searchTerm}
+                  onChange={event => setSearchTerm(event.target.value)}
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
@@ -148,7 +160,9 @@ export default function AdminUsuarios() {
             headerRowClassName="uppercase text-xs tracking-[0.02em]"
             tableClassName="text-left"
             getRowClassName={() => "uppercase text-[13px] sm:text-[14px]"}
-            onRowClick={() => router.push("/admin/usuarios/detalhes")}
+            onRowClick={row => router.push(`/admin/usuarios/detalhes?id=${row.id}`)}
+            isLoading={isLoading}
+            loadingRows={rowsPerPage}
           />
         </div>
       </div>

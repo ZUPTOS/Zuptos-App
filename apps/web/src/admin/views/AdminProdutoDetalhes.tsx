@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeft,
@@ -24,8 +24,9 @@ import {
   XCircle
 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useAdminProductDetail } from '@/admin/hooks';
 
-type ProductStatus = 'Aprovado' | 'Em produção' | 'Reprovado' | 'Pendente' | 'Em atualização';
+type ProductStatus = 'Aprovado' | 'Em produção' | 'Reprovado' | 'Pendente' | 'Em atualização' | 'Inativo';
 type OfferStatus = 'Ativo' | 'Inativo';
 
 const statusStyles: Record<ProductStatus, string> = {
@@ -33,7 +34,8 @@ const statusStyles: Record<ProductStatus, string> = {
   'Em produção': 'bg-sky-500/15 text-sky-300',
   Reprovado: 'bg-rose-500/15 text-rose-400',
   Pendente: 'bg-lime-500/15 text-lime-300',
-  'Em atualização': 'bg-teal-500/15 text-teal-300'
+  'Em atualização': 'bg-teal-500/15 text-teal-300',
+  Inativo: 'bg-orange-500/15 text-orange-400'
 };
 
 const offerStatusStyles: Record<OfferStatus, string> = {
@@ -119,6 +121,15 @@ const stats: StatItem[] = [
 
 export default function AdminProdutoDetalhes() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const productId = searchParams?.get("id") ?? undefined;
+  const { detail } = useAdminProductDetail(productId);
+  const displayProduct = detail ?? productDetail;
+  const displayProducer = {
+    ...producerDetail,
+    name: detail?.producer ?? producerDetail.name,
+    email: detail?.producerEmail ?? producerDetail.email,
+  };
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('produtor');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -133,6 +144,12 @@ export default function AdminProdutoDetalhes() {
     { name: 'Nome do arquivo', date: 'dd/mm/aaaa', time: '00h00' },
     { name: 'Nome do arquivo', date: 'dd/mm/aaaa', time: '00h00' }
   ];
+
+  useEffect(() => {
+    if (!detail) return;
+    setProductStatus(detail.status);
+    setPendingStatus(detail.status);
+  }, [detail]);
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
@@ -151,7 +168,7 @@ export default function AdminProdutoDetalhes() {
             <div className="flex items-center justify-between border-b border-foreground/10 px-6 py-4">
               <p className="text-sm font-semibold text-muted-foreground">Dados do produto</p>
               <span className="text-xs font-medium text-muted-foreground">
-                ID: <span className="text-foreground">{productDetail.id}</span>
+                ID: <span className="text-foreground">{displayProduct.id}</span>
               </span>
             </div>
 
@@ -159,13 +176,13 @@ export default function AdminProdutoDetalhes() {
               <div className="grid gap-6 border-foreground/10 pb-3 md:grid-cols-3">
                 <div className="space-y-3">
                   <span className="text-sm text-muted-foreground">Nome do produto</span>
-                  <p className="text-xl font-semibold text-foreground">{productDetail.name}</p>
+                  <p className="text-xl font-semibold text-foreground">{displayProduct.name}</p>
                 </div>
                 <div className="space-y-3">
                   <span className="text-sm text-muted-foreground">Produtor</span>
                   <div className="flex flex-col">
-                    <p className="text-lg font-semibold text-foreground">{productDetail.producer}</p>
-                    <span className="text-xs uppercase text-muted-foreground">{productDetail.producerEmail}</span>
+                    <p className="text-lg font-semibold text-foreground">{displayProduct.producer}</p>
+                    <span className="text-xs uppercase text-muted-foreground">{displayProduct.producerEmail}</span>
                   </div>
                 </div>
                   <div className="flex flex-col gap-2">
@@ -194,12 +211,12 @@ export default function AdminProdutoDetalhes() {
 
               <div className="space-y-2">
                 <span className="text-sm text-muted-foreground">Descrição</span>
-                <p className="text-lg leading-relaxed text-foreground">{productDetail.description}</p>
+                <p className="text-lg leading-relaxed text-foreground">{displayProduct.description}</p>
               </div>
 
               <div className="space-y-2">
                 <span className="text-sm text-muted-foreground">Página de vendas</span>
-                <p className="text-lg font-semibold text-foreground">{productDetail.salesPage}</p>
+                <p className="text-lg font-semibold text-foreground">{displayProduct.salesPage}</p>
               </div>
             </div>
 
@@ -247,7 +264,7 @@ export default function AdminProdutoDetalhes() {
                 <div className="grid gap-6 pb-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <span className="text-sm text-muted-foreground">Nome do produtor</span>
-                    <p className="text-2xl font-semibold text-foreground">{producerDetail.name}</p>
+                    <p className="text-2xl font-semibold text-foreground">{displayProducer.name}</p>
                   </div>
                   <div className="space-y-2">
                     <span className="text-sm text-muted-foreground">CPF/CNPJ</span>
@@ -265,7 +282,7 @@ export default function AdminProdutoDetalhes() {
                   <p className="text-sm font-semibold text-muted-foreground">Verificação</p>
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-3 text-2xl font-semibold text-foreground">
-                      <span>E-mail: {producerDetail.email}</span>
+                      <span>E-mail: {displayProducer.email}</span>
                       <span className={verificationBadge(producerDetail.emailVerified)}>
                         {producerDetail.emailVerified ? 'Verificado' : 'Não Verificado'}
                       </span>

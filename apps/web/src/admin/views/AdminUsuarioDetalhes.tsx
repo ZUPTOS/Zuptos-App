@@ -3,6 +3,8 @@
 import { Ban, ChevronDown, KeyRound, LogIn, PhoneCall, X } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useAdminUserDetail } from "@/admin/hooks";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -111,6 +113,10 @@ export default function AdminUsuarioDetalhes() {
     boleto: false,
     transferEnabled: false
   });
+  const searchParams = useSearchParams();
+  const userId = searchParams?.get("id") ?? undefined;
+  const { detail } = useAdminUserDetail(userId);
+  const displayUser = detail ?? userMock;
   const formatCurrency = (value: string) => {
     const digits = value.replace(/\D/g, "");
     if (!digits) return "";
@@ -620,24 +626,24 @@ export default function AdminUsuarioDetalhes() {
             <div className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Nome do usuário</span>
-                <p className="text-xl font-semibold text-foreground">{userMock.name}</p>
+                <p className="text-xl font-semibold text-foreground">{displayUser.name}</p>
               </div>
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Documento</span>
-                <p className="text-xl font-semibold text-foreground">{userMock.document}</p>
+                <p className="text-xl font-semibold text-foreground">{displayUser.document}</p>
               </div>
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Razão social</span>
-                <p className="text-xl font-semibold text-foreground">{userMock.razao}</p>
+                <p className="text-xl font-semibold text-foreground">{displayUser.razao}</p>
               </div>
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Tipo de conta</span>
-                <p className="text-xl font-semibold text-foreground">{userMock.tipoConta}</p>
+                <p className="text-xl font-semibold text-foreground">{displayUser.tipoConta}</p>
               </div>
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Data de criação</span>
                 <p className="text-xl font-semibold text-foreground">
-                  {userMock.dataCriacao} <span className="text-xs text-muted-foreground">{userMock.horaCriacao}</span>
+                  {displayUser.dataCriacao} <span className="text-xs text-muted-foreground">{displayUser.horaCriacao}</span>
                 </p>
               </div>
             </div>

@@ -12,6 +12,7 @@ export default function KycReminder() {
   const { user, token, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const isAdminUser = user?.role === "admin" || user?.isAdmin;
   const [status, setStatus] = useState<KycState>("idle");
   const isKycPage = pathname?.startsWith("/kyc");
   const isProfilePage =
@@ -21,7 +22,7 @@ export default function KycReminder() {
     let active = true;
 
     const checkStatus = async () => {
-      if (!isAuthenticated || !token) {
+      if (!isAuthenticated || !token || isAdminUser) {
         setStatus("idle");
         return;
       }
@@ -80,11 +81,12 @@ export default function KycReminder() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, token, user?.status, user?.kyc?.status]);
+  }, [isAuthenticated, token, user?.status, user?.kyc?.status, isAdminUser]);
 
   const shouldShow = useMemo(() => {
     if (isKycPage) return false;
     if (!isAuthenticated) return false;
+    if (isAdminUser) return false;
     // Evita piscar enquanto consulta status
     if (status === "idle" || status === "loading") return false;
     if (status === "complete") return false;
@@ -92,7 +94,7 @@ export default function KycReminder() {
     if (status === "pending") return isProfilePage;
     // Mantém aviso em caso de erro ou KYC inexistente
     return true;
-  }, [isAuthenticated, status, isKycPage, isProfilePage]);
+  }, [isAuthenticated, status, isKycPage, isProfilePage, isAdminUser]);
 
   if (!shouldShow) return null;
 

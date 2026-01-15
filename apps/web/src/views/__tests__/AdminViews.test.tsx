@@ -2,15 +2,15 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
-import AdminDashboard from "@/views/AdminDashboard";
-import AdminFinancas from "@/views/AdminFinancas";
-import AdminProdutos from "@/views/AdminProdutos";
-import AdminPlaceholder from "@/views/AdminPlaceholder";
-import AdminTransacoes from "@/views/AdminTransacoes";
-import AdminTransacoesDetalhes from "@/views/AdminTransacoesDetalhes";
-import AdminSaques from "@/views/AdminSaques";
-import AdminSaquesDetalhes from "@/views/AdminSaquesDetalhes";
-import AdminUsuarios from "@/views/AdminUsuarios";
+import AdminDashboard from "@/admin/views/AdminDashboard";
+import AdminFinancas from "@/admin/views/AdminFinancas";
+import AdminProdutos from "@/admin/views/AdminProdutos";
+import AdminPlaceholder from "@/admin/views/AdminPlaceholder";
+import AdminTransacoes from "@/admin/views/AdminTransacoes";
+import AdminTransacoesDetalhes from "@/admin/views/AdminTransacoesDetalhes";
+import AdminSaques from "@/admin/views/AdminSaques";
+import AdminSaquesDetalhes from "@/admin/views/AdminSaquesDetalhes";
+import AdminUsuarios from "@/admin/views/AdminUsuarios";
 
 jest.mock("recharts", () => {
   const MockContainer = ({ children }: { children?: ReactNode }) => (

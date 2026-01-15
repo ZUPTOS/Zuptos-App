@@ -21,6 +21,12 @@ export async function request<T>(
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${baseUrl ?? API_BASE_URL}${normalizedPath}`;
+  const method = rest.method?.toUpperCase() ?? "GET";
+
+  if (method === "GET") {
+    // Log every GET request to help debug admin endpoints.
+    console.log("[api] GET", { url, path: normalizedPath });
+  }
 
   const headers = new Headers(defaultHeaders);
   if (rest.headers) {
