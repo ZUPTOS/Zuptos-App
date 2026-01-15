@@ -1,7 +1,7 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminDashboard from "@/views/AdminDashboard";
+import AdminDashboard from "@/admin/views/AdminDashboard";
 
 function AdminDashboardPage() {
   return <AdminDashboard />;

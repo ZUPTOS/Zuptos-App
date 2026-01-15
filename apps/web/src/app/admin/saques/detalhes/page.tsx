@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { withAuth } from "@/lib/auth-guards";
-import AdminSaquesDetalhes from "@/views/AdminSaquesDetalhes";
+import AdminSaquesDetalhes from "@/admin/views/AdminSaquesDetalhes";
 
 function AdminSaquesDetalhesPage() {
   const searchParams = useSearchParams();
