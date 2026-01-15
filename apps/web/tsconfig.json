@@ -7,14 +7,25 @@
       "@shared/*": ["../../packages/shared/src/*"]
     },
     "jsx": "preserve",
-    "types": ["node", "next", "@types/google.maps"],
-    "plugins": [{ "name": "next" }]
+    "types": [
+      "node",
+      "next",
+      "@types/google.maps",
+      "jest"
+    ],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "skipLibCheck": true
   },
   "include": [
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "src/**/*",
-    "../../packages/shared/src/**/*"
+    "../../packages/shared/src/**/*",
+    "../../jest.setup.ts"
   ],
   "exclude": ["node_modules"]
 }

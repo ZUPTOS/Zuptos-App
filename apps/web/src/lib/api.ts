@@ -15,3 +15,4 @@ export {
   coproducersApi,
 } from "./services/products";
 export { kycApi } from "./services/kyc";
+export { financesApi } from "./services/finances";

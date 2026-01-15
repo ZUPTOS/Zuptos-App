@@ -49,7 +49,7 @@ describe("authApi", () => {
     };
     (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-    await authApi.signUp({ email: "a@b.com", password: "123", username: "ab", accessType: "purchases" });
+    await authApi.signUp({ email: "a@b.com", password: "123", username: "ab", accessType: "purchases", termsAccepted: true });
     await authApi.signOut("token");
     await authApi.recoverPassword("a@b.com");
     await authApi.resetPassword("token", "NewPass");

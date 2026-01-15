@@ -107,6 +107,7 @@ describe("AuthContext", () => {
         password: "secret",
         username: "signup",
         accessType: "products",
+        termsAccepted: true,
       });
     });
 
@@ -152,6 +153,7 @@ describe("AuthContext", () => {
         password: "secret",
         username: "signup-missing",
         accessType: "purchases",
+        termsAccepted: true,
       });
     });
 
@@ -170,6 +172,7 @@ describe("AuthContext", () => {
         password: "secret",
         username: "dupe",
         accessType: "purchases",
+        termsAccepted: true,
       });
     });
 

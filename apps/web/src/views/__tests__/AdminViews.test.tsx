@@ -14,7 +14,8 @@ import AdminUsuarios from "@/admin/views/AdminUsuarios";
 
 jest.mock("recharts", () => {
   const MockContainer = ({ children }: { children?: ReactNode }) => (
-    <div data-testid="chart">{typeof children === "function" ? children({ width: 400, height: 200 }) : children}</div>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    <div data-testid="chart">{typeof children === "function" ? (children as any)({ width: 400, height: 200 }) : children}</div>
   );
   const samplePayload = [{ dataKey: "faturamento", value: 10, color: "#ff0" }];
   return {

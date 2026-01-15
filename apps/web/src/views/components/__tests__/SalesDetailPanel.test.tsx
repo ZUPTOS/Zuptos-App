@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SalesDetailPanel from "@/views/components/SalesDetailPanel";
-import type { Sale } from "@/views/Sales";
 import salesData from "@/data/salesData.json";
 
-const sale = (salesData as { salesHistory: Sale[] }).salesHistory[0];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sale = (salesData as any).salesHistory[0];
 
 describe("SalesDetailPanel", () => {
   it("exibe os detalhes da venda e permite fechar", async () => {

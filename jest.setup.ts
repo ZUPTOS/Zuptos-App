@@ -2,17 +2,18 @@ import "@testing-library/jest-dom";
 import React from "react";
 
 class ResizeObserver {
+  constructor(callback: ResizeObserverCallback) { }
   observe() {}
   unobserve() {}
   disconnect() {}
 }
 
 if (typeof window !== "undefined") {
-  (window as typeof window & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
+  (window as any).ResizeObserver =
     window.ResizeObserver || ResizeObserver;
 }
 
-(globalThis as typeof globalThis & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
+(globalThis as any).ResizeObserver =
   globalThis.ResizeObserver || ResizeObserver;
 
 jest.mock("next/image", () => ({

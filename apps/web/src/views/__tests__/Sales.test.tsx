@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
 import SalesView from "@/views/Sales";
 

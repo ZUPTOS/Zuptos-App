@@ -12,7 +12,7 @@ const createKeyboardEvent = (overrides: Partial<React.KeyboardEvent<HTMLInputEle
 
 const createCompositionEvent = () => ({
   preventDefault: jest.fn()
-}) as React.CompositionEvent<HTMLInputElement>;
+}) as unknown as React.CompositionEvent<HTMLInputElement>;
 
 describe("useComposition", () => {
   beforeEach(() => {

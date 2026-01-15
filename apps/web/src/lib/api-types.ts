@@ -475,3 +475,56 @@ export interface KycDocumentResponse {
   url?: string;
   message?: string;
 }
+
+export interface FinancesResponse {
+  total_available?: number;
+  total_commission?: number;
+  total_pending?: number;
+  transactions?: unknown[];
+  [key: string]: unknown;
+}
+
+export interface BankDataResponse {
+  bank_code?: string;
+  bank_name?: string;
+  account_type?: string;
+  pix_key?: string;
+  account_number?: string;
+  agency?: string;
+  bank_institution?: string;
+  account_key?: string;
+  [key: string]: unknown;
+}
+
+export interface CreateBankAccountRequest {
+  bank_institution: string;
+  account_key: string;
+  account_type: string;
+}
+
+export interface TransactionResponse {
+  transactions?: unknown[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  [key: string]: unknown;
+}
+
+export interface WithdrawResponse {
+  withdrawals?: unknown[];
+  total?: number;
+  [key: string]: unknown;
+}
+
+export interface CreateWithdrawRequest {
+  amount: number;
+  bank_account_id?: string;
+}
+
+export enum AccountTypePix {
+  CNPJ = "CNPJ",
+  CPF = "CPF",
+  EMAIL = "EMAIL",
+  PHONE = "PHONE",
+  RANDOM_KEY = "RANDOM_KEY",
+}
