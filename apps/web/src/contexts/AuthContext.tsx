@@ -149,6 +149,20 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       setError(null);
 
       try {
+        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "";
+        const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "";
+        const isAdminCredentials =
+          Boolean(adminEmail && adminPassword) &&
+          credentials.email === adminEmail &&
+          credentials.password === adminPassword;
+        const isAdminRoute = typeof pathname === "string" && (pathname === "/admin-login" || pathname.startsWith("/admin"));
+
+        if (isAdminCredentials && !isAdminRoute) {
+          const message = "Acesso administrativo apenas pela tela de admin.";
+          setError(message);
+          throw new Error(message);
+        }
+
         const response = await authApi.signIn(credentials);
 
         if (!response?.access_token) {
@@ -199,7 +213,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         setIsLoading(false);
       }
     },
-    [router]
+    [router, pathname]
   );
 
   useEffect(() => {

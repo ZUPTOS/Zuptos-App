@@ -54,6 +54,19 @@ const tabToSlug: Record<TabLabel, string> = {
   Coprodução: "coproducao",
 };
 
+const formatCurrency = (value?: number | string) => {
+  if (value === undefined || value === null || value === "") return "R$ 0,00";
+  const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^\d.-]/g, ""));
+  const safe = Number.isFinite(numeric) ? numeric : 0;
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(safe);
+};
+
+const toNumber = (value?: number | string) => {
+  if (value === undefined || value === null || value === "") return 0;
+  const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^\d.-]/g, ""));
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
 export default function EditarProdutoView({ initialTab }: { initialTab?: string } = {}) {
   const searchParams = useSearchParams();
   const params = useParams<{ id?: string }>();
@@ -228,6 +241,14 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
     const name = product.name ?? "Produto";
     const rawStatus = (product as Product & { status?: string })?.status;
     const displayStatus = rawStatus && rawStatus.trim() ? rawStatus : "Ativo";
+    const totalInvoicedValue =
+      product.total_invoiced ??
+      (product as Product & { totalInvoiced?: number | string })?.totalInvoiced ??
+      0;
+    const totalSoldValue =
+      product.total_sold ??
+      (product as Product & { totalSold?: number | string })?.totalSold ??
+      0;
     return (
       <div className="flex flex-col gap-3 rounded-[10px] border border-foreground/10 bg-card/80 p-4 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
@@ -246,8 +267,10 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
           </div>
         </div>
         <div className="text-right text-sm text-muted-foreground">
-          <p className="font-semibold text-foreground">R$ 0,00 faturados</p>
-          <p>0 vendas realizadas</p>
+          <p className="font-semibold text-foreground">
+            {formatCurrency(totalInvoicedValue)} faturados
+          </p>
+          <p>{toNumber(totalSoldValue)} vendas realizadas</p>
         </div>
       </div>
     );
