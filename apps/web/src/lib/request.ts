@@ -1,7 +1,8 @@
 import type { ApiError } from "./api-types";
 
-const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/v1";
-const DEFAULT_API_BASE = RAW_API_BASE.replace(/\/api\/?$/, "/v1");
+// Remove any /api prefix and ensure we use /v1 as default
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+const DEFAULT_API_BASE = RAW_API_BASE ? RAW_API_BASE.replace(/\/api\/?/, "") : "/v1";
 export const API_BASE_URL = DEFAULT_API_BASE;
 
 export const UNAUTHORIZED_EVENT = "zuptos:unauthorized";
