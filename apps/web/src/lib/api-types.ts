@@ -502,16 +502,39 @@ export interface CreateBankAccountRequest {
   account_type: string;
 }
 
-export interface TransactionResponse {
-  transactions?: unknown[];
-  total?: number;
-  page?: number;
-  limit?: number;
-  [key: string]: unknown;
+export interface Transaction {
+  id: string;
+  transaction_id?: string;
+  amount: number;
+  status: string; // 'paid', 'pending', 'failed', 'refunded'
+  type: string; // 'sale', 'refund', 'chargeback', 'withdraw'
+  description?: string;
+  product_name?: string;
+  payment_method?: string;
+  created_at: string;
+  date?: string; // fallback if created_at is missing
+}
+
+export type TransactionResponse = Transaction[];
+
+export interface Withdrawal {
+  id: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected' | 'processed' | 'cancelled';
+  created_at: string;
+  bank_account?: {
+    bank_name?: string;
+    pix_key?: string;
+    agency?: string;
+    account_number?: string;
+  };
+  processed_at?: string;
+  fee?: number;
+  net_amount?: number;
 }
 
 export interface WithdrawResponse {
-  withdrawals?: unknown[];
+  withdrawals?: Withdrawal[];
   total?: number;
   [key: string]: unknown;
 }

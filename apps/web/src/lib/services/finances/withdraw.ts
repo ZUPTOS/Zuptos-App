@@ -5,19 +5,14 @@ export const withdrawFinanceApi = {
   /**
    * Get withdraw history
    */
-  getWithdrawHistory: async (params?: { page?: number; limit?: number }, token?: string): Promise<WithdrawResponse> => {
+  getWithdrawHistory: async (token?: string): Promise<WithdrawResponse> => {
     const authToken = token ?? readStoredToken();
     if (!authToken) {
       throw new Error("Missing auth token for withdraw history request");
     }
-    
-    const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.limit) queryParams.append("limit", params.limit.toString());
-    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
-    
+
     console.log("🔁 [Finance/Withdraw] Fetching withdraw history from /finance/withdraw");
-    const response = await request<WithdrawResponse>(`/finance/withdraw${queryString}`, {
+    const response = await request<WithdrawResponse>("/finance/withdraw", {
       method: "GET",
       baseUrl: API_BASE_URL,
       headers: { Authorization: `Bearer ${authToken}` },
