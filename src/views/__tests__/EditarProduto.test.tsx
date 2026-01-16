@@ -13,6 +13,8 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: pushMock,
   }),
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({ id: "123" }),
 }));
 
 describe("EditarProdutoView", () => {

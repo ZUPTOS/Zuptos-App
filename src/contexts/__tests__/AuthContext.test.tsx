@@ -38,6 +38,9 @@ describe("AuthContext", () => {
       "authUser",
       JSON.stringify({ id: "1", email: "stored@example.com", fullName: "Stored User", accessType: "purchases" }),
     );
+    (authApi.getCurrentUser as jest.Mock).mockResolvedValue({
+      user: { id: "1", email: "stored@example.com", fullName: "Stored User", accessType: "purchases" }
+    });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 

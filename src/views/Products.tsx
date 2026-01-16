@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import { FilterDrawer } from "@/shared/components/FilterDrawer";
-import { ProductType, productApi } from "@/lib/api";
+import { productApi } from "@/lib/api";
+import { ProductType } from "@/lib/api-types";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Check,
