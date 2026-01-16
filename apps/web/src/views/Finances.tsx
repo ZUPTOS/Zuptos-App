@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '@/shared/components/layout/DashboardLayout';
 import BalancesTab from './finances/components/BalancesTab';
 import TransactionsTab from './finances/components/TransactionsTab';
 import WithdrawHistoryTab from './finances/components/WithdrawHistoryTab';

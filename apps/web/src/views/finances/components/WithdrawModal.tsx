@@ -2,10 +2,10 @@
 'use client';
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { formatCurrency } from "@/lib/utils/currency";
 import { financesApi } from "@/lib/api";
-import ConfirmModal from "@/components/ConfirmModal";
+import ConfirmModal from "@/shared/components/ConfirmModal";
 import { Loader2 } from "lucide-react";
 
 interface BankInfo {

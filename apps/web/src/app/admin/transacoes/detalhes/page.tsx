@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { withAuth } from "@/lib/auth-guards";
-import AdminTransacoesDetalhes from "@/admin/views/AdminTransacoesDetalhes";
+import AdminTransacoesDetalhes from "@/modules/admin/views/AdminTransacoesDetalhes";
 
 function AdminTransacoesDetalhesPage() {
   const searchParams = useSearchParams();

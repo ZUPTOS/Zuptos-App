@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { FilterDrawer } from '@/components/FilterDrawer';
-import DateFilter from '@/components/DateFilter';
-import { Checkbox } from '@/components/ui/checkbox';
+import { FilterDrawer } from '@/shared/components/FilterDrawer';
+import DateFilter from '@/shared/components/DateFilter';
+import { Checkbox } from '@/shared/ui/checkbox';
 
 interface TransactionsFilterProps {
   isOpen: boolean;

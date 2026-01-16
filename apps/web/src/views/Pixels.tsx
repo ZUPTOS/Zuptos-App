@@ -1,6 +1,6 @@
 'use client';
 
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 
 export default function PixelsView() {
   return (

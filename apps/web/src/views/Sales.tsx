@@ -1,6 +1,6 @@
 'use client';
 
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { Eye, Filter, Search, Upload, X } from "lucide-react";
@@ -8,7 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import { salesApi } from "@/lib/api";
 import SalesFilterPanel, { SalesFilters, OfferFilter } from "@/views/components/SalesFilterPanel";
 import SalesDetailPanel from "@/views/components/SalesDetailPanel";
-import PaginatedTable, { type Column } from "@/components/PaginatedTable";
+import PaginatedTable, { type Column } from "@/shared/components/PaginatedTable";
 import { useAuth } from "@/contexts/AuthContext";
 import type { MetricCard, PaymentMethod, Sale, SaleStatus } from "@/views/sales/types";
 

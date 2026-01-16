@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useWithdrawHistory } from '../hooks/useWithdrawHistory';
-import PaginatedTable, { type Column } from '@/components/PaginatedTable';
+import PaginatedTable, { type Column } from '@/shared/components/PaginatedTable';
 import type { Transaction } from '@/lib/api-types';
 import { Search, Filter, Eye, EyeOff, Upload, X } from 'lucide-react';
 import TransactionsFilter from './TransactionsFilter';

@@ -1,8 +1,8 @@
 "use client";
 
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import ErrorBoundary from "@/shared/components/ErrorBoundary";
+import { Toaster } from "@/shared/ui/sonner";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useEffect, useRef, useState } from "react";

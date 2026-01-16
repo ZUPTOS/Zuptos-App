@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import DashboardLayout from "@/components/DashboardLayout";
-import { FilterDrawer } from "@/components/FilterDrawer";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
+import { FilterDrawer } from "@/shared/components/FilterDrawer";
 import { ProductType, productApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {

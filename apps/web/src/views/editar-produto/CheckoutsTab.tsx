@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { Search, Trash2 } from "lucide-react";
 import type { Checkout } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
-import PaginatedTable from "@/components/PaginatedTable";
+import { Skeleton } from "@/shared/ui/skeleton";
+import PaginatedTable from "@/shared/components/PaginatedTable";
 import { useCheckouts } from "./hooks/useCheckouts";
 
 type Props = {

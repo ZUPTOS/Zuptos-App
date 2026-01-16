@@ -2,7 +2,7 @@
 
 import { Pencil, Search, Trash2 } from "lucide-react";
 import type { Coproducer } from "@/lib/api";
-import PaginatedTable from "@/components/PaginatedTable";
+import PaginatedTable from "@/shared/components/PaginatedTable";
 import { useCoproducers } from "./hooks/useCoproducers";
 
 type Props = {

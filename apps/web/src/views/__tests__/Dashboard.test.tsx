@@ -2,17 +2,17 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import DashboardView from "@/views/Dashboard";
 
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: ReactNode }) => <div data-testid="layout">{children}</div>
 }));
 
-jest.mock("@/components/DateFilter", () => ({
+jest.mock("@/shared/components/DateFilter", () => ({
   __esModule: true,
   default: () => <div data-testid="date-filter">Filtro</div>
 }));
 
-jest.mock("@/components/icons/DetalhamentoIcon", () => ({
+jest.mock("@/shared/components/icons/DetalhamentoIcon", () => ({
   __esModule: true,
   default: () => <span data-testid="detalhamento" />
 }));

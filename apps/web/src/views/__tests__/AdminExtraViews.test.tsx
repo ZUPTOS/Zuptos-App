@@ -2,28 +2,28 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import Checkout from "@/views/Checkout";
-import AdminColaboradores from "@/admin/views/AdminColaboradores";
-import AdminColaboradorDetalhes from "@/admin/views/AdminColaboradorDetalhes";
-import AdminConfiguracoes from "@/admin/views/AdminConfiguracoes";
-import AdminDocumentos from "@/admin/views/AdminDocumentos";
-import AdminDocumentoDetalhes from "@/admin/views/AdminDocumentoDetalhes";
-import AdminProdutoDetalhes from "@/admin/views/AdminProdutoDetalhes";
-import AdminUsuarioDetalhes from "@/admin/views/AdminUsuarioDetalhes";
-import AdminProdutos from "@/admin/views/AdminProdutos";
-import AdminTransacoes from "@/admin/views/AdminTransacoes";
-import AdminFinancas from "@/admin/views/AdminFinancas";
-import AdminSaques from "@/admin/views/AdminSaques";
+import AdminColaboradores from "@/modules/admin/views/AdminColaboradores";
+import AdminColaboradorDetalhes from "@/modules/admin/views/AdminColaboradorDetalhes";
+import AdminConfiguracoes from "@/modules/admin/views/AdminConfiguracoes";
+import AdminDocumentos from "@/modules/admin/views/AdminDocumentos";
+import AdminDocumentoDetalhes from "@/modules/admin/views/AdminDocumentoDetalhes";
+import AdminProdutoDetalhes from "@/modules/admin/views/AdminProdutoDetalhes";
+import AdminUsuarioDetalhes from "@/modules/admin/views/AdminUsuarioDetalhes";
+import AdminProdutos from "@/modules/admin/views/AdminProdutos";
+import AdminTransacoes from "@/modules/admin/views/AdminTransacoes";
+import AdminFinancas from "@/modules/admin/views/AdminFinancas";
+import AdminSaques from "@/modules/admin/views/AdminSaques";
 
 const pushMock = jest.fn();
 const backMock = jest.fn();
 let searchParams: URLSearchParams = new URLSearchParams();
 
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
 }));
 
-jest.mock("@/components/FilterDrawer", () => ({
+jest.mock("@/shared/components/FilterDrawer", () => ({
   __esModule: true,
   FilterDrawer: ({
     open,
@@ -45,7 +45,7 @@ jest.mock("@/components/FilterDrawer", () => ({
     ) : null,
 }));
 
-jest.mock("@/components/ConfirmModal", () => ({
+jest.mock("@/shared/components/ConfirmModal", () => ({
   __esModule: true,
   default: ({
     open,
@@ -67,7 +67,7 @@ jest.mock("@/components/ConfirmModal", () => ({
     ) : null,
 }));
 
-jest.mock("@/components/DateFilter", () => ({
+jest.mock("@/shared/components/DateFilter", () => ({
   __esModule: true,
   default: ({ onDateChange }: { onDateChange?: (start: Date, end: Date) => void }) => (
     <button aria-label="Filtro de datas" onClick={() => onDateChange?.(new Date(2020, 0, 1), new Date(2030, 0, 1))}>
@@ -76,7 +76,7 @@ jest.mock("@/components/DateFilter", () => ({
   ),
 }));
 
-jest.mock("@/components/PaginatedTable", () => ({
+jest.mock("@/shared/components/PaginatedTable", () => ({
   __esModule: true,
   default: ({
     data,

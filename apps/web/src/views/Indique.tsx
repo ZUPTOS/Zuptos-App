@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
-import DateFilter from "@/components/DateFilter";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
+import DateFilter from "@/shared/components/DateFilter";
 import {
   Line,
   LineChart,

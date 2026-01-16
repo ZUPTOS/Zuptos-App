@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import { CheckoutEditor } from "@/views/editar-produto/CheckoutEditor";
 
 export default function EditarCheckoutView() {

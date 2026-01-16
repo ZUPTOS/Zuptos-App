@@ -3,12 +3,12 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import Finances from "@/views/Finances";
 
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: ReactNode }) => <div data-testid="layout">{children}</div>
 }));
 
-jest.mock("@/components/DateFilter", () => ({
+jest.mock("@/shared/components/DateFilter", () => ({
   __esModule: true,
   default: ({ onDateChange }: { onDateChange?: (start: Date, end: Date) => void }) => (
     <button type="button" onClick={() => onDateChange?.(new Date(), new Date())}>

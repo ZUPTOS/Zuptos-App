@@ -1,7 +1,7 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminColaboradores from "@/admin/views/AdminColaboradores";
+import AdminColaboradores from "@/modules/admin/views/AdminColaboradores";
 
 function AdminColaboradoresPage() {
   return <AdminColaboradores />;

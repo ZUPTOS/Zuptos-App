@@ -4,8 +4,8 @@ import Image from "next/image";
 import { Pencil, Search, Trash2 } from "lucide-react";
 import { ProviderTrackingName, TrackingStatus, TrackingType } from "@/lib/api";
 import type { ProductPlan } from "@/lib/api";
-import ToggleActive from "@/components/ToggleActive";
-import PaginatedTable from "@/components/PaginatedTable";
+import ToggleActive from "@/shared/components/ToggleActive";
+import PaginatedTable from "@/shared/components/PaginatedTable";
 import { usePixels } from "./hooks/usePixels";
 
 type Props = {

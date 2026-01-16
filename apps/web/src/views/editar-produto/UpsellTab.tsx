@@ -2,7 +2,7 @@
 
 import { ChevronDown, Pencil, Search, Trash2 } from "lucide-react";
 import type { ProductStrategy } from "@/lib/api";
-import PaginatedTable from "@/components/PaginatedTable";
+import PaginatedTable from "@/shared/components/PaginatedTable";
 import { useUpsell } from "./hooks/useUpsell";
 
 type Props = {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 
 const filters = [
   { id: "all", label: "Todos" },

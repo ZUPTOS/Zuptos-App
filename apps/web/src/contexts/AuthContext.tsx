@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { authApi, type SignInRequest, type SignUpRequest } from '@/lib/api';
-import { notify } from '@/components/ui/notification-toast';
+import { notify } from '@/shared/ui/notification-toast';
 import { UNAUTHORIZED_EVENT } from '@/lib/request';
 
 export interface User {

@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { salesApi } from "@/lib/api";
-import type { Column } from "@/components/PaginatedTable";
+import type { Column } from "@/shared/components/PaginatedTable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PaymentMethod, Sale, SaleStatus, MetricCard } from "./types";
 import type { SalesFilters, OfferFilter } from "@/views/components/SalesFilterPanel";

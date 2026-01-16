@@ -2,7 +2,7 @@
 
 import { Search, X, ChevronDown } from "lucide-react";
 import { useState } from "react";
-import DateFilter from "@/components/DateFilter";
+import DateFilter from "@/shared/components/DateFilter";
 
 export type OfferFilter = "assinatura" | "preco_unico";
 

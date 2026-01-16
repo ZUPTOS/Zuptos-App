@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import MyAccountView from "@/views/MyAccount";
 
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: ReactNode }) => <div data-testid="layout">{children}</div>
 }));
