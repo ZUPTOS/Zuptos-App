@@ -9,6 +9,7 @@ import {
   Search, Filter, Eye, EyeOff, Upload, X
 } from 'lucide-react';
 import type { Transaction } from '@/lib/api-types';
+import TransactionDetailsDrawer from './TransactionDetailsDrawer';
 
 // Visual configuration for categories
 const categoryMap: Record<string, { label: string; color: string }> = {
@@ -36,6 +37,7 @@ export default function TransactionsTab() {
   const [hideValues, setHideValues] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [filters, setFilters] = useState<{ categories: string[]; types: string[] }>({ categories: [], types: [] });
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   // Client-side filtering
   const filteredTransactions = useMemo(() => {
@@ -201,10 +203,10 @@ export default function TransactionsTab() {
       {/* Search & Filter Bar */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         {/* Left: Segmented Control */}
-        <div className="flex items-center rounded-lg bg-[#0b0b0b] p-1 border border-white/5">
+        <div className="flex items-center rounded-[8px] bg-[#0b0b0b] p-1 border border-white/5">
           <button
             onClick={() => setActiveTab('all')}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === 'all'
+            className={`rounded-[6px] px-5 py-2 text-sm font-medium transition-colors ${activeTab === 'all'
               ? 'bg-[#1a1a1a] text-white shadow-sm ring-1 ring-white/10'
               : 'text-muted-foreground hover:text-white'
               }`}
@@ -231,59 +233,71 @@ export default function TransactionsTab() {
           </button>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3">
+        {/* Bottom Row: Search and Actions */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search Input */}
-          <div className="relative">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar por código"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 w-full rounded-lg bg-[#0b0b0b] pl-9 pr-4 text-sm text-foreground border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary md:w-[240px]"
+              className="h-10 w-full rounded-[8px] bg-[#0b0b0b] pl-10 pr-4 text-sm text-foreground border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           {/* Action Buttons */}
-          <button
-            onClick={() => setIsFilterOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0b0b0b] border border-white/5 text-muted-foreground hover:bg-[#1a1a1a] hover:text-white transition-colors"
-            title="Filtrar"
-          >
-            <Filter className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setIsFilterOpen(true)}
+              className="flex h-10 flex-1 sm:flex-none sm:w-10 items-center justify-center gap-2 rounded-[8px] bg-[#0b0b0b] border border-white/5 text-muted-foreground hover:bg-[#1a1a1a] hover:text-white transition-colors touch-manipulation px-4 sm:px-0"
+              title="Filtrar"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="text-sm sm:hidden">Filtrar</span>
+            </button>
 
-          <button
-            onClick={() => setHideValues(prev => !prev)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0b0b0b] border border-white/5 text-muted-foreground hover:bg-[#1a1a1a] hover:text-white transition-colors"
-            title={hideValues ? "Mostrar valores" : "Ocultar valores"}
-          >
-            {hideValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </button>
+            <button
+              onClick={() => setHideValues(prev => !prev)}
+              className="flex h-10 flex-1 sm:flex-none sm:w-10 items-center justify-center gap-2 rounded-[8px] bg-[#0b0b0b] border border-white/5 text-muted-foreground hover:bg-[#1a1a1a] hover:text-white transition-colors touch-manipulation px-4 sm:px-0"
+              title={hideValues ? "Mostrar valores" : "Ocultar valores"}
+            >
+              {hideValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              <span className="text-sm sm:hidden">{hideValues ? "Mostrar" : "Ocultar"}</span>
+            </button>
 
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0b0b0b] border border-white/5 text-muted-foreground hover:bg-[#1a1a1a] hover:text-white transition-colors"
-            title="Exportar relatório"
-          >
-            <Upload className="h-4 w-4" />
-          </button>
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              className="flex h-10 flex-1 sm:flex-none sm:w-10 items-center justify-center gap-2 rounded-[8px] bg-[#0b0b0b] border border-white/5 text-muted-foreground hover:bg-[#1a1a1a] hover:text-white transition-colors touch-manipulation px-4 sm:px-0"
+              title="Exportar relatório"
+            >
+              <Upload className="h-4 w-4" />
+              <span className="text-sm sm:hidden">Exportar</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <PaginatedTable
-        data={filteredTransactions} // Use filtered data
-        columns={columns}
-        rowKey={(row) => row.id || row.transaction_id || Math.random().toString()}
-        isLoading={isLoading}
-        rowsPerPage={10}
-        initialPage={page}
-        emptyMessage="Nenhuma transação encontrada"
-        tableClassName="border-none"
-        headerRowClassName="border-b border-white/5 bg-[#0b0b0b] text-xs uppercase tracking-wider font-semibold text-muted-foreground"
-        tableContainerClassName="border border-white/5 bg-[#0b0b0b] rounded-xl overflow-hidden"
-      />
+      {/* Table with horizontal scroll on mobile */}
+      <div className="-mx-2 sm:mx-0">
+        <div className="overflow-x-auto">
+          <PaginatedTable
+            data={filteredTransactions}
+            columns={columns}
+            rowKey={(row) => row.id || row.transaction_id || Math.random().toString()}
+            isLoading={isLoading}
+            rowsPerPage={10}
+            initialPage={page}
+            emptyMessage="Nenhuma transação encontrada"
+            tableClassName="border-none min-w-[800px]"
+            headerRowClassName="border-b border-white/5 bg-[#0b0b0b] text-xs uppercase tracking-wider font-semibold text-muted-foreground"
+            tableContainerClassName="border border-white/5 bg-[#0b0b0b] rounded-[8px] overflow-hidden"
+            onRowClick={(row) => setSelectedTransaction(row)}
+            getRowClassName={() => "cursor-pointer hover:bg-white/5 transition-colors"}
+          />
+        </div>
+      </div>
 
       {/* Feature Modals */}
       <TransactionsFilter
@@ -322,6 +336,13 @@ export default function TransactionsTab() {
           </div>
         </aside>
       )}
+
+      {/* Transaction Details Drawer */}
+      <TransactionDetailsDrawer
+        isOpen={!!selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 }

@@ -80,63 +80,62 @@ export default function BalancesTab() {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[608px_621px] 2xl:justify-center 2xl:gap-[10px] xl:grid-cols-[508px_521px] xl:gap-[10px]">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2 lg:gap-4 xl:grid-cols-[508px_521px] xl:gap-[10px] 2xl:grid-cols-[608px_621px] 2xl:justify-center 2xl:gap-[10px]">
         {/* Saldo Disponível */}
-        <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-5 2xl:h-[245px]">
-          <p className="text-fs-title font-semibold text-primary">Saldo Disponível</p>
-          <div className="mt-2 text-fs-display font-semibold text-foreground">
+        <div className="flex h-full w-full flex-col justify-center rounded-[16px] border border-muted bg-card/70 p-4 sm:p-5 min-h-[180px] md:min-h-[200px] lg:h-[245px]">
+          <p className="text-sm sm:text-fs-title font-semibold text-primary">Saldo Disponível</p>
+          <div className="mt-2 text-2xl sm:text-fs-display font-semibold text-foreground">
             {isLoading ? (
-              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-8 sm:h-10 w-40 sm:w-48" />
             ) : (
               formatCurrency(availableBalance)
             )}
           </div>
-          <p className="mt-3 text-fs-stat text-muted-foreground">
+          <p className="mt-3 text-xs sm:text-fs-stat text-muted-foreground">
             {balanceCardDescription}
           </p>
         </div>
 
         {/* Conta Bancária Principal */}
-        <div className="flex h-full w-full flex-col justify-center gap-4 rounded-[16px] border border-muted bg-card/70 p-5 lg:h-[245px]">
-          <p className="text-fs-title font-semibold text-primary">Conta Bancária Principal</p>
+        <div className="flex h-full w-full flex-col justify-center gap-4 rounded-[16px] border border-muted bg-card/70 p-4 sm:p-5 min-h-[180px] md:min-h-[200px] lg:h-[245px]">
+          <p className="text-sm sm:text-fs-title font-semibold text-primary">Conta Bancária Principal</p>
           
           {isLoading ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Skeleton className="h-6 w-6 rounded-full" />
-                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-5 sm:h-6 w-5 sm:w-6 rounded-full" />
+                <Skeleton className="h-5 sm:h-6 w-40 sm:w-48" />
               </div>
               <div className="flex items-center gap-3">
-                <Skeleton className="h-6 w-6 rounded-full" />
-                <Skeleton className="h-6 w-64" />
+                <Skeleton className="h-5 sm:h-6 w-5 sm:w-6 rounded-full" />
+                <Skeleton className="h-5 sm:h-6 w-48 sm:w-64" />
               </div>
-              <Skeleton className="h-[49px] w-[231px] rounded-[10px]" />
+              <Skeleton className="h-[44px] sm:h-[49px] w-full sm:w-[231px] rounded-[10px]" />
             </div>
           ) : hasBankAccount ? (
-            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 sm:gap-6">
               <div className="space-y-3">
                 {/* Bank Info Row */}
-                <div className="flex items-center gap-3">
-                  <Landmark className="h-5 w-5 text-gray-400" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-white">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Landmark className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+                      <span className="text-sm sm:text-lg font-bold text-white truncate">
                       {bankInfo?.bank || bankInfo?.bank_institution || mockBankData.bank}
                     </span>
-                    <span className="text-sm text-gray-500">
+                      <span className="text-xs sm:text-sm text-gray-500">
                       {bankInfo?.accountType === 'RANDOM_KEY' ? 'Chave Aleatória' : (bankInfo?.accountType || mockBankData.accountType)}
                     </span>
                   </div>
                 </div>
 
                 {/* Pix Key Row */}
-                <div className="flex items-center gap-3">
-                  <div className="flex h-5 w-5 items-center justify-center">
-                     {/* Using the Pix icon from the example or a placeholder diamond */}
-                    <div className="h-3 w-3 rotate-45 bg-gray-400" /> 
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center flex-shrink-0">
+                      <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rotate-45 bg-gray-400" /> 
                   </div>
-                  <div className="flex items-center gap-2 text-gray-400">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-400 min-w-0">
                     <span>Chave PIX:</span>
-                    <span className="text-white">
+                      <span className="text-white truncate">
                       {bankInfo?.pixKey || bankInfo?.account_key || mockBankData.pixKey}
                     </span>
                   </div>
@@ -147,7 +146,7 @@ export default function BalancesTab() {
               <button
                 type="button"
                 onClick={() => setIsWithdrawOpen(true)}
-                className="flex h-[48px] w-[200px] items-center justify-center gap-2 rounded-lg bg-[#6C27D7] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#5b21b6]"
+                  className="flex h-[44px] sm:h-[48px] w-full sm:w-[200px] items-center justify-center gap-2 rounded-lg bg-[#6C27D7] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#5b21b6] touch-manipulation"
               >
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
                   <span className="text-xs font-bold">$</span>
@@ -156,31 +155,31 @@ export default function BalancesTab() {
               </button>
             </div>
           ) : (
-            <div className="space-y-4 text-fs-stat text-foreground">
-              <p className="text-fs-stat text-muted-foreground">
+                <div className="space-y-4 text-xs sm:text-fs-stat text-foreground">
+                  <p className="text-xs sm:text-fs-stat text-muted-foreground">
                 Nenhuma conta bancária cadastrada. Configure uma conta para realizar saques.
               </p>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowAccountForm(true)}
-                  className="inline-flex h-[49px] w-[231px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 text-sm font-semibold text-white hover:brightness-110"
+                      className="inline-flex h-[44px] sm:h-[49px] w-full sm:w-[231px] items-center justify-center rounded-[10px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 text-sm font-semibold text-white hover:brightness-110 touch-manipulation"
                 >
                   Adicionar conta bancária
                 </button>
 
-                {/* Bank Account Form - Positioned to the right of button */}
+                    {/* Bank Account Form - Responsive Modal */}
                 {showAccountForm && (
                   <>
                     <div 
-                      className="fixed inset-0 z-40" 
+                          className="fixed inset-0 z-40 bg-black/50" 
                       onClick={closeAccountForm}
                     />
                     <div 
-                      className={`absolute left-[245px] top-[-200px] z-50 w-[420px] rounded-2xl bg-[#1a1a1a] p-6 shadow-2xl transition-all duration-300 ease-out origin-left ${
+                          className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] rounded-2xl bg-[#1a1a1a] p-4 sm:p-6 shadow-2xl transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto ${
                         showAccountForm 
-                          ? 'translate-x-0 opacity-100 scale-100' 
-                          : '-translate-x-4 opacity-0 scale-95 pointer-events-none'
+                            ? 'opacity-100 scale-100'
+                            : 'opacity-0 scale-95 pointer-events-none'
                       }`}
                     >
                       <div className="mb-6 flex items-center justify-between">

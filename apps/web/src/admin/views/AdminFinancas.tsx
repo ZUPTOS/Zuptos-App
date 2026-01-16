@@ -6,44 +6,58 @@ import { Filter } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import DateFilter from "@/components/DateFilter";
 import { FilterDrawer } from "@/components/FilterDrawer";
-
-const summaryMetrics = [
-  { id: "totalTransacionado", label: "Total transacionado", value: "00" },
-  { id: "receitaBruta", label: "Receita bruta total", value: "00" },
-  { id: "receitaLiquida", label: "Receita líquida total", value: "00" }
-] as const;
-
-const revenueCards = [
-  {
-    id: "transacao",
-    title: "Receita de Taxas de Transação",
-    description: "Receitas geradas a partir de taxas cobradas em cada transação",
-    metrics: [
-      { label: "Receita bruta", value: "00" },
-      { label: "Receita líquida", value: "00" }
-    ]
-  },
-  {
-    id: "saque",
-    title: "Receita de Taxas de Saque",
-    description: "Receitas geradas a partir de taxas cobradas em saques",
-    metrics: [
-      { label: "Receita bruta", value: "00" },
-      { label: "Receita líquida", value: "00" }
-    ]
-  }
-] as const;
+import { useAdminFinanceSummary } from "@/admin/hooks/useAdminFinanceSummary";
+import { formatCurrency } from "@/lib/utils/currency";
 
 export default function AdminFinancas() {
   const cardSurface = "rounded-[8px] border border-foreground/10 bg-card/80";
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
   const [selectedSearchTypes, setSelectedSearchTypes] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+
   const checkboxClass =
     "relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white";
 
   const toggleSearchType = (value: string) => {
     setSelectedSearchTypes(prev => (prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]));
+  };
+
+  // Fetch summary with date range
+  const { summary, isLoading } = useAdminFinanceSummary({
+    startDate: dateRange.start?.toISOString(),
+    endDate: dateRange.end?.toISOString(),
+  });
+
+  const summaryMetrics = [
+    { id: "totalTransacionado", label: "Total transacionado", value: formatCurrency(summary?.totalTransacted || 0) },
+    { id: "receitaBruta", label: "Receita bruta total", value: formatCurrency(summary?.grossRevenue || 0) },
+    { id: "receitaLiquida", label: "Receita líquida total", value: formatCurrency(summary?.netRevenue || 0) }
+  ];
+
+  const revenueCards = [
+    {
+      id: "transacao",
+      title: "Receita de Taxas de Transação",
+      description: "Receitas geradas a partir de taxas cobradas em cada transação",
+      metrics: [
+        { label: "Receita bruta", value: formatCurrency(summary?.transactionFeeRevenue.gross || 0) },
+        { label: "Receita líquida", value: formatCurrency(summary?.transactionFeeRevenue.net || 0) }
+      ]
+    },
+    {
+      id: "saque",
+      title: "Receita de Taxas de Saque",
+      description: "Receitas geradas a partir de taxas cobradas em saques",
+      metrics: [
+        { label: "Receita bruta", value: formatCurrency(summary?.withdrawalFeeRevenue.gross || 0) },
+        { label: "Receita líquida", value: formatCurrency(summary?.withdrawalFeeRevenue.net || 0) }
+      ]
+    }
+  ];
+
+  const handleDateChange = (start: Date | null, end: Date | null) => {
+    setDateRange({ start, end });
   };
 
   return (
@@ -79,14 +93,20 @@ export default function AdminFinancas() {
                 </div>
               </div>
 
-              <div className="flex w-full max-w-full flex-wrap justify-between gap-6">
-                {summaryMetrics.map(metric => (
-                  <div key={metric.id} className="flex flex-col items-start gap-2 min-w-[220px]">
-                    <span className="text-fs-stat text-muted-foreground">{metric.label}</span>
-                    <span className="text-fs-stat font-semibold text-foreground">{metric.value}</span>
+              {isLoading ? (
+                <div className="flex w-full items-center justify-center">
+                  <p className="text-muted-foreground">Carregando...</p>
+                </div>
+              ) : (
+                  <div className="flex w-full max-w-full flex-wrap justify-between gap-6">
+                    {summaryMetrics.map(metric => (
+                      <div key={metric.id} className="flex flex-col items-start gap-2 min-w-[220px]">
+                        <span className="text-fs-stat text-muted-foreground">{metric.label}</span>
+                        <span className="text-fs-stat font-semibold text-foreground">{metric.value}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+              )}
             </div>
           </div>
 
@@ -119,7 +139,9 @@ export default function AdminFinancas() {
               <p className="text-xl xl:text-xl text-muted-foreground">Quanto há disponível de saldo</p>
             </div>
             <div className="flex h-full items-center justify-center">
-              <span className="text-2xl xl:text-xl font-semibold text-foreground">R$00</span>
+              <span className="text-2xl xl:text-xl font-semibold text-foreground">
+                {formatCurrency(summary?.availableBalance || 0)}
+              </span>
             </div>
           </div>
         </div>
@@ -129,7 +151,7 @@ export default function AdminFinancas() {
         <div className="space-y-6 text-sm">
           <div className="space-y-2">
             <p className="text-sm font-semibold text-foreground">Data</p>
-            <DateFilter />
+            <DateFilter onDateChange={handleDateChange} />
           </div>
 
           <div className="space-y-3 border-t border-foreground/10 pt-4">
