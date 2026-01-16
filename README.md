@@ -32,13 +32,11 @@ Documentação geral do frontend (Next.js) usado nas áreas web da aplicação.
 - **Lint/Format**: ESLint (config Next) e Prettier.
 
 ## Estrutura de Pastas
-- `apps/web/` – app Next principal.
-  - `src/components/` – componentes compartilhados (ex.: `DateFilter`, `PaginatedTable`, layouts).
-  - `src/views/` – telas/páginas de domínio (admin, dashboard, produtos, usuários etc).
-  - `src/data/` – mocks locais (ex.: `admin-produtos.json`, `admin-usuarios.json`, `admin-documentos.json`).
-  - `src/lib/` – utilidades (ex.: paginação).
-  - `public/images/` – assets estáticos (logos, ícones).
-- `tests/` – base para testes adicionais.
+- `src/app` – Next.js App Router (rotas e layouts).
+- `src/modules` – Funcionalidades agrupadas por domínio (Auth, Admin, etc).
+- `src/shared` – Componentes UI, hooks e utilitários globais.
+- `src/lib` – Configurações de API e serviços.
+- `docs/` – [Documentação detalhada da arquitetura e decisões](./docs/ARCHITECTURE.md).
 
 ## Como Rodar
 Requisitos: Node 18+ (pnpm configurado no projeto).
