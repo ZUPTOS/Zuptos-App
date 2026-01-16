@@ -172,7 +172,13 @@ const resolvePublicApiBase = () => {
   // Remove /api prefix if present
   const cleaned = raw.replace(/\/api/g, "");
   const normalized = cleaned.replace(/\/$/, "");
+
   if (typeof window !== "undefined") {
+    // Mixed Content Protection
+    if (window.location.protocol === "https:" && normalized.startsWith("http:")) {
+      return "/v1";
+    }
+
     if (normalized.startsWith("/")) {
       return `${window.location.origin}${normalized}`;
     }

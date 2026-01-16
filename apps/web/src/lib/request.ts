@@ -22,7 +22,20 @@ export async function request<T>(
       : undefined;
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const url = `${baseUrl ?? API_BASE_URL}${normalizedPath}`;
+
+  // Mixed Content Protection:
+  // If running on HTTPS but trying to call HTTP API, force use of relative proxy path (/v1)
+  let effectiveBaseUrl = baseUrl ?? API_BASE_URL;
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    effectiveBaseUrl.startsWith("http:")
+  ) {
+    console.warn("[api] Mixed content detected. Forcing proxy usage (/v1) instead of insecure direct URL.");
+    effectiveBaseUrl = "/v1";
+  }
+
+  const url = `${effectiveBaseUrl}${normalizedPath}`;
   const method = rest.method?.toUpperCase() ?? "GET";
 
   if (method === "GET") {
