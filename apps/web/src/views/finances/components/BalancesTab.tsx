@@ -317,7 +317,15 @@ export default function BalancesTab() {
           </div>
         </div>
       </div>
-      <WithdrawModal isOpen={isWithdrawOpen} onClose={() => setIsWithdrawOpen(false)} />
+      <WithdrawModal
+        isOpen={isWithdrawOpen}
+        onClose={() => setIsWithdrawOpen(false)}
+        availableBalance={availableBalance}
+        bankInfo={bankInfo}
+        onSuccess={() => {
+          refetch(); // Refetch finance data to update balance
+        }}
+      />
     </>
   );
 }

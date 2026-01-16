@@ -12,6 +12,7 @@ export const financesApi = {
   updateBankData: bankFinanceApi.updateBankData,
   getTransactions: transactionsFinanceApi.getTransactions,
   getTransactionById: transactionsFinanceApi.getTransactionById,
+  getTransactionsByType: transactionsFinanceApi.getTransactionsByType,
   getWithdrawHistory: withdrawFinanceApi.getWithdrawHistory,
   createWithdraw: withdrawFinanceApi.createWithdraw,
   cancelWithdraw: withdrawFinanceApi.cancelWithdraw,

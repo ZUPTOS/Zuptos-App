@@ -6,6 +6,7 @@ import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from "lucide
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Checkout, Product, ProductOffer } from "@/lib/api";
+import { formatDocument, formatPhone, formatCardNumber, formatCardExpiry } from "@/lib/utils/formatters";
 
 const paymentButtons = [
   { id: "pix", label: "Pix", iconSrc: "/images/pix.svg" },
@@ -44,8 +45,10 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       : "left-6";
   const showEmailConfirmation = checkout?.required_email_confirmation ?? false;
   const showDocument = checkout?.required_document ?? false;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const showBirthdate = checkout?.required_birthdate ?? false;
   const showPhone = checkout?.required_phone ?? false;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const showAddress = checkout?.required_address ?? false;
   const testimonials = useMemo(
     () => (checkout?.testimonials ?? []).filter(item => item.active !== false),
@@ -110,6 +113,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     h-10 w-full rounded-[6px] px-3 text-sm focus:outline-none
     ${isDark ? "border border-white/10 bg-[#0b0b0b] text-white placeholder:text-neutral-500" : "border border-black/10 bg-white text-[#0a0a0a] placeholder:text-neutral-500"}
   `;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resolveTestimonialImage = (
     item: NonNullable<Checkout["testimonials"]>[number]
   ) => {
@@ -123,6 +127,30 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       (typeof raw.avatarUrl === "string" ? raw.avatarUrl : undefined)
     );
   };
+
+  const [formState, setFormState] = useState({
+    name: "",
+    document: "",
+    phone: "",
+    email: "",
+    emailConfirm: "",
+    cardName: "",
+    cardNumber: "",
+    cardExpiry: "",
+    cardCvv: "",
+    cardInstallments: "1",
+  });
+
+  const [emailError, setEmailError] = useState(false);
+
+  // Update effect to check email match
+  useEffect(() => {
+    if (showEmailConfirmation && formState.email && formState.emailConfirm) {
+      setEmailError(formState.email !== formState.emailConfirm);
+    } else {
+      setEmailError(false);
+    }
+  }, [formState.email, formState.emailConfirm, showEmailConfirmation]);
 
   useEffect(() => {
     if (!availablePaymentMethods.length) return;
@@ -139,6 +167,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
         nextSelected[bump.id] = true;
       }
     });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     setSelectedBumps(nextSelected);
   }, [offer?.order_bumps]);
 
@@ -150,8 +179,25 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     setLogoFailed(false);
   }, [checkout?.logo]);
 
+
+  const handleInputChange = (field: keyof typeof formState, value: string) => {
+    let formattedValue = value;
+
+    if (field === "document") formattedValue = formatDocument(value);
+    if (field === "phone") formattedValue = formatPhone(value);
+    if (field === "cardNumber") formattedValue = formatCardNumber(value);
+    if (field === "cardExpiry") formattedValue = formatCardExpiry(value);
+
+    setFormState(prev => ({ ...prev, [field]: formattedValue }));
+  };
+
   const handleConfirmPayment = async () => {
     if (!offerId || !productId) return;
+    if (showEmailConfirmation && emailError) {
+      alert("Os e-mails não conferem. Por favor, verifique.");
+      return;
+    }
+
     const baseUrl = publicApiBase ?? "";
     setSubmittingPayment(true);
     try {
@@ -160,11 +206,27 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
             .map(bump => bump.id)
             .filter(id => id)
             .map(id => ({ id }))
+          .filter(bump => bump.id && selectedBumps[bump.id]) 
         : [];
+
       const payload = {
         payment_method: paymentMethodMap[paymentMethod] ?? paymentMethodMap.card,
         offer_id: offerId,
         product_id: productId,
+        customer: {
+          name: formState.name,
+          email: formState.email,
+          document: formState.document.replace(/\D/g, ""), // Send unmasked
+          phone: formState.phone.replace(/\D/g, ""),
+        },
+        credit_card: paymentMethod === 'card' ? {
+          holder_name: formState.cardName,
+          number: formState.cardNumber.replace(/\s/g, ""),
+          expiry_month: formState.cardExpiry.split('/')[0],
+          expiry_year: formState.cardExpiry.split('/')[1],
+          ccv: formState.cardCvv,
+          installments: Number(formState.cardInstallments) || 1
+        } : undefined,
         ...(bumpsPayload.length ? { bumps: bumpsPayload } : {}),
       };
       console.log("[publicCheckout] Enviando pagamento:", payload);
@@ -187,11 +249,15 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
           price: Number.isFinite(priceValue) ? String(priceValue) : "0",
           method: paymentMethodMap[paymentMethod] ?? paymentMethodMap.card,
           image: product?.image_url || "/images/produto.png",
+          theme: isDark ? "dark" : "light",
         });
         router.push(`/pagamento-confirmado?${params.toString()}`);
+      } else {
+        alert("Erro ao processar pagamento: " + (data?.message || "Tente novamente"));
       }
     } catch (error) {
       console.error("[publicCheckout] Erro ao confirmar pagamento:", error);
+      alert("Erro de conexão ao processar pagamento.");
     } finally {
       setSubmittingPayment(false);
     }
@@ -293,36 +359,66 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                   </span>
                   <p>Identificação</p>
                 </div>
-                <div className="p-5 pt-3 space-y-5">
-                  <label className="space-y-5 text-xs text-neutral-400">
+                <div className="p-5 pt-3 space-y-6">
+                  <label className="flex flex-col gap-2 text-xs text-neutral-400">
                     <span>Nome e sobrenome</span>
-                    <input className={inputClass} placeholder="Digite um nome" />
+                    <input
+                      className={inputClass}
+                      placeholder="Digite seu nome completo"
+                      value={formState.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                    />
                   </label>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     {showDocument && (
-                      <label className="space-y-4 text-xs text-neutral-400">
+                      <label className="flex flex-col gap-2 text-xs text-neutral-400">
                         <span>CPF/CNPJ</span>
-                        <input className={inputClass} placeholder="Digite um documento" />
+                        <input
+                          className={inputClass}
+                          placeholder="000.000.000-00"
+                          value={formState.document}
+                          onChange={(e) => handleInputChange('document', e.target.value)}
+                          maxLength={18}
+                        />
                       </label>
                     )}
                     {showPhone && (
-                      <label className="space-y-4 text-xs text-neutral-400">
+                      <label className="flex flex-col gap-2 text-xs text-neutral-400">
                         <span>Celular</span>
-                        <input className={inputClass} placeholder="Digite um celular" />
+                        <input
+                          className={inputClass}
+                          placeholder="(00) 00000-0000"
+                          value={formState.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          maxLength={15}
+                        />
                       </label>
                     )}
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-5 text-xs text-neutral-400 col-span-2">
+                    <label className={`flex flex-col gap-2 text-xs text-neutral-400 ${showEmailConfirmation ? '' : 'col-span-2'}`}>
                       <span>E-mail</span>
-                      <input className={inputClass} placeholder="Digite um e-mail" />
+                      <input
+                        className={inputClass}
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={formState.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                      />
                     </label>
                     {showEmailConfirmation && (
-                      <label className="space-y-5 text-xs text-neutral-400 col-span-2">
+                      <label className="flex flex-col gap-2 text-xs text-neutral-400">
                         <span>Confirmar e-mail</span>
-                        <input className={inputClass} placeholder="Confirme o e-mail" />
+                        <input
+                          className={`${inputClass} ${emailError ? 'border-red-500 focus:border-red-500' : ''}`}
+                          type="email"
+                          placeholder="Confirme seu e-mail"
+                          value={formState.emailConfirm}
+                          onChange={(e) => handleInputChange('emailConfirm', e.target.value)}
+                        />
+                        {emailError && <span className="text-red-500 text-[10px]">Os e-mails não conferem</span>}
                       </label>
                     )}
                   </div>
@@ -337,7 +433,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                   </span>
                   <p>Pagamento</p>
                 </div>
-                <div className="p-5 pt-3 space-y-5">
+                <div className="p-5 pt-3 space-y-6">
                   <div className="space-y-4">
                     <p className={`text-sm font-semibold ${textPrimary}`}>Forma de pagamento</p>
                     <div className="flex items-center gap-3">
@@ -369,61 +465,81 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                   <div className="space-y-5">
                     {paymentMethod === "card" && (
                       <>
-                        <label className="space-y-5 text-xs text-neutral-400">
+                        <label className="flex flex-col gap-2 text-xs text-neutral-400">
                           <span>Nome do titular</span>
-                          <input className={inputClass} placeholder="Digite um nome" />
+                          <input
+                            className={inputClass}
+                            placeholder="Como está no cartão"
+                            value={formState.cardName}
+                            onChange={(e) => handleInputChange('cardName', e.target.value)}
+                          />
                         </label>
 
-                        <label className="space-y-5 text-xs text-neutral-400">
+                        <label className="flex flex-col gap-2 text-xs text-neutral-400">
                           <span>Número do cartão</span>
                           <div className="relative">
-                            <input className={`${inputClass} pr-10`} placeholder="Digite um nome" />
+                            <input
+                              className={`${inputClass} pr-10`}
+                              placeholder="0000 0000 0000 0000"
+                              value={formState.cardNumber}
+                              onChange={(e) => handleInputChange('cardNumber', e.target.value)}
+                              maxLength={19}
+                            />
                             <CreditCard className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
                           </div>
                         </label>
 
                         <div className="grid gap-3 sm:grid-cols-3">
-                          <label className="space-y-5 text-xs text-neutral-400">
+                          <label className="flex flex-col gap-2 text-xs text-neutral-400">
                             <span>Vencimento</span>
-                            <input className={inputClass} placeholder="Digite um nome" />
+                            <input
+                              className={inputClass}
+                              placeholder="MM/AA"
+                              value={formState.cardExpiry}
+                              onChange={(e) => handleInputChange('cardExpiry', e.target.value)}
+                              maxLength={5}
+                            />
                           </label>
-                          <label className="space-y-5 text-xs text-neutral-400">
+                          <label className="flex flex-col gap-2 text-xs text-neutral-400">
                             <span>CVV</span>
-                            <input className={inputClass} placeholder="Digite um nome" />
+                            <input
+                              className={inputClass}
+                              placeholder="123"
+                              value={formState.cardCvv}
+                              onChange={(e) => handleInputChange('cardCvv', e.target.value)}
+                              maxLength={4}
+                            />
                           </label>
-                          <label className="space-y-5 text-xs text-neutral-400">
+                          <label className="flex flex-col gap-2 text-xs text-neutral-400">
                             <span>Parcelamento</span>
-                            <input className={inputClass} placeholder="Digite um nome" />
+                            <select
+                              className={inputClass}
+                              value={formState.cardInstallments}
+                              onChange={(e) => handleInputChange('cardInstallments', e.target.value)}
+                            >
+                              <option value="1">1x R$ {productPriceValue.toFixed(2)}</option>
+                              {/* Future: Generate installments dynamically based on config */}
+                            </select>
                           </label>
                         </div>
                       </>
                     )}
-
                     {paymentMethod === "pix" && (
                       <div
                         className="flex flex-col items-center gap-3 rounded-[10px] border px-4 py-5"
                         style={{ backgroundColor: subCardBg, borderColor }}
                       >
-                        <div className="grid grid-cols-7 gap-1 rounded-[8px] bg-white p-2">
-                          {Array.from({ length: 49 }).map((_, idx) => (
-                            <span
-                              key={idx}
-                              className={`h-3 w-3 ${[1, 2, 5, 6, 9, 11, 13, 17, 18, 20, 24, 25, 28, 30, 33, 34, 36, 40, 41, 45, 47].includes(idx) ? "bg-black" : "bg-white"}`}
-                            />
-                          ))}
+                        <div className="text-center text-sm text-muted-foreground p-4">
+                          QR Code será gerado após confirmar.
                         </div>
-                        <p className={`text-xs ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                          Escaneie o QR Code para pagar com Pix
-                        </p>
                       </div>
                     )}
-
                     {paymentMethod === "boleto" && (
                       <div
                         className="rounded-[10px] border px-4 py-4 text-xs"
                         style={{ backgroundColor: subCardBg, borderColor, color: isDark ? "#a1a1aa" : "#4b5563" }}
                       >
-                        Boleto disponível em breve.
+                        Boleto será gerado após confirmar.
                       </div>
                     )}
                   </div>
@@ -471,10 +587,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
               </div>
 
               {showTestimonials ? (
-                <div
-                  className="rounded-[10px] border p-4 space-y-6"
-                  style={{ backgroundColor: cardBg, borderColor: borderColor }}
-                >
+                <div className="rounded-[10px] border p-4 space-y-6" style={{ backgroundColor: cardBg, borderColor }}>
                   <div className="space-y-3">
                     <p className={`text-lg font-semibold ${textPrimary}`}>Depoimentos</p>
                     <div className="flex flex-col gap-3">
@@ -515,7 +628,6 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                 </div>
               ) : null}
             </div>
-
           </div>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">

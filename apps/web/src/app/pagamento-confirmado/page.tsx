@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from "next/image";
@@ -23,6 +24,8 @@ export default function PagamentoConfirmadoPage() {
   const price = Number(params.get("price") ?? 0);
   const image = params.get("image") || "/images/produto.png";
   const method = params.get("method") || "pix";
+  const theme = params.get("theme") || "dark";
+  const isDark = theme === "dark";
 
   const priceLabel = useMemo(
     () =>
@@ -32,24 +35,35 @@ export default function PagamentoConfirmadoPage() {
     [price]
   );
 
+  // Dynamic colors based on checkout theme
+  const bgColor = isDark ? "bg-[#0b0b0b]" : "bg-[#f6f6f6]";
+  const textColor = isDark ? "text-white" : "text-[#0a0a0a]";
+  const textMuted = isDark ? "text-white/70" : "text-[#0a0a0a]/70";
+  const cardBg = isDark ? "bg-[#141414]" : "bg-white";
+  const innerCardBg = isDark ? "bg-[#1b1b1b]" : "bg-[#f3f3f3]"; // Slightly darker white/gray for light mode contrast
+  const borderColor = isDark ? "border-white/10" : "border-black/5";
+  const iconBorder = isDark ? "border-white/10" : "border-black/10";
+  const dividerColor = isDark ? "border-white/15" : "border-black/10";
+  const circleBg = isDark ? "bg-[#0b0b0b]" : "bg-[#f6f6f6]"; // Matches main bg to create cutout effect
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0b0b0b] px-4 py-10 text-white">
+    <div className={`flex min-h-screen items-center justify-center ${bgColor} px-4 py-10 ${textColor}`}>
       <div className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-[12px] bg-emerald-500/80">
           <Check className="h-7 w-7 text-black" />
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Agradecemos pela sua compra</h1>
-          <p className="text-sm text-white/70">
+          <p className={`text-sm ${textMuted}`}>
             Você receberá um e-mail confirmando sua compra.
           </p>
         </div>
 
-        <div className="relative w-full max-w-[520px] overflow-hidden rounded-[16px] bg-[#141414]">
+        <div className={`relative w-full max-w-[520px] overflow-hidden rounded-[16px] ${cardBg} shadow-sm`}>
           <div className="space-y-4 px-5 py-5 text-left">
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="flex h-11 w-11 items-center justify-center rounded-[12px] border border-white/10 bg-[#1b1b1b]">
-                <Ticket className="h-5 w-5 text-white/80" />
+            <div className={`flex items-center gap-3 ${isDark ? 'text-white/80' : 'text-[#0a0a0a]/80'}`}>
+              <div className={`flex h-11 w-11 items-center justify-center rounded-[12px] border ${innerCardBg} ${iconBorder}`}>
+                <Ticket className={`h-5 w-5 ${isDark ? 'text-white/80' : 'text-[#0a0a0a]/80'}`} />
               </div>
               <span className="text-base font-semibold">Sua compra</span>
             </div>
@@ -62,17 +76,17 @@ export default function PagamentoConfirmadoPage() {
                 className="h-14 w-14 rounded-[10px] object-cover"
               />
               <div>
-                <p className="text-sm font-semibold text-white">{productName}</p>
-                <p className="text-xs text-white/70">{priceLabel}</p>
+                <p className={`text-sm font-semibold ${textColor}`}>{productName}</p>
+                <p className={`text-xs ${textMuted}`}>{priceLabel}</p>
               </div>
             </div>
           </div>
           <div className="relative">
-            <div className="mx-5 border-t border-dashed border-white/15" />
-            <div className="pointer-events-none absolute left-0 top-0 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-[#0b0b0b]" />
-            <div className="pointer-events-none absolute right-0 top-0 h-8 w-8 translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-[#0b0b0b]" />
+            <div className={`mx-5 border-t border-dashed ${dividerColor}`} />
+            <div className={`pointer-events-none absolute left-0 top-0 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border ${iconBorder} ${circleBg}`} />
+            <div className={`pointer-events-none absolute right-0 top-0 h-8 w-8 translate-x-1/2 -translate-y-1/2 rounded-full border ${iconBorder} ${circleBg}`} />
           </div>
-          <div className="px-5 py-4 text-left text-xs text-white/70">
+          <div className={`px-5 py-4 text-left text-xs ${textMuted}`}>
             <div className="flex items-center gap-2">
               <Image
                 src={paymentIcons[method] ?? paymentIcons.pix}
@@ -86,7 +100,7 @@ export default function PagamentoConfirmadoPage() {
           </div>
         </div>
 
-        <div className="mt-16 flex w-full 2xl:w-[520px] xl:w-[500px] items-center justify-between text-xs text-white/40 sm:mt-20">
+        <div className={`mt-16 flex w-full 2xl:w-[520px] xl:w-[500px] items-center justify-between text-xs sm:mt-20 ${isDark ? 'text-white/40' : 'text-[#0a0a0a]/40'}`}>
           <span className="text-start w-50">Tecnologia Zuptos © 2025 Todos os direitos reservados</span>
           <span className="flex items-center gap-2 text-emerald-400">
             <ShieldCheck className="h-4 w-4" />

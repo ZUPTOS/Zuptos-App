@@ -1,31 +1,32 @@
 import { useState, useCallback } from 'react';
 import { financesApi } from '@/lib/api';
-import type { CreateWithdrawRequest } from '@/lib/api-types';
+import type { CreateWithdrawRequest, Transaction } from '@/lib/api-types';
 
 interface UseWithdrawHistoryReturn {
-  withdrawals: unknown[];
+  withdrawals: Transaction[];
   isLoading: boolean;
   error: string | null;
-  fetchWithdrawHistory: (params?: { page?: number; limit?: number }) => Promise<void>;
+  fetchWithdrawHistory: () => Promise<void>;
   createWithdraw: (data: CreateWithdrawRequest) => Promise<unknown>;
   cancelWithdraw: (id: string) => Promise<void>;
 }
 
 export function useWithdrawHistory(): UseWithdrawHistoryReturn {
-  const [withdrawals, setWithdrawals] = useState<unknown[]>([]);
+  const [withdrawals, setWithdrawals] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWithdrawHistory = useCallback(async (params?: { page?: number; limit?: number }) => {
+  const fetchWithdrawHistory = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔁 [useWithdrawHistory] Fetching withdraw history...', params);
-      const data = await financesApi.getWithdrawHistory(params);
-      console.log('✅ [useWithdrawHistory] Withdraw history received:', data);
+      console.log('🔁 [useWithdrawHistory] Fetching withdrawal transactions...');
+      const data = await financesApi.getTransactionsByType('WITHDRAWAL');
+      console.log('✅ [useWithdrawHistory] Withdrawal transactions received:', data);
       
-      setWithdrawals(data.withdrawals ?? []);
+      // data is TransactionResponse which is Transaction[]
+      setWithdrawals(Array.isArray(data) ? data : []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar histórico de saques';
       console.error('❌ [useWithdrawHistory] Error:', err);
