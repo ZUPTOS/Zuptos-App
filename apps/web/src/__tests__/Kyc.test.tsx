@@ -14,12 +14,12 @@ jest.mock("@/lib/api", () => ({
 }));
 
 // Simplified mocks to avoid layout noise and keep focus on conditional rendering.
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>
 }));
 
-jest.mock("@/components/ui/select", () => {
+jest.mock("@/shared/ui/select", () => {
   const SelectContext = React.createContext<{ onValueChange?: (v: string) => void; value?: string }>({});
 
   const Select: React.FC<{ children: React.ReactNode; value?: string; onValueChange?: (v: string) => void }> = ({

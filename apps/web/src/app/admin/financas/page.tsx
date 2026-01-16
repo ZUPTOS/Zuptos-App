@@ -1,7 +1,7 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminFinancas from "@/admin/views/AdminFinancas";
+import AdminFinancas from "@/modules/admin/views/AdminFinancas";
 
 function AdminFinancasPage() {
   return <AdminFinancas />;

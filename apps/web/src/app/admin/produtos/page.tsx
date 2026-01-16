@@ -1,7 +1,7 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminProdutos from "@/admin/views/AdminProdutos";
+import AdminProdutos from "@/modules/admin/views/AdminProdutos";
 
 function AdminProdutosPage() {
   return <AdminProdutos />;

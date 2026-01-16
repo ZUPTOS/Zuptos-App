@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
 import { ProductSettingsStatus } from "@/lib/api";
 import type { Product, ProductSettings, UpdateProductSettingsRequest } from "@/lib/api";
-import { notify } from "@/components/ui/notification-toast";
+import { notify } from "@/shared/ui/notification-toast";
 import { readCache, writeCache } from "./tabCache";
 
 type Params = {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import EditarCheckoutView from "@/views/EditarCheckout";
 
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
 }));

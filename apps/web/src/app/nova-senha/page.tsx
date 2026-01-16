@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import NewPasswordView from "@/views/NewPassword";
+import NewPasswordView from "@/modules/auth/views/NewPassword";
 
 export default function NewPasswordPage() {
   return (

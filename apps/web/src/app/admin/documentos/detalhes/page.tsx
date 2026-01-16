@@ -1,7 +1,7 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminDocumentoDetalhes from "@/admin/views/AdminDocumentoDetalhes";
+import AdminDocumentoDetalhes from "@/modules/admin/views/AdminDocumentoDetalhes";
 
 function AdminDocumentoDetalhesPage() {
   return <AdminDocumentoDetalhes />;

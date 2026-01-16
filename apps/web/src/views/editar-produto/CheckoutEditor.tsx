@@ -9,9 +9,9 @@ import CheckoutPreview from "@/components/CheckoutPreview";
 import type { CheckoutPayload, Product } from "@/lib/api";
 import { CheckoutTemplate } from "@/lib/api";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/shared/ui/skeleton";
 import { Pencil, Trash2 } from "lucide-react";
-import { notify } from "@/components/ui/notification-toast";
+import { notify } from "@/shared/ui/notification-toast";
 
 const fieldClass =
   "h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";

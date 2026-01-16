@@ -4,7 +4,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../../packages/shared/src/*"]
+      "@shared/*": [
+        "./src/shared/*"
+      ]
     },
     "jsx": "preserve",
     "types": [
@@ -24,7 +26,6 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "src/**/*",
-    "../../packages/shared/src/**/*",
     "../../jest.setup.ts"
   ],
   "exclude": ["node_modules"]

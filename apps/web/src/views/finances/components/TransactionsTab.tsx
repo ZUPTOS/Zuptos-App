@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
-import PaginatedTable, { type Column } from '@/components/PaginatedTable';
+import PaginatedTable, { type Column } from '@/shared/components/PaginatedTable';
 import TransactionsFilter from './TransactionsFilter';
 import {
   Search, Filter, Eye, EyeOff, Upload, X

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import RecoverPasswordView from "@/views/RecoverPassword";
+import RecoverPasswordView from "@/modules/auth/views/RecoverPassword";
 
 const pushMock = jest.fn();
 

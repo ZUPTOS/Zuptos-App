@@ -16,10 +16,10 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { Search, ChevronDown, ArrowUpRight, X, Eye, EyeOff } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
-import DateFilter from "@/components/DateFilter";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
+import DateFilter from "@/shared/components/DateFilter";
 import mockData from "@/data/mockData.json";
-import DetalhamentoIcon from "@/components/icons/DetalhamentoIcon";
+import DetalhamentoIcon from "@/shared/components/icons/DetalhamentoIcon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 

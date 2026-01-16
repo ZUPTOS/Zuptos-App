@@ -1,7 +1,7 @@
 'use client';
 
 import { Pencil, Search, Trash2 } from "lucide-react";
-import PaginatedTable from "@/components/PaginatedTable";
+import PaginatedTable from "@/shared/components/PaginatedTable";
 import { useDeliverables } from "./hooks/useDeliverables";
 
 type Props = {

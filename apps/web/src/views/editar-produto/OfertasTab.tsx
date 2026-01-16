@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { ChevronDown, Pencil, Search, Trash2 } from "lucide-react";
 import type { ProductOffer } from "@/lib/api";
-import ToggleActive from "@/components/ToggleActive";
-import PaginatedTable from "@/components/PaginatedTable";
+import ToggleActive from "@/shared/components/ToggleActive";
+import PaginatedTable from "@/shared/components/PaginatedTable";
 import { useOffers } from "./hooks/useOffers";
 import { formatBRLInput, parseBRLToNumber } from "./hooks/offerUtils";
 

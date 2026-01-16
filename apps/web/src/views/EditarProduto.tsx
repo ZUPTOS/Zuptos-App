@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import { productApi } from "@/lib/api";
 import type { Product } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/shared/ui/skeleton";
 import { CoproducaoTab } from "./editar-produto/CoproducaoTab";
 import { CuponsTab } from "./editar-produto/CuponsTab";
 import { UpsellTab } from "./editar-produto/UpsellTab";

@@ -2,11 +2,11 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { HTMLAttributes, ReactNode } from "react";
-import LoginView from "@/views/Login";
+import LoginView from "@/modules/auth/views/Login";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-jest.mock("@/components/ui/select", () => {
+jest.mock("@/shared/ui/select", () => {
   const SelectContext = React.createContext<{ value?: string; onValueChange?: (value: string) => void }>({});
 
   const Select = ({

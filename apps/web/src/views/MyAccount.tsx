@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import mockData from "@/data/mockData.json";
 import { useAuth } from "@/contexts/AuthContext";
 import { authApi } from "@/lib/api";

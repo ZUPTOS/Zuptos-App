@@ -1,7 +1,7 @@
 'use client';
 
 import { withAuth } from "@/lib/auth-guards";
-import AdminSaques from "@/admin/views/AdminSaques";
+import AdminSaques from "@/modules/admin/views/AdminSaques";
 
 function AdminSaquesPage() {
   return <AdminSaques />;

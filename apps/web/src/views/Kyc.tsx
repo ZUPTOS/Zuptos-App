@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import mockData from "@/data/mockData.json";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent } from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { ArrowLeft } from "lucide-react";
 import {
   Select,
@@ -14,12 +14,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import { cn } from "@/lib/utils";
 import { kycApi } from "@/lib/api";
 import type { ApiError, KycPayload } from "@/lib/api-types";
 import { useAuth } from "@/contexts/AuthContext";
-import { notify } from "@/components/ui/notification-toast";
+import { notify } from "@/shared/ui/notification-toast";
 
 type Step = "dados" | "documentos";
 

@@ -38,7 +38,7 @@ jest.mock("@/lib/api", () => {
   };
 });
 
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: ReactNode }) => <div data-testid="layout">{children}</div>
 }));

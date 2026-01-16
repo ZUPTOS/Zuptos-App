@@ -2,15 +2,15 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
-import AdminDashboard from "@/admin/views/AdminDashboard";
-import AdminFinancas from "@/admin/views/AdminFinancas";
-import AdminProdutos from "@/admin/views/AdminProdutos";
-import AdminPlaceholder from "@/admin/views/AdminPlaceholder";
-import AdminTransacoes from "@/admin/views/AdminTransacoes";
-import AdminTransacoesDetalhes from "@/admin/views/AdminTransacoesDetalhes";
-import AdminSaques from "@/admin/views/AdminSaques";
-import AdminSaquesDetalhes from "@/admin/views/AdminSaquesDetalhes";
-import AdminUsuarios from "@/admin/views/AdminUsuarios";
+import AdminDashboard from "@/modules/admin/views/AdminDashboard";
+import AdminFinancas from "@/modules/admin/views/AdminFinancas";
+import AdminProdutos from "@/modules/admin/views/AdminProdutos";
+import AdminPlaceholder from "@/modules/admin/views/AdminPlaceholder";
+import AdminTransacoes from "@/modules/admin/views/AdminTransacoes";
+import AdminTransacoesDetalhes from "@/modules/admin/views/AdminTransacoesDetalhes";
+import AdminSaques from "@/modules/admin/views/AdminSaques";
+import AdminSaquesDetalhes from "@/modules/admin/views/AdminSaquesDetalhes";
+import AdminUsuarios from "@/modules/admin/views/AdminUsuarios";
 
 jest.mock("recharts", () => {
   const MockContainer = ({ children }: { children?: ReactNode }) => (
@@ -31,12 +31,12 @@ jest.mock("recharts", () => {
   };
 });
 
-jest.mock("@/components/DateFilter", () => ({
+jest.mock("@/shared/components/DateFilter", () => ({
   __esModule: true,
   default: () => <div data-testid="date-filter">Filtro</div>,
 }));
 
-jest.mock("@/components/DashboardLayout", () => ({
+jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
 }));
