@@ -1,10 +1,10 @@
 import type { ApiError } from "./api-types";
 
-// NEVER use /api prefix - remove it completely from any environment variable
-// Default to empty string to use relative paths (Next.js rewrites handle routing)
+// Remove /api prefix but keep /v1 as default for producer routes
+// Admin and public routes use their own paths (/admin/..., /public/...)
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 const CLEANED_BASE = RAW_API_BASE.replace(/\/api/g, ""); // Remove ALL /api occurrences
-export const API_BASE_URL = CLEANED_BASE || "";
+export const API_BASE_URL = CLEANED_BASE || "/v1"; // Default to /v1 for producer routes
 
 export const UNAUTHORIZED_EVENT = "zuptos:unauthorized";
 
