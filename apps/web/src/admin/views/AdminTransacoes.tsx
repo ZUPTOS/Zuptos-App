@@ -7,66 +7,98 @@ import PaginatedTable, { type Column } from "@/components/PaginatedTable";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import DateFilter from "@/components/DateFilter";
 import ConfirmModal from "@/components/ConfirmModal";
-import transactionsData from "@/data/admin-transacoes.json";
-import type { Transaction } from "@/types/transaction";
 import { useMemo, useState } from "react";
+import { useAdminFinanceList } from "@/admin/hooks/useAdminFinanceList";
+import type { AdminFinanceRecord } from "@/admin/types";
+import { formatCurrency } from "@/lib/utils/currency";
 
-const metricCards = [
-  { id: "total", title: "Transações totais", value: "00" },
-  { id: "concluidas", title: "Transações concluídas", value: "00" },
-  { id: "pendentes", title: "Transações pendentes", value: "00" },
-  { id: "reembolsadas", title: "Transações reembolsadas", value: "00" },
-  { id: "chargebacks", title: "Chargebacks", value: "00" },
-  { id: "disputa", title: "Transações em disputa", value: "00" },
-  { id: "aprovacao", title: "Taxa de aprovação", value: "00%" },
-  { id: "chargebackRate", title: "Taxa de chargeback", value: "00%" }
-] as const;
-
-const statusVariants: Record<Transaction["status"], string> = {
-  Aprovado: "bg-emerald-500/15 text-emerald-400",
-  Pendente: "bg-yellow-500/15 text-yellow-400",
-  Reembolsado: "bg-sky-500/15 text-sky-400",
-  Chargeback: "bg-rose-500/15 text-rose-400",
-  "Em disputa": "bg-orange-500/15 text-orange-400"
+const statusVariants: Record<string, string> = {
+  completed: "bg-emerald-500/15 text-emerald-400",
+  pending: "bg-yellow-500/15 text-yellow-400",
+  refunded: "bg-sky-500/15 text-sky-400",
+  chargeback: "bg-rose-500/15 text-rose-400",
+  disputed: "bg-orange-500/15 text-orange-400",
+  approved: "bg-emerald-500/15 text-emerald-400",
+  failed: "bg-red-500/15 text-red-400",
 };
 
-const columns: Column<Transaction>[] = [
+const statusLabels: Record<string, string> = {
+  completed: "Aprovado",
+  pending: "Pendente",
+  refunded: "Reembolsado",
+  chargeback: "Chargeback",
+  disputed: "Em disputa",
+  approved: "Aprovado",
+  failed: "Falhou",
+};
+
+const columns: Column<AdminFinanceRecord>[] = [
   {
     id: "id",
     header: "ID",
-    cellClassName: "font-semibold",
-    render: row => row.id
+    cellClassName: "font-semibold font-mono text-xs",
+    render: row => `#${row.id.slice(0, 8).toUpperCase()}`
+  },
+  {
+    id: "userName",
+    header: "Usuário",
+    cellClassName: "text-foreground",
+    render: row => (
+      <div className="flex flex-col">
+        <span className="font-medium">{row.userName}</span>
+        {row.userEmail && (
+          <span className="text-xs text-muted-foreground">{row.userEmail}</span>
+        )}
+      </div>
+    )
   },
   {
     id: "type",
     header: "Tipo",
-    cellClassName: "text-muted-foreground",
-    render: row => row.type
+    cellClassName: "text-muted-foreground capitalize",
+    render: row => row.type === 'transaction' ? 'Transação' : 'Saque'
   },
   {
     id: "date",
     header: "Data",
     cellClassName: "text-muted-foreground",
-    render: row => (
-      <div className="flex flex-col">
-        <span>{row.date}</span>
-        <span className="text-xs text-muted-foreground/80">{row.time}</span>
-      </div>
-    )
+    render: row => {
+      const date = new Date(row.created_at);
+      return (
+        <div className="flex flex-col">
+          <span>{date.toLocaleDateString('pt-BR')}</span>
+          <span className="text-xs text-muted-foreground/80">
+            {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+      );
+    }
   },
   {
-    id: "value",
+    id: "amount",
     header: "Valor",
-    render: row => row.value
+    cellClassName: "font-semibold",
+    render: row => formatCurrency(row.amount)
+  },
+  {
+    id: "netAmount",
+    header: "Valor Líquido",
+    cellClassName: "font-semibold text-emerald-500",
+    render: row => formatCurrency(row.netAmount)
   },
   {
     id: "status",
     header: "Status",
-    render: row => (
-      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusVariants[row.status]}`}>
-        {row.status}
-      </span>
-    )
+    render: row => {
+      const statusKey = row.status.toLowerCase();
+      const variant = statusVariants[statusKey] || "bg-gray-500/15 text-gray-400";
+      const label = statusLabels[statusKey] || row.status;
+      return (
+        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${variant}`}>
+          {label}
+        </span>
+      );
+    }
   }
 ];
 
@@ -74,61 +106,60 @@ export default function AdminTransacoes() {
   const router = useRouter();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [searchUserId, setSearchUserId] = useState("");
+  const [searchId, setSearchId] = useState("");
+
   const cardSurface = "rounded-[7px] border border-foreground/10 bg-card/80";
-  const handleRowClick = (row: Transaction) => {
+
+  // Fetch finances with filters
+  const { finances, isLoading } = useAdminFinanceList({
+    page: 1,
+    limit: 50,
+    userId: searchUserId || undefined,
+    startDate: dateRange.start?.toISOString(),
+    endDate: dateRange.end?.toISOString(),
+    type: selectedTypes.length === 1 ? (selectedTypes[0] === 'transaction' ? 'transaction' : 'withdrawal') : undefined,
+    status: selectedStatuses.length > 0 ? selectedStatuses[0]?.toLowerCase() : undefined,
+  });
+
+  // Client-side filtering for search by ID
+  const filteredFinances = useMemo(() => {
+    if (!searchId) return finances;
+    return finances.filter(f => f.id.toLowerCase().includes(searchId.toLowerCase()));
+  }, [finances, searchId]);
+
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    const totalTransactions = finances.length;
+    const completed = finances.filter(f => f.status.toLowerCase() === 'completed' || f.status.toLowerCase() === 'approved').length;
+    const pending = finances.filter(f => f.status.toLowerCase() === 'pending').length;
+    const refunded = finances.filter(f => f.status.toLowerCase() === 'refunded').length;
+    const chargebacks = finances.filter(f => f.status.toLowerCase() === 'chargeback').length;
+    const disputed = finances.filter(f => f.status.toLowerCase() === 'disputed').length;
+    const approvalRate = totalTransactions > 0 ? ((completed / totalTransactions) * 100).toFixed(1) : '0';
+    const chargebackRate = totalTransactions > 0 ? ((chargebacks / totalTransactions) * 100).toFixed(1) : '0';
+
+    return [
+      { id: "total", title: "Transações totais", value: totalTransactions.toString() },
+      { id: "concluidas", title: "Transações concluídas", value: completed.toString() },
+      { id: "pendentes", title: "Transações pendentes", value: pending.toString() },
+      { id: "reembolsadas", title: "Transações reembolsadas", value: refunded.toString() },
+      { id: "chargebacks", title: "Chargebacks", value: chargebacks.toString() },
+      { id: "disputa", title: "Transações em disputa", value: disputed.toString() },
+      { id: "aprovacao", title: "Taxa de aprovação", value: `${approvalRate}%` },
+      { id: "chargebackRate", title: "Taxa de chargeback", value: `${chargebackRate}%` }
+    ];
+  }, [finances]);
+
+  const handleRowClick = (row: AdminFinanceRecord) => {
     router.push(`/admin/transacoes/detalhes?id=${encodeURIComponent(row.id)}`);
   };
 
   const checkboxClass =
     "relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white";
-
-  const parseDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split("/").map(Number);
-    if (!day || !month || !year) return null;
-    return new Date(year, month - 1, day);
-  };
-
-  const transactionDirection = (tx: Transaction) => (["Reembolsado", "Chargeback"].includes(tx.status) ? "Saída" : "Entrada");
-
-  const matchesCategory = (tx: Transaction, category: string) => {
-    switch (category) {
-      case "Venda":
-        return tx.type.toLowerCase().includes("venda");
-      case "Chargeback":
-        return tx.status === "Chargeback";
-      case "Reembolso":
-        return tx.status === "Reembolsado";
-      default:
-        return true;
-    }
-  };
-
-  const filteredTransactions = useMemo(() => {
-    return transactionsData.transactions.filter(tx => {
-      const txDate = parseDate(tx.date);
-      if (dateRange.start && dateRange.end && txDate) {
-        if (txDate < dateRange.start || txDate > dateRange.end) return false;
-      }
-
-      if (selectedCategories.length && !selectedCategories.some(cat => matchesCategory(tx, cat))) {
-        return false;
-      }
-
-      if (selectedTypes.length && !selectedTypes.includes(transactionDirection(tx))) {
-        return false;
-      }
-
-      if (selectedStatuses.length && !selectedStatuses.includes(tx.status)) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [dateRange.end, dateRange.start, selectedCategories, selectedStatuses, selectedTypes]);
 
   const toggleSelection = (value: string, list: string[], setter: (val: string[]) => void) => {
     setter(list.includes(value) ? list.filter(item => item !== value) : [...list, value]);
@@ -146,6 +177,8 @@ export default function AdminTransacoes() {
                 <input
                   type="text"
                   placeholder="Filtrar por usuário"
+                  value={searchUserId}
+                  onChange={(e) => setSearchUserId(e.target.value)}
                   className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </label>
@@ -169,7 +202,7 @@ export default function AdminTransacoes() {
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {metricCards.map(card => (
+            {metrics.map(card => (
               <div
                 key={card.id}
                 className={`${cardSurface} h-[128px] w-full p-5 flex flex-col items-start justify-between`}
@@ -186,22 +219,30 @@ export default function AdminTransacoes() {
               <input
                 type="text"
                 placeholder="Buscar id"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
                 className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
             </label>
           </div>
 
-          <PaginatedTable
-            data={filteredTransactions}
-            columns={columns}
-            rowKey={row => row.id}
-            rowsPerPage={5}
-            initialPage={1}
-            emptyMessage="Nenhuma transação encontrada"
-            tableContainerClassName={`${cardSurface} rounded-[7px]`}
-            paginationContainerClassName="px-2"
-            onRowClick={handleRowClick}
-          />
+          {isLoading ? (
+            <div className={`${cardSurface} flex items-center justify-center h-[400px]`}>
+              <p className="text-muted-foreground">Carregando transações...</p>
+            </div>
+          ) : (
+              <PaginatedTable
+                data={filteredFinances}
+                columns={columns}
+                rowKey={row => row.id}
+                rowsPerPage={10}
+                initialPage={1}
+                emptyMessage="Nenhuma transação encontrada"
+                tableContainerClassName={`${cardSurface} rounded-[7px]`}
+                paginationContainerClassName="px-2"
+                onRowClick={handleRowClick}
+              />
+          )}
         </div>
       </div>
       <FilterDrawer open={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtrar">
@@ -216,37 +257,22 @@ export default function AdminTransacoes() {
           </div>
 
           <div className="space-y-3 border-t border-foreground/10 pt-4">
-            <p className="text-sm font-semibold text-foreground">Categoria</p>
-            <div className="grid grid-cols-2 gap-3 text-foreground">
-              {["Venda", "Chargeback", "Reembolso"].map(option => (
-                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(option)}
-                    onChange={() => toggleSelection(option, selectedCategories, setSelectedCategories)}
-                    className={checkboxClass}
-                  />
-                  <span>{option}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3 border-t border-foreground/10 pt-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-foreground">Tipo de transação</p>
-              <span className="text-xs text-muted-foreground">▼</span>
             </div>
             <div className="grid grid-cols-2 gap-3 text-foreground">
-              {["Entrada", "Saída"].map(option => (
-                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+              {[
+                { label: "Transação", value: "transaction" },
+                { label: "Saque", value: "withdrawal" }
+              ].map(option => (
+                <label key={option.value} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
-                    checked={selectedTypes.includes(option)}
-                    onChange={() => toggleSelection(option, selectedTypes, setSelectedTypes)}
+                    checked={selectedTypes.includes(option.value)}
+                    onChange={() => toggleSelection(option.value, selectedTypes, setSelectedTypes)}
                     className={checkboxClass}
                   />
-                  <span>{option}</span>
+                  <span>{option.label}</span>
                 </label>
               ))}
             </div>
@@ -255,15 +281,20 @@ export default function AdminTransacoes() {
           <div className="space-y-3 border-t border-foreground/10 pt-4">
             <p className="text-sm font-semibold text-foreground">Status</p>
             <div className="grid grid-cols-2 gap-3 text-foreground">
-              {["Aprovado", "Pendente", "Reembolsado", "Chargeback"].map(option => (
-                <label key={option} className="flex items-center gap-3 text-sm text-muted-foreground">
+              {[
+                { label: "Aprovado", value: "approved" },
+                { label: "Pendente", value: "pending" },
+                { label: "Reembolsado", value: "refunded" },
+                { label: "Chargeback", value: "chargeback" }
+              ].map(option => (
+                <label key={option.value} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
-                    checked={selectedStatuses.includes(option)}
-                    onChange={() => toggleSelection(option, selectedStatuses, setSelectedStatuses)}
+                    checked={selectedStatuses.includes(option.value)}
+                    onChange={() => toggleSelection(option.value, selectedStatuses, setSelectedStatuses)}
                     className={checkboxClass}
                   />
-                  <span>{option}</span>
+                  <span>{option.label}</span>
                 </label>
               ))}
             </div>

@@ -89,15 +89,14 @@ export function WithdrawModal({ isOpen, onClose, availableBalance, bankInfo, onS
         // we should call onClose.
         if (!open) onClose();
       }}>
-        <DialogContent className="sm:max-w-[425px] border-none bg-[#0b0b0b] text-white shadow-2xl">
-          <DialogHeader className="flex flex-row items-center justify-between pb-4">
-            <DialogTitle className="text-lg font-semibold text-white">Solicitar saque</DialogTitle>
-            {/* Close button is automatically added by DialogContent usually, checking if custom needed */}
+        <DialogContent className="w-[calc(100%-2rem)] max-w-[425px] border-none bg-[#0b0b0b] text-white shadow-2xl p-4 sm:p-6">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 sm:pb-4">
+            <DialogTitle className="text-base sm:text-lg font-semibold text-white">Solicitar saque</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
-              <label className="text-lg font-medium text-white">Quanto você quer sacar?</label>
+              <label className="text-base sm:text-lg font-medium text-white">Quanto você quer sacar?</label>
               <div className="relative">
                 <input
                   type="text"
