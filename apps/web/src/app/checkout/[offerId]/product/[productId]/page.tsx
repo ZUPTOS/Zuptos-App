@@ -217,23 +217,7 @@ export default function PublicCheckoutPage() {
       setLoading(true);
       try {
         const baseUrl = resolvePublicApiBase();
-        let data: PublicCheckoutOfferResponse;
-        try {
-          data = await fetchPublicCheckout(baseUrl, offerId, productId);
-        } catch (err) {
-          const status = (err as { status?: number }).status;
-          // Se der 404/500 e ainda não tentamos com /v1, tenta fallback.
-          if (status && !baseUrl.endsWith("/v1")) {
-            const fallbackBase = `${baseUrl}/v1`;
-            try {
-              data = await fetchPublicCheckout(fallbackBase, offerId, productId);
-            } catch (fallbackError) {
-              throw fallbackError;
-            }
-          } else {
-            throw err;
-          }
-        }
+        const data = await fetchPublicCheckout(baseUrl, offerId, productId);
         console.log("[publicCheckout] Dados carregados:", { productId, offerId, data });
         const normalizedCheckout = normalizeCheckout(data.checkout);
         const normalizedProduct = normalizeProduct(data.product);

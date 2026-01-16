@@ -14,6 +14,10 @@ const nextConfig = {
         destination: `${normalizedTarget}/:path*`,
       },
       {
+        source: "/public/:path*",
+        destination: `${baseTarget}/public/:path*`,
+      },
+      {
         source: "/backend/:path*",
         destination: `${baseTarget}/:path*`,
       },
