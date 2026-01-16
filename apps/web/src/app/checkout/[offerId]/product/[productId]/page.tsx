@@ -169,7 +169,9 @@ const normalizeOffer = (
 
 const resolvePublicApiBase = () => {
   const raw = process.env.NEXT_PUBLIC_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
-  const normalized = raw.replace(/\/$/, "");
+  // Remove /api prefix if present
+  const cleaned = raw.replace(/\/api/g, "");
+  const normalized = cleaned.replace(/\/$/, "");
   if (typeof window !== "undefined") {
     if (normalized.startsWith("/")) {
       return `${window.location.origin}${normalized}`;
