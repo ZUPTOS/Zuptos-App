@@ -168,26 +168,15 @@ const normalizeOffer = (
 };
 
 const resolvePublicApiBase = () => {
+  if (typeof window !== "undefined") {
+    // Client-side: always use relative path so Next.js proxy handles it
+    return "";
+  }
+
   const raw = process.env.NEXT_PUBLIC_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
   // Remove /api prefix if present
   const cleaned = raw.replace(/\/api/g, "");
-  const normalized = cleaned.replace(/\/$/, "");
-
-  if (typeof window !== "undefined") {
-    // Mixed Content Protection
-    if (window.location.protocol === "https:" && normalized.startsWith("http:")) {
-      return "/v1";
-    }
-
-    if (normalized.startsWith("/")) {
-      return `${window.location.origin}${normalized}`;
-    }
-    if (normalized) {
-      return normalized;
-    }
-    return window.location.origin;
-  }
-  return normalized || "";
+  return cleaned.replace(/\/$/, "");
 };
 
 export default function PublicCheckoutPage() {
