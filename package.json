@@ -4,11 +4,11 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev apps/web",
-    "build": "next lint apps/web && next build apps/web && echo 'Build completed' && next dev apps/web",
-    "start": "next start apps/web",
-    "lint": "next lint apps/web",
-    "check": "tsc --noEmit -p apps/web/tsconfig.json",
+    "dev": "next dev",
+    "build": "next lint && next build && echo 'Build completed'",
+    "start": "next start",
+    "lint": "next lint",
+    "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "jest --runInBand --coverage --passWithNoTests"
   },

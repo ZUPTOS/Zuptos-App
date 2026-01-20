@@ -1,3 +1,36 @@
 {
-  "extends": "./tsconfig.base.json"
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ]
+    },
+    "jsx": "preserve",
+    "types": [
+      "node",
+      "next",
+      "@types/google.maps",
+      "jest"
+    ],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "skipLibCheck": true
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "src/**/*",
+    "./jest.setup.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
