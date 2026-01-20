@@ -297,7 +297,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
             <div className="mt-5 space-y-6 pb-10">
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-foreground">Selecione o tipo de oferta</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setOfferType("preco_unico")}
@@ -479,7 +479,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                             <ChevronDown className="h-4 w-4" aria-hidden />
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <input
                             className="h-10 w-full rounded-[8px] border border-foreground/20 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                             placeholder="Preço normal"
@@ -631,7 +631,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
 
                 {orderBumpEnabled && (
                   <div className="space-y-4 rounded-[10px] border border-foreground/15 bg-card/70 p-4">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="space-y-1 text-xs text-muted-foreground">
                         <span className="text-foreground">Produto</span>
                         <div className="relative">
@@ -701,7 +701,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                       </label>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="space-y-1 text-xs text-muted-foreground">
                         <span className="text-foreground">Título</span>
                         <input

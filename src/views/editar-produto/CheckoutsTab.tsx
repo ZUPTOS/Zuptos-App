@@ -58,7 +58,7 @@ export function CheckoutsTab({ productId, token, withLoading }: Props) {
 
       {loading ? (
         <div className="rounded-[10px] border border-foreground/10 bg-card">
-          <div className="grid grid-cols-4 gap-4 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground">
+          <div className="grid grid-cols-1 gap-2 border-b border-foreground/10 px-4 py-3 text-sm font-semibold text-foreground sm:grid-cols-4 sm:gap-4">
             <span>Nome</span>
             <span>Tema</span>
             <span>Template</span>
@@ -66,7 +66,7 @@ export function CheckoutsTab({ productId, token, withLoading }: Props) {
           </div>
           <div className="divide-y divide-foreground/10">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="grid grid-cols-4 items-center gap-4 px-4 py-3">
+              <div key={index} className="grid grid-cols-1 items-center gap-2 px-4 py-3 sm:grid-cols-4 sm:gap-4">
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-24" />

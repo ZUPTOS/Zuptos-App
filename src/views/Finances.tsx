@@ -20,7 +20,7 @@ export default function Finances() {
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Finanças">
       <div className="min-h-full py-6">
-        <div className="mx-auto 2xl:justify-center 2xl:w-[1250px] flex w-full flex-col gap-6 xl:justify-center xl:w-[1000px]">
+        <div className="mx-auto 2xl:justify-center 2xl:w-full 2xl:max-w-7xl flex w-full flex-col gap-6 xl:justify-center xl:w-[1000px]">
           {/* Tab Navigation */}
           <div className="flex flex-wrap items-center gap-6 border-b border-muted/30 pb-1 text-base font-semibold">
             {tabs.map((tab) => {

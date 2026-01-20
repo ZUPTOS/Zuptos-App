@@ -106,12 +106,29 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
         setProductLoading(true);
       }
       try {
-        const data = cached
+        let data = cached
           ? await productApi.getProductById(productId, token)
           : await withLoading(
               () => productApi.getProductById(productId, token),
               "Carregando produto"
             );
+        const needsTotals =
+          data && (data.total_invoiced === undefined || data.total_sold === undefined);
+        if (needsTotals) {
+          try {
+            const list = await productApi.listProducts({ page: 1, limit: 10 }, token);
+            const match = list.find(item => item.id === productId);
+            if (match) {
+              data = {
+                ...data,
+                total_invoiced: match.total_invoiced ?? data.total_invoiced,
+                total_sold: match.total_sold ?? data.total_sold,
+              };
+            }
+          } catch (error) {
+            console.error("Erro ao carregar totais do produto:", error);
+          }
+        }
         setProduct(data);
         if (productCacheKey && data) {
           writeCache(productCacheKey, data);
@@ -279,7 +296,7 @@ export default function EditarProdutoView({ initialTab }: { initialTab?: string 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
       <div className="w-full px-3 py-4">
-        <div className="mx-auto flex w-full max-w-6xl gap-6">
+        <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl gap-6">
           <nav className="w-52 shrink-0">
             <ul className="space-y-2 text-sm">
               {tabs.map(tab => {

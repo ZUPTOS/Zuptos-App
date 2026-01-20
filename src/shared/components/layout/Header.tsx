@@ -64,7 +64,7 @@ export default function Header({
     toggleTheme?.();
   };
   const profileButtonClasses = [
-    "group flex min-w-[257px] h-[57px] items-center gap-4 rounded-[7px] border px-4 py-3 text-left bg-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+    "group flex w-full min-w-0 sm:min-w-[257px] sm:w-auto h-[52px] sm:h-[57px] items-center gap-4 rounded-[7px] border px-4 py-3 text-left bg-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
     isLightMode
       ? "bg-card hover:bg-muted"
       : "bg-[#050505] border-white/10 hover:bg-[#0d0d0d] shadow-[0_18px_45px_rgba(0,0,0,0.6)]"
@@ -111,16 +111,19 @@ export default function Header({
 
   return (
     <header className="bg-background sticky top-0 z-50 transition-colors border-b">
-      <div className="flex items-center justify-between py-2" style={{ paddingInline: "var(--header-padding-x)" }}>
+      <div
+        className="flex flex-col gap-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+        style={{ paddingInline: "var(--header-padding-x)" }}
+      >
         <div className="flex flex-col gap-1">
           {pageSubtitle && (
             <span className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground/70">
               {pageSubtitle}
             </span>
           )}
-          <h1 className="text-2xl font-semibold text-foreground">{pageTitle || ""}</h1>
+          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{pageTitle || ""}</h1>
         </div>
-        <div className="flex items-center gap-4 ml-6">
+        <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end sm:gap-4 sm:ml-6">
           <div className="relative z-50" ref={profileRef}>
             <button
               type="button"

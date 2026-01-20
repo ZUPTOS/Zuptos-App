@@ -39,8 +39,17 @@ const filterOptions = [
   "Este mês"
 ];
 
+const getBrasiliaDate = () => {
+  const now = new Date();
+  const brasiliaString = now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+  return new Date(brasiliaString);
+};
+
 const getPresetRange = (preset: string) => {
-  const today = new Date();
+  const today = getBrasiliaDate();
+  // Reset hours/min/sec/ms to start of day for cleaner ranges
+  today.setHours(0, 0, 0, 0);
+
   switch (preset) {
     case "Hoje":
       return { start: today, end: today };
@@ -71,7 +80,7 @@ const getPresetRange = (preset: string) => {
 export default function DateFilter({ onDateChange }: DateFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 1));
+  const [currentDate, setCurrentDate] = useState(() => getBrasiliaDate());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [rangeAnchor, setRangeAnchor] = useState<Date | null>(null);
@@ -80,8 +89,12 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const todayRef = useRef(new Date());
-  const defaultRange = useMemo(() => ({ start: todayRef.current, end: todayRef.current }), []);
+  const todayRef = useRef(getBrasiliaDate());
+  const defaultRange = useMemo(() => {
+    const today = getBrasiliaDate();
+    today.setHours(0, 0, 0, 0);
+    return { start: today, end: today };
+  }, []);
   const activeRange = selectedRange ?? defaultRange;
 
   const dateRange = useMemo(

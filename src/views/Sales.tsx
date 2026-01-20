@@ -462,8 +462,8 @@ export default function Sales() {
     >
       <div className="min-h-full py-4">
         <div
-          className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 sm:px-4 lg:px-6"
-          style={{ maxWidth: "var(--dash-layout-width, 1200px)" }}
+          className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-col gap-3 px-3 sm:px-4 lg:px-6"
+          style={{ maxWidth: "var(--dash-layout-width, 1280px)" }}
         >
           <section className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {metricCards.map(card => {

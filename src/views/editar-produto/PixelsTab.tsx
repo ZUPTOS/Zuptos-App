@@ -346,7 +346,7 @@ export function PixelsTab({ productId, token, withLoading }: Props) {
 
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-foreground">Tipo</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <button
                         type="button"
                         onClick={() => setTrackingType(TrackingType.DEFAULT)}

@@ -225,7 +225,7 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
 
               <div className="space-y-3 rounded-[12px] border border-foreground/15 bg-card/80 p-4">
                 <p className="text-sm font-semibold text-foreground">Regras para aplicação de cupom</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
                     className={`h-11 rounded-[8px] border px-3 text-sm font-semibold ${
                       couponUnit === "valor"
@@ -247,7 +247,7 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                     Porcentagem
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input
                     className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder={couponUnit === "percent" ? "% desconto" : "R$ desconto"}
@@ -276,7 +276,7 @@ export function CuponsTab({ productId, token, withLoading }: Props) {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input
                     type="date"
                     className="h-10 rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"

@@ -570,7 +570,7 @@ export function CheckoutEditor({
 
   return (
     <div className="w-full px-4 py-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-stretch gap-6">
+      <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-col items-stretch gap-6">
         {onBack && (
           <div className="flex items-center justify-between">
             <button
@@ -929,7 +929,7 @@ export function CheckoutEditor({
                   )}
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-foreground">Plano de Fundo</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <button
                         onClick={() => setTheme("light")}
                         className={`rounded-[10px] border px-3 py-4 text-sm font-semibold shadow-inner ${
@@ -956,7 +956,7 @@ export function CheckoutEditor({
                   </div>
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-foreground">Cores de destaque</p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       {[
                         { color: "#000000", label: "Clean (padrão)" },
                         { color: "#5f17ff", label: "Clean (padrão)" },
@@ -1123,7 +1123,7 @@ export function CheckoutEditor({
                 </div>
                 {couponEnabled && (
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="space-y-2 text-xs text-muted-foreground">
                         <span>Cartão de crédito</span>
                         <div className="relative">
@@ -1161,7 +1161,7 @@ export function CheckoutEditor({
                         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
                       </div>
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="relative mt-2">
                         <input
                           className={`${fieldClass} pr-8`}

@@ -20,11 +20,11 @@ export default function DashboardLayout({
   pageSubtitle,
 }: DashboardLayoutProps) {
   return (
-    <div className="flex h-screen bg-background text-foreground transition-colors">
+    <div className="flex h-screen overflow-x-hidden bg-background text-foreground transition-colors">
       <Sidebar />
       <div
-        className="flex-1 flex flex-col"
-        style={{ marginLeft: "var(--sidebar-current-width, var(--sidebar-collapsed))" }}
+        className="flex-1 flex min-w-0 flex-col"
+        style={{ paddingLeft: "var(--sidebar-current-width, var(--sidebar-collapsed))" }}
       >
         <Header
           userName={userName}
@@ -32,7 +32,7 @@ export default function DashboardLayout({
           pageTitle={pageTitle}
           pageSubtitle={pageSubtitle}
         />
-        <main className="relative flex-1 overflow-auto bg-background">
+        <main className="relative flex-1 overflow-auto bg-background overflow-x-hidden">
           <KycReminder />
           <div className="transition duration-200">{children}</div>
         </main>

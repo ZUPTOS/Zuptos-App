@@ -377,7 +377,7 @@ export default function KycView() {
               >
                 <CardContent className="space-y-4 p-0">
                   {!isPessoaFisica && (
-                    <div className="grid gap-2 grid-cols-2">
+                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
                       <div className="space-y-2 h-full">
                         <Label htmlFor="accountType" className="text-sm md:text-base">Tipo de conta</Label>
                         <Select value={accountType} onValueChange={value => setAccountType(value)}>

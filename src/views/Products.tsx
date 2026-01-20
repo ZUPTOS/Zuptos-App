@@ -385,7 +385,7 @@ export default function Products() {
         <div className="min-h-full py-6">
           <div
             className="mx-auto flex w-full flex-col gap-6 px-3 sm:px-4 md:px-6"
-            style={{ maxWidth: "var(--dash-layout-width, 1200px)" }}
+            style={{ maxWidth: "var(--dash-layout-width, 1280px)" }}
           >
           <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <label
@@ -851,7 +851,7 @@ export default function Products() {
                 </button>
               </div>
               {hasLoginAccess && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
                     <p className="text-[16px] font-semibold text-foreground">Login</p>
                     <input

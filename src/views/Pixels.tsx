@@ -6,7 +6,7 @@ export default function PixelsView() {
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="Pixels de rastreamento">
       <div className="px-4 py-8">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+        <div className="mx-auto flex w-full max-w-6xl 2xl:max-w-7xl flex-col gap-4">
           <div className="rounded-[12px] border border-foreground/10 bg-card/80 p-6 shadow-[0_14px_36px_rgba(0,0,0,0.35)]">
             <h1 className="text-xl font-semibold text-foreground">Pixels de rastreamento</h1>
             <p className="mt-2 text-sm text-muted-foreground">

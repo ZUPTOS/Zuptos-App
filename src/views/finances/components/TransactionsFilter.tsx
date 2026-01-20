@@ -74,7 +74,7 @@ export default function TransactionsFilter({
         {/* Categories Section */}
         <div className="flex flex-col gap-4">
           <p className="text-sm font-semibold text-foreground">Categoria</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {categoryOptions.map((option) => (
               <div key={option.id} className="flex items-center space-x-2">
                 <Checkbox 
