@@ -1,6 +1,6 @@
 # Tests (root)
 
-Base de testes para `apps/web`.
+Base de testes para `public`.
 
 - **Framework**: Jest + @testing-library/react (@testing-library/user-event).
 - **Comandos**: `pnpm test` executa tudo com cobertura; use `pnpm test -- <pattern>` para filtrar.

@@ -1,6 +1,6 @@
 /**
  * Script simples para testar a conectividade de cada endpoint exposto pelo Swagger.
- * Execute com: `RUN_CONNECTIVITY_SUITE=true npx ts-node apps/web/src/__tests__/api.test.ts`
+ * Execute com: `RUN_CONNECTIVITY_SUITE=true npx ts-node src/__tests__/api.test.ts`
  *
  * O foco é apenas verificar se a API responde e qual status retorna.
  */

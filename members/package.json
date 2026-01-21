@@ -1,0 +1,25 @@
+{
+  "name": "zuptos-members",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/next.mjs dev",
+    "build": "node scripts/next.mjs lint && node scripts/next.mjs build",
+    "start": "node scripts/next.mjs start",
+    "lint": "node scripts/next.mjs lint"
+  },
+  "dependencies": {
+    "next": "15.0.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "eslint": "^9.16.0",
+    "eslint-config-next": "^15.0.0",
+    "typescript": "5.6.3"
+  },
+  "packageManager": "pnpm@10.4.1+sha512.c753b6c3ad7afa13af388fa6d808035a008e30ea9993f58c6663e2bc5ff21679aa834db094987129aa4d488b86df57f7b634981b2f827cdcacc698cc0cfb88af"
+}
