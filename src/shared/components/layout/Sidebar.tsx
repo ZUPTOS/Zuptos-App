@@ -74,6 +74,12 @@ export default function Sidebar() {
       href: "/produtos",
     },
     {
+      id: "members",
+      label: "Área de membros",
+      href: "/members",
+      IconComponent: Users,
+    },
+    {
       id: "financas",
       label: "Finanças",
       iconSrc: "/images/ICON-4.svg",
