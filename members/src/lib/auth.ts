@@ -22,14 +22,17 @@ export const clearToken = () => {
 export const isAuthed = () => Boolean(getToken());
 
 export const getPublicAppUrl = () =>
-  process.env.NEXT_PUBLIC_PUBLIC_APP_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_PUBLIC_APP_URL?.trim() ?? "";
 
 export const getMembersAppUrl = () =>
-  process.env.NEXT_PUBLIC_MEMBERS_APP_URL ?? "http://localhost:3001";
+  process.env.NEXT_PUBLIC_MEMBERS_APP_URL?.trim() ?? "";
 
-export const buildLoginRedirectUrl = (path = "/dashboard") => {
+export const buildLoginRedirectUrl = (path = "/login") => {
   const publicAppUrl = getPublicAppUrl();
   const membersAppUrl = getMembersAppUrl();
-  const redirectTarget = `${membersAppUrl}${path}`;
-  return `${publicAppUrl}/login?redirect=${encodeURIComponent(redirectTarget)}`;
+  const redirectTarget = membersAppUrl ? `${membersAppUrl}${path}` : path;
+  const redirectParam = encodeURIComponent(redirectTarget);
+  return publicAppUrl
+    ? `${publicAppUrl}/login?redirect=${redirectParam}`
+    : `/login?redirect=${redirectParam}`;
 };

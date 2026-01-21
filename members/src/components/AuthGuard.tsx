@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { buildLoginRedirectUrl, isAuthed } from "@/lib/auth";
+import { isAuthed } from "@/lib/auth";
 import styles from "@/styles/ui.module.css";
 
 export default function AuthGuard({
@@ -13,7 +13,7 @@ export default function AuthGuard({
 
   useEffect(() => {
     if (!isAuthed()) {
-      window.location.href = buildLoginRedirectUrl("/dashboard");
+      window.location.href = "/login";
       return;
     }
 
