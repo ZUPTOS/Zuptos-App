@@ -16,9 +16,9 @@ Documentação geral do frontend (Next.js) usado nas áreas web da aplicação.
 - [Contribuição](#contribuição)
 
 ## Visão Geral
-- Dois apps Next.js no mesmo repo: `public` (venda/admin) e `members` (area de membros placeholder).
-- UI do app public baseada em Tailwind, Radix UI e ícones Lucide.
-- Estrutura simples com scripts na raiz e lockfile unico.
+- App Next.js unico na raiz do repo (venda/admin).
+- UI baseada em Tailwind, Radix UI e ícones Lucide.
+- Estrutura simples com scripts e lockfile na raiz.
 
 ## Stack e Ferramentas
 - **Framework**: Next.js 15 + React 18.
@@ -32,41 +32,32 @@ Documentação geral do frontend (Next.js) usado nas áreas web da aplicação.
 - **Lint/Format**: ESLint (config Next) e Prettier.
 
 ## Estrutura de Pastas
-- `public/src/app` – App Router do app public (rotas e layouts).
-- `public/src/modules` – Funcionalidades agrupadas por dominio (Auth, Admin, etc).
-- `public/src/shared` – Componentes UI, hooks e utilitarios globais.
-- `public/src/lib` – Configuracoes de API e servicos.
-- `public/docs/` – [Documentacao detalhada da arquitetura e decisoes](./public/docs/ARCHITECTURE.md).
-- `members/src/app` – App Router do app members (guard + placeholders).
-- `members/src/lib` – Mocks, auth helpers e request wrapper.
+- `src/app` – App Router (rotas e layouts).
+- `src/modules` – Funcionalidades agrupadas por dominio (Auth, Admin, etc).
+- `src/shared` – Componentes UI, hooks e utilitarios globais.
+- `src/lib` – Configuracoes de API e servicos.
+- `docs/` – [Documentacao detalhada da arquitetura e decisoes](./docs/ARCHITECTURE.md).
+- `public/` – Assets estaticos do Next.js (imagens, icons, etc).
 
 ## Como Rodar
 Requisitos: Node 18+ (pnpm configurado no projeto).
 
 ```bash
-pnpm install            # instala dependencias (lockfile unico)
-pnpm dev:public         # modo desenvolvimento (http://localhost:3000)
-pnpm dev:members        # modo desenvolvimento (http://localhost:3001)
-pnpm build              # build de ambos os apps
-pnpm build:public       # build do app public
-pnpm build:members      # build do app members
-pnpm -C public lint     # ESLint (public)
-pnpm -C public check    # checagem TypeScript (public)
-pnpm -C public test     # Jest + Testing Library (public)
-pnpm -C members lint    # ESLint (members)
+pnpm install            # instala dependencias
+pnpm dev                # modo desenvolvimento (http://localhost:3000)
+pnpm build              # build do app
+pnpm start              # servidor de producao
+pnpm lint               # ESLint
+pnpm check              # checagem TypeScript
+pnpm test               # Jest + Testing Library
 ```
 
 Variaveis de ambiente:
-- `public/.env.local` (ou `.env`) para o app public.
-- `members/.env.local` para o app members:
-  - `NEXT_PUBLIC_PUBLIC_APP_URL`
-  - `NEXT_PUBLIC_MEMBERS_APP_URL`
-  - `NEXT_PUBLIC_API_URL`
-  - `NEXT_PUBLIC_MEMBERS_MOCK=1`
+- `.env.local` (ou `.env`) na raiz do projeto.
 
 ## Padrões de Código e Estilo
-- TypeScript estrito (ver `public/tsconfig.json`); prefira tipos explicitos em props.
-- ESLint + Prettier: rode `pnpm -C public lint` e `pnpm -C public format` antes de commits.
+- TypeScript estrito (ver `tsconfig.json`); prefira tipos explicitos em props.
+- ESLint + Prettier: rode `pnpm lint` e `pnpm format` antes de commits.
 - Nomenclatura: componentes em PascalCase, hooks em `useX`, utilitários em `camelCase`.
 - Imports absolutos com `@/` (ex.: `@/components/...`, `@/views/...`).
 - Comentários apenas quando agregam contexto.
@@ -97,9 +88,9 @@ Variaveis de ambiente:
   - Interações de formulário/filtros
 
 ## Build e Deploy
-- `pnpm build` executa o build de `public` e `members`.
-- Saida de producao via `pnpm start:public` e `pnpm start:members`.
-- CI recomendada: passos `pnpm install`, `pnpm build`, e checks por app quando necessario.
+- `pnpm build` executa o build do app.
+- Saida de producao via `pnpm start`.
+- CI recomendada: passos `pnpm install`, `pnpm build`, e checks quando necessario.
 
 ## Acessibilidade
 - Use componentes Radix sempre que possível (foco/aria nativos).
@@ -108,8 +99,8 @@ Variaveis de ambiente:
 
 ## Contribuição
 - Crie branch por feature/bugfix.
-- Antes de abrir PR: `pnpm -C public lint`, `pnpm -C public check`, `pnpm -C public test`.
+- Antes de abrir PR: `pnpm lint`, `pnpm check`, `pnpm test`.
 - Mantenha descrições curtas e referências às issues/tarefas.
 
 ---
-Em caso de duvidas rapidas: ver `public/src/components` e `public/src/views` para exemplos de padroes adotados.
+Em caso de duvidas rapidas: ver `src/components` e `src/views` para exemplos de padroes adotados.
