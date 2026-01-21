@@ -24,7 +24,7 @@ export default function BridgeClient() {
     }
 
     const redirectParam = searchParams.get("redirect");
-    const safeRedirect = redirectParam?.startsWith("/") ? redirectParam : "/dashboard";
+    const safeRedirect = redirectParam?.startsWith("/") ? redirectParam : "/login";
     router.replace(safeRedirect);
   }, [router, searchParams]);
 
