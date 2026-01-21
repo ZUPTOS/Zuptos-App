@@ -34,14 +34,15 @@ export const HealthCard: React.FC<HealthCardProps> = ({ healthData, hideValues, 
         }));
 
   return (
-    <div style={defaultStyle} className={`${cardSurface} flex h-full flex-col gap-2 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-6 2xl:p-7 ${className || ""}`} {...props}>
-        <div className="flex gap-1 w-full mt-1 items-end">
+    <div style={defaultStyle} className={`${cardSurface} flex h-full flex-col gap-3 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-6 2xl:p-7 ${className || ""}`} {...props}>
+        <div className="flex gap-1.0 sm:gap-2 w-full mt-1 items-end">
             {healthLevels.map((level, index) => {
               const isActive = index === activeIndex;
+              const heightClass = hideValues ? "h-[8px]" : isActive ? "h-[11px]" : "h-[8px]";
               return (
                 <div 
                     key={level.label} 
-                    className={`flex-1 rounded-[2px] ${isActive ? 'h-[11px]' : 'h-[8px]'}`} 
+                    className={`flex-1 rounded-[2px] ${heightClass}`} 
                     style={{ backgroundColor: level.color, opacity: hideValues ? 0.6 : isActive ? 1 : 0.35 }} 
                 />
               );

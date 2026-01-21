@@ -6,9 +6,24 @@ interface BalanceCardProps extends React.HTMLAttributes<HTMLDivElement> {
   label: string;
   value: number;
   iconSrc: string;
+  hideValues?: boolean;
 }
 
-export const BalanceCard: React.FC<BalanceCardProps> = ({ label, value, iconSrc, className, style, ...props }) => {
+export const BalanceCard: React.FC<BalanceCardProps> = ({
+  label,
+  value,
+  iconSrc,
+  hideValues = false,
+  className,
+  style,
+  ...props
+}) => {
+  const formattedValue = value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
+  const displayValue = hideValues ? "•••" : formattedValue;
+
   return (
     <div style={style} className={`${cardSurface} flex h-full flex-col justify-center p-3 sm:p-4 md:p-4 lg:p-5 xl:p-5 gap-0.5 sm:gap-1 ${className || ""}`} {...props}>
         <div className="flex items-center gap-2 mb-1.5">
@@ -16,7 +31,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({ label, value, iconSrc,
         </div>
         <span className="text-[clamp(10px,1.1vw,12px)] text-muted-foreground font-medium">{label}</span>
         <span className="text-[clamp(14px,1.8vw,20px)] font-bold text-foreground mt-0.5 tracking-tight">
-            {value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            {displayValue}
         </span>
     </div>
   );

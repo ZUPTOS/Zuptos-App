@@ -139,6 +139,7 @@ export default function Dashboard() {
                     label={card.label}
                     value={card.value}
                     iconSrc={card.iconSrc}
+                    hideValues={hideValues}
                  />
               ))}
             </div>
@@ -299,6 +300,7 @@ export default function Dashboard() {
                     label={balanceCards[0].label}
                     value={balanceCards[0].value}
                     iconSrc={balanceCards[0].iconSrc}
+                    hideValues={hideValues}
                     style={{ gridArea: "disponivel" }}
                 />
             )}
@@ -309,6 +311,7 @@ export default function Dashboard() {
                     label={balanceCards[1].label}
                     value={balanceCards[1].value}
                     iconSrc={balanceCards[1].iconSrc}
+                    hideValues={hideValues}
                     style={{ gridArea: "pendente" }}
                 />
             )}
