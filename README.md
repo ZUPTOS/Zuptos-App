@@ -16,9 +16,9 @@ Documentação geral do frontend (Next.js) usado nas áreas web da aplicação.
 - [Contribuição](#contribuição)
 
 ## Visão Geral
-- Projeto Next.js (app principal em `apps/web`) com foco em dashboard/admin.
-- UI baseada em Tailwind, Radix UI e ícones Lucide.
-- Monorepo simples; este README cobre a superfície do frontend web.
+- Dois apps Next.js no mesmo repo: `public` (venda/admin) e `members` (area de membros placeholder).
+- UI do app public baseada em Tailwind, Radix UI e ícones Lucide.
+- Estrutura simples com scripts na raiz e lockfile unico.
 
 ## Stack e Ferramentas
 - **Framework**: Next.js 15 + React 18.
@@ -32,30 +32,41 @@ Documentação geral do frontend (Next.js) usado nas áreas web da aplicação.
 - **Lint/Format**: ESLint (config Next) e Prettier.
 
 ## Estrutura de Pastas
-- `src/app` – Next.js App Router (rotas e layouts).
-- `src/modules` – Funcionalidades agrupadas por domínio (Auth, Admin, etc).
-- `src/shared` – Componentes UI, hooks e utilitários globais.
-- `src/lib` – Configurações de API e serviços.
-- `docs/` – [Documentação detalhada da arquitetura e decisões](./docs/ARCHITECTURE.md).
+- `public/src/app` – App Router do app public (rotas e layouts).
+- `public/src/modules` – Funcionalidades agrupadas por dominio (Auth, Admin, etc).
+- `public/src/shared` – Componentes UI, hooks e utilitarios globais.
+- `public/src/lib` – Configuracoes de API e servicos.
+- `public/docs/` – [Documentacao detalhada da arquitetura e decisoes](./public/docs/ARCHITECTURE.md).
+- `members/src/app` – App Router do app members (guard + placeholders).
+- `members/src/lib` – Mocks, auth helpers e request wrapper.
 
 ## Como Rodar
 Requisitos: Node 18+ (pnpm configurado no projeto).
 
 ```bash
-pnpm install        # instala dependências
-pnpm dev            # modo desenvolvimento em apps/web
-pnpm build          # build de produção (apps/web)
-pnpm start          # inicia servidor após build
-pnpm lint           # ESLint
-pnpm check          # checagem TypeScript (apps/web)
-pnpm test           # Jest + Testing Library
+pnpm install            # instala dependencias (lockfile unico)
+pnpm dev:public         # modo desenvolvimento (http://localhost:3000)
+pnpm dev:members        # modo desenvolvimento (http://localhost:3001)
+pnpm build              # build de ambos os apps
+pnpm build:public       # build do app public
+pnpm build:members      # build do app members
+pnpm -C public lint     # ESLint (public)
+pnpm -C public check    # checagem TypeScript (public)
+pnpm -C public test     # Jest + Testing Library (public)
+pnpm -C members lint    # ESLint (members)
 ```
 
-Variáveis de ambiente: use `.env` (ou `.env.local`) na raiz; o Next carrega para `apps/web`.
+Variaveis de ambiente:
+- `public/.env.local` (ou `.env`) para o app public.
+- `members/.env.local` para o app members:
+  - `NEXT_PUBLIC_PUBLIC_APP_URL`
+  - `NEXT_PUBLIC_MEMBERS_APP_URL`
+  - `NEXT_PUBLIC_API_URL`
+  - `NEXT_PUBLIC_MEMBERS_MOCK=1`
 
 ## Padrões de Código e Estilo
-- TypeScript estrito (ver `apps/web/tsconfig.json`); prefira tipos explícitos em props.
-- ESLint + Prettier: rode `pnpm lint` e `pnpm format` antes de commits.
+- TypeScript estrito (ver `public/tsconfig.json`); prefira tipos explicitos em props.
+- ESLint + Prettier: rode `pnpm -C public lint` e `pnpm -C public format` antes de commits.
 - Nomenclatura: componentes em PascalCase, hooks em `useX`, utilitários em `camelCase`.
 - Imports absolutos com `@/` (ex.: `@/components/...`, `@/views/...`).
 - Comentários apenas quando agregam contexto.
@@ -86,9 +97,9 @@ Variáveis de ambiente: use `.env` (ou `.env.local`) na raiz; o Next carrega par
   - Interações de formulário/filtros
 
 ## Build e Deploy
-- `pnpm build` executa `next build apps/web` + lint/type-check.
-- Saída de produção via `pnpm start` (usa build gerado).
-- CI recomendada: passos `pnpm install`, `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`.
+- `pnpm build` executa o build de `public` e `members`.
+- Saida de producao via `pnpm start:public` e `pnpm start:members`.
+- CI recomendada: passos `pnpm install`, `pnpm build`, e checks por app quando necessario.
 
 ## Acessibilidade
 - Use componentes Radix sempre que possível (foco/aria nativos).
@@ -97,8 +108,8 @@ Variáveis de ambiente: use `.env` (ou `.env.local`) na raiz; o Next carrega par
 
 ## Contribuição
 - Crie branch por feature/bugfix.
-- Antes de abrir PR: `pnpm lint`, `pnpm check`, `pnpm test`.
+- Antes de abrir PR: `pnpm -C public lint`, `pnpm -C public check`, `pnpm -C public test`.
 - Mantenha descrições curtas e referências às issues/tarefas.
 
 ---
-Em caso de dúvidas rápidas: ver `apps/web/src/components` e `apps/web/src/views` para exemplos de padrões adotados.
+Em caso de duvidas rapidas: ver `public/src/components` e `public/src/views` para exemplos de padroes adotados.
