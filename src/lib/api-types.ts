@@ -327,6 +327,9 @@ export interface UpdateProductSettingsRequest {
     id?: string;
     name?: string;
     description?: string;
+    category?: string;
+    type?: ProductType | string;
+    sale_url?: string;
   };
 }
 

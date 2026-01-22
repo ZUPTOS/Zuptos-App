@@ -610,7 +610,7 @@ export default function Products() {
                     onChange={() => toggleType(option.value)}
                     className="peer sr-only"
                   />
-                  <span className="flex h-[24px] w-[24px] items-center justify-center rounded-[7px] border border-foreground/20 bg-transparent transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                  <span className="flex h-[24px] w-[24px] items-center justify-center rounded-[7px] border border-foreground/30 bg-card transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
                     <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
                   </span>
                 </span>
@@ -635,7 +635,7 @@ export default function Products() {
                     onChange={() => toggleStatus(option.value)}
                     className="peer sr-only"
                   />
-                  <span className="flex h-[24px] w-[24px] items-center justify-center rounded-[7px] border border-foreground/20 bg-transparent transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
+                  <span className="flex h-[24px] w-[24px] items-center justify-center rounded-[7px] border border-foreground/30 bg-card transition-colors peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
                     <Check className="h-4 w-4 text-white opacity-0 transition-opacity" aria-hidden />
                   </span>
                 </span>

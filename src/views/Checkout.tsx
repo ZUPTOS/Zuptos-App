@@ -659,11 +659,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                               return (
                                 <input
                                   type="checkbox"
-                                  className={`h-5 w-5 rounded border transition ${
-                                    isChecked
-                                      ? "border-[#6C27D7] bg-[#6C27D7]"
-                                      : "border-foreground/30 bg-transparent"
-                                  }`}
+                                  className="ui-checkbox h-5 w-5"
                                   checked={isChecked}
                                   disabled
                                 />

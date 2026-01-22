@@ -70,8 +70,7 @@ export default function AdminUsuarios() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const checkboxClass =
-    "relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white";
+  const checkboxClass = "ui-checkbox h-[22px] w-[22px]";
 
   const toggleStatus = (status: string) => {
     setSelectedStatuses(prev => (prev.includes(status) ? prev.filter(item => item !== status) : [...prev, status]));
