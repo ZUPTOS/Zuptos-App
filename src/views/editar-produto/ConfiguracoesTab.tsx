@@ -1,7 +1,7 @@
 'use client';
 
 import Image from "next/image";
-import { ProductSettingsStatus } from "@/lib/api";
+import { ProductSettingsCurrency, ProductSettingsLanguage, ProductSettingsStatus, ProductType } from "@/lib/api";
 import { useSettings } from "./hooks/useSettings";
 
 type Props = {
@@ -29,27 +29,64 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
     handleDeactivateProduct,
   } = useSettings({ productId, token, withLoading });
 
+  const inputClass =
+    "h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
+  const selectClass = `${inputClass} appearance-none pr-9`;
+  const categoryOptions = [
+    "Animais e Plantas",
+    "Apps & Software",
+    "Casa e Construção",
+    "Culinária e Gastronomia",
+    "Desenvolvimento Pessoal",
+    "Direito",
+    "Ecologia e Meio Ambiente",
+    "Educacional",
+    "Empreendedorismo Digital",
+    "Entretenimento",
+    "Espiritualidade",
+    "Finanças e Investimentos",
+    "Hobbies",
+    "Idiomas",
+    "Internet",
+    "Literatura",
+    "Moda e Beleza",
+    "Música e Artes",
+    "Negócios e Carreira",
+    "Relacionamentos",
+    "Saúde e Esportes",
+    "Sexualidade",
+    "Tecnologia da Informação",
+    "Outros",
+  ];
+  const formatOptions = [
+    { value: ProductType.COURSE, label: "Curso" },
+    { value: ProductType.SERVICE, label: "Serviço" },
+    { value: ProductType.BOOK, label: "E-book" },
+  ];
+  const isProductLocked = Boolean(product?.id);
+
   return (
     <>
       <h2 className="text-lg font-semibold text-foreground">Configurações</h2>
 
       <div className="space-y-6 rounded-[12px] border border-foreground/10 bg-card/80 p-6 shadow-[0_14px_36px_rgba(0,0,0,0.35)]">
-        <div className="grid grid-cols-[200px_1fr] items-start gap-4">
-          <div className="flex items-center justify-center rounded-[12px] border border-foreground/10 bg-card/70 p-3">
-            <Image
-              src="/images/produto.png"
-              alt="Produto"
-              width={160}
-              height={160}
-              className="h-[160px] w-[160px] rounded-[10px] object-cover"
-            />
+        <div className="grid gap-4 md:grid-cols-[160px_1fr]">
+          <div className="flex items-start justify-center">
+            <div className="h-[170px] w-[170px] overflow-hidden rounded-[12px] border border-foreground/10 bg-card/70">
+              <Image
+                src={product?.image_url || "/images/produto.png"}
+                alt={product?.name ?? "Produto"}
+                width={170}
+                height={170}
+                className="h-full w-full object-cover"
+              />
+            </div>
           </div>
-
           <div className="space-y-3">
             <label className="space-y-1 text-sm text-muted-foreground">
               <span className="text-foreground">Nome do produto</span>
               <input
-                className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                className={inputClass}
                 placeholder={product?.name ?? "Nome do produto"}
                 value={productForm.name}
                 onChange={event => setProductForm(current => ({ ...current, name: event.target.value }))}
@@ -71,10 +108,10 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1 text-sm text-muted-foreground">
-            <span className="text-foreground">E-mail de suporte</span>
+            <span className="text-foreground">E-mail</span>
             <input
-              className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder={settings?.support_email ?? "ex: suporte@empresa.com"}
+              className={inputClass}
+              placeholder={settings?.support_email ?? "Insira o e-mail"}
               value={formValues.support_email}
               onChange={event =>
                 setFormValues(current => ({ ...current, support_email: event.target.value }))
@@ -83,10 +120,10 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
             />
           </label>
           <label className="space-y-1 text-sm text-muted-foreground">
-            <span className="text-foreground">Telefone de suporte</span>
+            <span className="text-foreground">Telefone</span>
             <input
-              className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder={settings?.phone_support ?? "ex: +55 11 99999-9999"}
+              className={inputClass}
+              placeholder={settings?.phone_support ?? "Insira o telefone"}
               value={formValues.phone_support}
               onChange={event =>
                 setFormValues(current => ({ ...current, phone_support: event.target.value }))
@@ -96,31 +133,110 @@ export function ConfiguracoesTab({ productId, token, withLoading }: Props) {
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-1 text-sm text-muted-foreground">
-            <span className="text-foreground">Idioma</span>
-            <input
-              className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder={settings?.language ?? "pt-BR"}
-              value={formValues.language}
-              onChange={event =>
-                setFormValues(current => ({ ...current, language: event.target.value }))
-              }
-              disabled={loading || saving}
-            />
-          </label>
-          <label className="space-y-1 text-sm text-muted-foreground">
-            <span className="text-foreground">Moeda base</span>
-            <input
-              className="h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder={settings?.currency ?? "BRL"}
-              value={formValues.currency}
-              onChange={event =>
-                setFormValues(current => ({ ...current, currency: event.target.value }))
-              }
-              disabled={loading || saving}
-            />
-          </label>
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-foreground">Preferências</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm text-muted-foreground">
+              <span className="text-foreground">Categoria</span>
+              <div className="relative">
+                <select
+                  className={selectClass}
+                  value={productForm.category}
+                  onChange={event =>
+                    setProductForm(current => ({ ...current, category: event.target.value }))
+                  }
+                  disabled={loading || saving}
+                >
+                  <option value="">{product?.category ?? "Selecione a categoria"}</option>
+                  {categoryOptions.map(option => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                  ▼
+                </span>
+              </div>
+            </label>
+            <label className="space-y-1 text-sm text-muted-foreground">
+              <span className="text-foreground">Formato</span>
+              <div className="relative">
+                <select
+                  className={selectClass}
+                  value={productForm.type || (product?.type ? String(product.type) : "")}
+                  onChange={event =>
+                    setProductForm(current => ({ ...current, type: event.target.value }))
+                  }
+                  disabled={loading || saving || isProductLocked}
+                >
+                  <option value="">{product?.type ?? "Selecione o formato"}</option>
+                  {formatOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                  ▼
+                </span>
+              </div>
+            </label>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="space-y-1 text-sm text-muted-foreground">
+              <span className="text-foreground">Idioma</span>
+              <div className="relative">
+                <select
+                  className={selectClass}
+                  value={formValues.language}
+                  onChange={event =>
+                    setFormValues(current => ({ ...current, language: event.target.value }))
+                  }
+                  disabled={loading || saving}
+                >
+                  <option value="">Selecione o idioma</option>
+                  <option value="pt-BR">pt-BR</option>
+                  <option value="en-US">en-US</option>
+                  <option value="es-ES">es-ES</option>
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                  ▼
+                </span>
+              </div>
+            </label>
+            <label className="space-y-1 text-sm text-muted-foreground">
+              <span className="text-foreground">Moeda base</span>
+              <div className="relative">
+                <select
+                  className={selectClass}
+                  value={formValues.currency || (settings?.currency ? String(settings.currency) : "")}
+                  onChange={event =>
+                    setFormValues(current => ({ ...current, currency: event.target.value }))
+                  }
+                  disabled={loading || saving || isProductLocked}
+                >
+                  <option value="">{settings?.currency ?? "Selecione a moeda"}</option>
+                  <option value={ProductSettingsCurrency.BRL}>Real (BRL)</option>
+                  <option value={ProductSettingsCurrency.USD}>Dólar (USD)</option>
+                  <option value={ProductSettingsCurrency.EUR}>Euro (EUR)</option>
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                  ▼
+                </span>
+              </div>
+            </label>
+            <label className="space-y-1 text-sm text-muted-foreground">
+              <span className="text-foreground">Página de vendas</span>
+              <input
+                className={inputClass}
+                placeholder="www.site.com"
+                value={productForm.sale_url}
+                onChange={event => setProductForm(current => ({ ...current, sale_url: event.target.value }))}
+                disabled={loading || saving || isProductLocked}
+              />
+            </label>
+          </div>
         </div>
 
         <div className="flex items-center justify-between rounded-[10px] border border-foreground/15 bg-card px-4 py-3">

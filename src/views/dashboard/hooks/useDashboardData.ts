@@ -64,21 +64,43 @@ const buildSeries = (salesList: RawSaleItem[]) => {
 
   if (saleDates.length === 0) {
     const today = new Date();
-    const dayLabel = formatDayLabel(today);
-    const monthLabel = formatMonthLabel(today);
-    const yearLabel = today.getFullYear().toString();
+    const todayStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+    const start = new Date(todayStart);
+    start.setDate(start.getDate() - 6);
+
+    const daily: Array<{
+      time: string;
+      faturamento: number;
+      receitaLiquida: number;
+      vendas: number;
+      ticketMedio: number;
+      chargeback: number;
+      reembolso: number;
+    }> = [];
+
+    const cursor = new Date(start);
+    while (cursor <= todayStart) {
+      const label = formatDayLabel(cursor);
+      daily.push({
+        time: label,
+        faturamento: 0,
+        receitaLiquida: 0,
+        vendas: 0,
+        ticketMedio: 0,
+        chargeback: 0,
+        reembolso: 0
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const monthLabel = formatMonthLabel(todayStart);
+    const yearLabel = todayStart.getFullYear().toString();
     return {
-      daily: [
-        {
-          time: dayLabel,
-          faturamento: 0,
-          receitaLiquida: 0,
-          vendas: 0,
-          ticketMedio: 0,
-          chargeback: 0,
-          reembolso: 0
-        }
-      ],
+      daily,
       monthly: [
         {
           month: monthLabel,
@@ -137,6 +159,18 @@ const buildSeries = (salesList: RawSaleItem[]) => {
     sortedDates[sortedDates.length - 1].getMonth(),
     sortedDates[sortedDates.length - 1].getDate()
   );
+  const today = new Date();
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const fallbackStart = new Date(todayStart);
+  fallbackStart.setDate(fallbackStart.getDate() - 6);
+  const dailyStartDate =
+    startDate.getTime() < fallbackStart.getTime() ? startDate : fallbackStart;
+  const dailyEndDate =
+    endDate.getTime() > todayStart.getTime() ? endDate : todayStart;
 
   const buildDailyPoints = () => {
     const points: Array<{
@@ -148,8 +182,8 @@ const buildSeries = (salesList: RawSaleItem[]) => {
       chargeback: number;
       reembolso: number;
     }> = [];
-    const cursor = new Date(startDate);
-    while (cursor <= endDate) {
+    const cursor = new Date(dailyStartDate);
+    while (cursor <= dailyEndDate) {
       const label = formatDayLabel(cursor);
       const data = dailyMap.get(formatDayKey(cursor));
       const total = data?.total ?? 0;

@@ -123,7 +123,7 @@ export default function FilterModal({
                         type="checkbox"
                         checked={isGroupFullySelected(group)}
                         onChange={() => handleToggleGroup(group)}
-                        className="relative h-[26px] w-[26px] appearance-none rounded border border-gray-500 bg-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 checked:bg-purple-600 checked:border-purple-600 [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                        className="ui-checkbox h-[26px] w-[26px]"
                       />
                       <span>{group}</span>
                     </label>
@@ -137,7 +137,7 @@ export default function FilterModal({
                             type="checkbox"
                             checked={selection[group][item]}
                             onChange={() => handleToggleItem(group, item)}
-                            className="relative h-[26px] w-[26px] appearance-none rounded border border-gray-600 bg-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 checked:bg-purple-600 checked:border-purple-600 [&::before]:absolute [&::before]:left-[7px] [&::before]:top-[3px] [&::before]:hidden [&::before]:text-[14px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white"
+                            className="ui-checkbox h-[26px] w-[26px]"
                           />
                           <span>{item}</span>
                         </label>

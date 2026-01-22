@@ -231,6 +231,35 @@
   }
 }
 
+@layer components {
+  .ui-checkbox {
+    @apply h-4 w-4 rounded border border-foreground/30 bg-card text-primary;
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+  }
+
+  .ui-checkbox:focus-visible {
+    @apply outline-none ring-2 ring-primary/40 ring-offset-0;
+  }
+
+  .ui-checkbox:checked {
+    @apply border-primary bg-primary;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3.5 8.5l3 3 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 70% 70%;
+  }
+
+  .ui-checkbox:disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+
+  .ui-checkbox:disabled:checked {
+    @apply opacity-100;
+  }
+}
+
 .scrollbar-invisible {
   scrollbar-width: none;
   -ms-overflow-style: none;

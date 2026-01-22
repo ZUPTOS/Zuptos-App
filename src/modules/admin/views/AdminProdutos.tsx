@@ -251,7 +251,7 @@ export default function AdminProdutos() {
                   type="checkbox"
                   checked={selectedStatuses.includes(option)}
                   onChange={() => toggleSelection(option, selectedStatuses, setSelectedStatuses)}
-                  className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary"
+                  className="ui-checkbox h-[22px] w-[22px]"
                 />
                 <span>{option}</span>
               </label>
@@ -268,7 +268,7 @@ export default function AdminProdutos() {
                   type="checkbox"
                   checked={selectedServices.includes(option)}
                   onChange={() => toggleSelection(option, selectedServices, setSelectedServices)}
-                  className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary"
+                  className="ui-checkbox h-[22px] w-[22px]"
                 />
                 <span>{option}</span>
               </label>

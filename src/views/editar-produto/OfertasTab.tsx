@@ -451,7 +451,7 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                       <label className="flex items-center gap-2 text-xs text-muted-foreground">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border border-foreground/30 bg-card"
+                          className="ui-checkbox"
                           checked={subscriptionDefault}
                           onChange={event => setSubscriptionDefault(event.target.checked)}
                         />

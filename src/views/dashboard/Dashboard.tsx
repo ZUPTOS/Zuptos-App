@@ -139,6 +139,7 @@ export default function Dashboard() {
                     label={card.label}
                     value={card.value}
                     iconSrc={card.iconSrc}
+                    hideValues={hideValues}
                  />
               ))}
             </div>
@@ -175,13 +176,13 @@ export default function Dashboard() {
                                      {filterModalGroups.map(group => (
                                       <div key={group.id} className="space-y-3 px-1 mb-4">
                                          <label className="flex items-center gap-2 font-semibold text-foreground text-sm cursor-pointer">
-                                             <input type="checkbox" onChange={() => toggleParentFilter(group.id)} checked={!!selectedFilters[group.id]} className="rounded border-muted" /> 
+                                             <input type="checkbox" onChange={() => toggleParentFilter(group.id)} checked={!!selectedFilters[group.id]} className="ui-checkbox" />
                                              {group.label}
                                          </label>
                                          <div className="pl-6 space-y-2">
                                              {group.children.map(c => (
                                                  <label key={c.id} className="block text-xs text-muted-foreground cursor-pointer">
-                                                     <input type="checkbox" onChange={() => toggleChildFilter(group.id, c.id)} checked={!!selectedFilters[c.id]} className="mr-2 rounded border-muted" /> 
+                                                     <input type="checkbox" onChange={() => toggleChildFilter(group.id, c.id)} checked={!!selectedFilters[c.id]} className="ui-checkbox mr-2" />
                                                      {c.label}
                                                  </label>
                                              ))}
@@ -261,13 +262,13 @@ export default function Dashboard() {
                         {filterModalGroups.map(group => (
                           <div key={group.id} className="space-y-2">
                              <label className="flex items-center gap-2 font-semibold text-foreground text-sm cursor-pointer">
-                                 <input type="checkbox" onChange={() => toggleParentFilter(group.id)} checked={!!selectedFilters[group.id]} className="rounded border-muted" /> 
+                                 <input type="checkbox" onChange={() => toggleParentFilter(group.id)} checked={!!selectedFilters[group.id]} className="ui-checkbox" />
                                  {group.label}
                              </label>
                              <div className="pl-6 space-y-1">
                                  {group.children.map(c => (
                                      <label key={c.id} className="block text-xs text-muted-foreground cursor-pointer">
-                                         <input type="checkbox" onChange={() => toggleChildFilter(group.id, c.id)} checked={!!selectedFilters[c.id]} className="mr-2 rounded border-muted" /> 
+                                         <input type="checkbox" onChange={() => toggleChildFilter(group.id, c.id)} checked={!!selectedFilters[c.id]} className="ui-checkbox mr-2" />
                                          {c.label}
                                      </label>
                                  ))}
@@ -299,6 +300,7 @@ export default function Dashboard() {
                     label={balanceCards[0].label}
                     value={balanceCards[0].value}
                     iconSrc={balanceCards[0].iconSrc}
+                    hideValues={hideValues}
                     style={{ gridArea: "disponivel" }}
                 />
             )}
@@ -309,6 +311,7 @@ export default function Dashboard() {
                     label={balanceCards[1].label}
                     value={balanceCards[1].value}
                     iconSrc={balanceCards[1].iconSrc}
+                    hideValues={hideValues}
                     style={{ gridArea: "pendente" }}
                 />
             )}

@@ -160,7 +160,7 @@ export default function AdminDocumentos() {
                         prev.includes(option) ? prev.filter(item => item !== option) : [...prev, option]
                       )
                     }
-                    className="relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary"
+                    className="ui-checkbox h-[22px] w-[22px]"
                   />
                   <span>{option}</span>
                 </label>

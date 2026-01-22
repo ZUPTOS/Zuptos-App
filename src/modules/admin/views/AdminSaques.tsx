@@ -71,8 +71,7 @@ export default function AdminSaques() {
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
-  const checkboxClass =
-    "relative h-[22px] w-[22px] appearance-none rounded-[7px] border border-foreground/25 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 checked:border-primary checked:bg-primary [&::before]:absolute [&::before]:left-[6px] [&::before]:top-[2px] [&::before]:hidden [&::before]:text-[12px] [&::before]:leading-none checked:[&::before]:block checked:[&::before]:content-['✓'] checked:[&::before]:text-white";
+  const checkboxClass = "ui-checkbox h-[22px] w-[22px]";
 
   const parseDate = (dateStr: string) => {
     const [day, month, year] = dateStr.split("/").map(Number);

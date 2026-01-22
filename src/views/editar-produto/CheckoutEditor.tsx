@@ -1149,36 +1149,42 @@ export function CheckoutEditor({
                         </div>
                       </label>
                     </div>
-                    <label className="space-y-2 text-xs text-muted-foreground">
-                      <span>Boleto</span>
-                      <div className="relative">
-                        <input
-                          className={`${fieldClass} pr-10`}
-                          placeholder="0"
-                          value={discountBoleto}
-                          onChange={event => setDiscountBoleto(event.target.value)}
-                        />
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
-                      </div>
-                    </label>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div className="relative mt-2">
-                        <input
-                          className={`${fieldClass} pr-8`}
-                          placeholder="Limite de parcelas"
-                          value={installmentsLimit}
-                          onChange={event => setInstallmentsLimit(event.target.value.replace(/\D/g, ""))}
-                        />
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
-                      </div>
-                      <div className="relative mt-2">
-                        <input
-                          className={`${fieldClass} pr-8`}
-                          placeholder="Parcela pré-selecionada"
-                          value={installmentsPreselected}
-                          onChange={event => setInstallmentsPreselected(event.target.value.replace(/\D/g, ""))}
-                        />
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
+                      <label className="space-y-2 text-xs text-muted-foreground">
+                        <span>Boleto</span>
+                        <div className="relative">
+                          <input
+                            className={`${fieldClass} pr-10`}
+                            placeholder="0"
+                            value={discountBoleto}
+                            onChange={event => setDiscountBoleto(event.target.value)}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
+                        </div>
+                      </label>
+                      <div className="hidden sm:block" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-foreground">Cartão de crédito</p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="relative">
+                          <input
+                            className={`${fieldClass} pr-8`}
+                            placeholder="Limite de parcelas"
+                            value={installmentsLimit}
+                            onChange={event => setInstallmentsLimit(event.target.value.replace(/\D/g, ""))}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            className={`${fieldClass} pr-8`}
+                            placeholder="Parcela pré-selecionada"
+                            value={installmentsPreselected}
+                            onChange={event => setInstallmentsPreselected(event.target.value.replace(/\D/g, ""))}
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
+                        </div>
                       </div>
                     </div>
                     <div className="mt-2 space-y-2">
@@ -1221,11 +1227,11 @@ export function CheckoutEditor({
                   <p className="text-sm font-semibold text-foreground">Preferências</p>
                   <div className="space-y-2 text-xs text-muted-foreground">
                     <label className="flex items-center gap-2">
-                      <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
-                      Mostrar nomes de vendedores no modelo
+                      <input type="checkbox" className="ui-checkbox" />
+                      Mostrar nomes do vendedor no rodapé
                     </label>
                     <label className="flex items-center gap-2">
-                      <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
+                      <input type="checkbox" className="ui-checkbox" />
                       Solicitar endereço do comprador
                     </label>
                   </div>
@@ -1277,11 +1283,12 @@ export function CheckoutEditor({
                           value={counterBgColor}
                           onChange={e => setCounterBgColor(e.target.value)}
                         />
-                        <button
-                          className="h-11 w-16 rounded-[10px] border border-foreground/15"
-                          style={{ backgroundColor: counterBgColor }}
+                        <input
+                          type="color"
+                          className="h-11 w-16 cursor-pointer rounded-[10px] border border-foreground/15 bg-card p-1"
                           aria-label="Selecionar cor de fundo"
-                          type="button"
+                          value={counterBgColor}
+                          onChange={e => setCounterBgColor(e.target.value)}
                         />
                       </div>
                     </div>
@@ -1295,11 +1302,12 @@ export function CheckoutEditor({
                           value={counterTextColor}
                           onChange={e => setCounterTextColor(e.target.value)}
                         />
-                        <button
-                          className="h-11 w-16 rounded-[10px] border border-foreground/15"
-                          style={{ backgroundColor: counterTextColor }}
+                        <input
+                          type="color"
+                          className="h-11 w-16 cursor-pointer rounded-[10px] border border-foreground/15 bg-card p-1"
                           aria-label="Selecionar cor do texto"
-                          type="button"
+                          value={counterTextColor}
+                          onChange={e => setCounterTextColor(e.target.value)}
                         />
                       </div>
                     </div>
@@ -1342,15 +1350,13 @@ export function CheckoutEditor({
                     "XX pessoas compraram o produto nos últimos 30 minutos.",
                     "XX pessoas compraram o produto na última hora.",
                   ].map(label => (
-                    <label key={label} className="flex items-center justify-between gap-3 text-foreground">
+                    <label key={label} className="flex items-center gap-3 text-foreground">
+                      <input type="checkbox" className="ui-checkbox" />
                       <span className="flex-1 text-xs text-muted-foreground">{label}</span>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border border-foreground/30 bg-card" />
-                        <input
-                          className="h-9 w-12 rounded-[8px] border border-foreground/20 bg-card px-2 text-xs text-foreground focus:outline-none"
-                          placeholder="1"
-                        />
-                      </div>
+                      <input
+                        className="h-9 w-14 rounded-[8px] border border-foreground/20 bg-card px-2 text-xs text-foreground focus:outline-none"
+                        placeholder="1"
+                      />
                     </label>
                   ))}
                 </div>
@@ -1643,25 +1649,25 @@ export function CheckoutEditor({
                     placeholder="Você receberá um e-mail confirmando o seu pedido."
                   />
                 </label>
-                <div className="flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm text-foreground"
-                    onClick={handleCancel}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)]"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? "Salvando..." : "Salvar alterações"}
-                  </button>
-                </div>
               </div>
             </SectionCard>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm text-foreground"
+                onClick={handleCancel}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)]"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? "Salvando..." : "Salvar alterações"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

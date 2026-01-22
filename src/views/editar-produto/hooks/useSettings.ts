@@ -33,6 +33,9 @@ export function useSettings({ productId, token, withLoading }: Params) {
   const [productForm, setProductForm] = useState({
     name: "",
     description: "",
+    category: "",
+    type: "",
+    sale_url: "",
   });
   const loadRef = useRef<Promise<void> | null>(null);
   const loadIdRef = useRef(0);
@@ -135,6 +138,9 @@ export function useSettings({ productId, token, withLoading }: Params) {
       const currency = formValues.currency.trim();
       const nextName = productForm.name.trim();
       const nextDescription = productForm.description.trim();
+      const nextCategory = productForm.category.trim();
+      const nextType = productForm.type.trim();
+      const nextSaleUrl = productForm.sale_url.trim();
 
       if (supportEmail && supportEmail !== settings?.support_email) {
         payload.support_email = supportEmail;
@@ -152,11 +158,14 @@ export function useSettings({ productId, token, withLoading }: Params) {
         payload.status = statusDraft;
       }
 
-      if (nextName || nextDescription) {
+      if (nextName || nextDescription || nextCategory || nextType || nextSaleUrl) {
         payload.product = {
           id: productId,
           name: nextName || product?.name,
           description: nextDescription || product?.description,
+          category: nextCategory || product?.category,
+          type: nextType || product?.type,
+          sale_url: nextSaleUrl || product?.sale_url,
         };
       }
 
@@ -202,7 +211,7 @@ export function useSettings({ productId, token, withLoading }: Params) {
         language: "",
         currency: "",
       });
-      setProductForm({ name: "", description: "" });
+      setProductForm({ name: "", description: "", category: "", type: "", sale_url: "" });
       console.log("Configurações salvas com sucesso!", { payload });
     } catch (err) {
       console.error("Erro ao salvar configurações:", err);
