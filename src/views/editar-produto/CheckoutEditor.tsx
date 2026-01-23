@@ -76,8 +76,12 @@ const truncateFileName = (name: string, maxLength = 7) =>
 
 const loadImageFromFile = (file: File) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
+    if (typeof window === "undefined") {
+      reject(new Error("Image compression not available on the server"));
+      return;
+    }
     const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       resolve(img);
