@@ -74,6 +74,46 @@ const formatBytes = (bytes: number | null) => {
 const truncateFileName = (name: string, maxLength = 7) =>
   name.length > maxLength ? name.slice(0, maxLength) : name;
 
+const loadImageFromFile = (file: File) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
+    img.onerror = (error) => {
+      URL.revokeObjectURL(objectUrl);
+      reject(error);
+    };
+    img.src = objectUrl;
+  });
+
+const compressImageFile = async (
+  file: File,
+  options: { maxWidth: number; maxHeight: number; quality?: number }
+) => {
+  const img = await loadImageFromFile(file);
+  const scale = Math.min(
+    options.maxWidth / img.width,
+    options.maxHeight / img.height,
+    1
+  );
+  const targetWidth = Math.max(1, Math.round(img.width * scale));
+  const targetHeight = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Não foi possível criar o contexto do canvas");
+  }
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+  const mime = file.type === "image/png" ? "image/png" : "image/jpeg";
+  const quality = mime === "image/png" ? undefined : options.quality ?? 0.82;
+  return canvas.toDataURL(mime, quality);
+};
+
 const parseFileName = (src: string) => {
   try {
     const url = new URL(src);
@@ -222,6 +262,68 @@ export function CheckoutEditor({
     };
     reader.readAsDataURL(file);
   }, []);
+
+  const handleLogoChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+      setLogoFile(file);
+      if (!file) {
+        setLogoDataUrl(null);
+        return;
+      }
+      if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+        notify.error("Formato de imagem inválido. Use JPG ou PNG.");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        notify.error("A imagem deve ter menos de 10MB.");
+        return;
+      }
+      try {
+        const dataUrl = await compressImageFile(file, { maxWidth: 400, maxHeight: 400, quality: 0.85 });
+        setLogoPreview(buildPreviewFromFile(file, dataUrl));
+        setLogoDataUrl(dataUrl);
+      } catch (error) {
+        console.error("Erro ao comprimir logo:", error);
+        readFileAsDataUrl(file, value => {
+          setLogoPreview(buildPreviewFromFile(file, value));
+          setLogoDataUrl(value);
+        });
+      }
+    },
+    [readFileAsDataUrl]
+  );
+
+  const handleBannerChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+      setBannerFile(file);
+      if (!file) {
+        setBannerDataUrl(null);
+        return;
+      }
+      if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+        notify.error("Formato de imagem inválido. Use JPG ou PNG.");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        notify.error("A imagem deve ter menos de 10MB.");
+        return;
+      }
+      try {
+        const dataUrl = await compressImageFile(file, { maxWidth: 1400, maxHeight: 400, quality: 0.8 });
+        setBannerPreview(buildPreviewFromFile(file, dataUrl));
+        setBannerDataUrl(dataUrl);
+      } catch (error) {
+        console.error("Erro ao comprimir banner:", error);
+        readFileAsDataUrl(file, value => {
+          setBannerPreview(buildPreviewFromFile(file, value));
+          setBannerDataUrl(value);
+        });
+      }
+    },
+    [readFileAsDataUrl]
+  );
 
   const handleTestimonialImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -717,18 +819,7 @@ export function CheckoutEditor({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={event => {
-                          const file = event.target.files?.[0] ?? null;
-                          setLogoFile(file);
-                          if (file) {
-                            readFileAsDataUrl(file, value => {
-                              setLogoPreview(buildPreviewFromFile(file, value));
-                              setLogoDataUrl(value);
-                            });
-                          } else {
-                            setLogoDataUrl(null);
-                          }
-                        }}
+                        onChange={handleLogoChange}
                       />
                       {logoPreview ? (
                         <div
@@ -848,18 +939,7 @@ export function CheckoutEditor({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={event => {
-                          const file = event.target.files?.[0] ?? null;
-                          setBannerFile(file);
-                          if (file) {
-                            readFileAsDataUrl(file, value => {
-                              setBannerPreview(buildPreviewFromFile(file, value));
-                              setBannerDataUrl(value);
-                            });
-                          } else {
-                            setBannerDataUrl(null);
-                          }
-                        }}
+                        onChange={handleBannerChange}
                       />
                       {bannerPreview ? (
                         <div
