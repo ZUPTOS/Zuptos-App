@@ -194,6 +194,10 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           userData = normalizeUser(userFromApi, credentials.email);
         }
 
+        if (isAdminCredentials) {
+          userData = { ...userData, role: "admin", isAdmin: true };
+        }
+
         localStorage.setItem('authToken', response.access_token);
         localStorage.setItem('authUser', JSON.stringify(userData));
 

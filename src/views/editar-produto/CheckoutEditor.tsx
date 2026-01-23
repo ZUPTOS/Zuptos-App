@@ -71,6 +71,9 @@ const formatBytes = (bytes: number | null) => {
   return `${value.toFixed(precision)} ${units[index]}`;
 };
 
+const truncateFileName = (name: string, maxLength = 7) =>
+  name.length > maxLength ? name.slice(0, maxLength) : name;
+
 const parseFileName = (src: string) => {
   try {
     const url = new URL(src);
@@ -771,7 +774,7 @@ export function CheckoutEditor({
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
                             <p className="text-sm font-semibold text-foreground">
-                              {logoPreview.name}
+                              {truncateFileName(logoPreview.name)}
                               <span className="ml-2 text-xs font-semibold text-muted-foreground">
                                 {logoPreview.ext}
                               </span>
@@ -902,7 +905,7 @@ export function CheckoutEditor({
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
                             <p className="text-sm font-semibold text-foreground">
-                              {bannerPreview.name}
+                              {truncateFileName(bannerPreview.name)}
                               <span className="ml-2 text-xs font-semibold text-muted-foreground">
                                 {bannerPreview.ext}
                               </span>

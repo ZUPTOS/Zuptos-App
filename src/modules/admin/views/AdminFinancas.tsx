@@ -27,9 +27,9 @@ export default function AdminFinancas() {
   });
 
   const summaryMetrics = [
-    { id: "totalTransacionado", label: "Total transacionado", value: formatCurrency(summary?.totalTransacted || 0) },
-    { id: "receitaBruta", label: "Receita bruta total", value: formatCurrency(summary?.grossRevenue || 0) },
-    { id: "receitaLiquida", label: "Receita líquida total", value: formatCurrency(summary?.netRevenue || 0) }
+    { id: "totalTransacionado", label: "Total transacionado", value: formatCurrency(summary?.totalTransacted ?? 0) },
+    { id: "receitaBruta", label: "Receita bruta total", value: formatCurrency(summary?.grossRevenue ?? 0) },
+    { id: "receitaLiquida", label: "Receita líquida total", value: formatCurrency(summary?.netRevenue ?? 0) }
   ];
 
   const revenueCards = [
@@ -38,8 +38,8 @@ export default function AdminFinancas() {
       title: "Receita de Taxas de Transação",
       description: "Receitas geradas a partir de taxas cobradas em cada transação",
       metrics: [
-        { label: "Receita bruta", value: formatCurrency(summary?.transactionFeeRevenue.gross || 0) },
-        { label: "Receita líquida", value: formatCurrency(summary?.transactionFeeRevenue.net || 0) }
+        { label: "Receita bruta", value: formatCurrency(summary?.transactionFeeRevenue?.gross ?? 0) },
+        { label: "Receita líquida", value: formatCurrency(summary?.transactionFeeRevenue?.net ?? 0) }
       ]
     },
     {
@@ -47,8 +47,8 @@ export default function AdminFinancas() {
       title: "Receita de Taxas de Saque",
       description: "Receitas geradas a partir de taxas cobradas em saques",
       metrics: [
-        { label: "Receita bruta", value: formatCurrency(summary?.withdrawalFeeRevenue.gross || 0) },
-        { label: "Receita líquida", value: formatCurrency(summary?.withdrawalFeeRevenue.net || 0) }
+        { label: "Receita bruta", value: formatCurrency(summary?.withdrawalFeeRevenue?.gross ?? 0) },
+        { label: "Receita líquida", value: formatCurrency(summary?.withdrawalFeeRevenue?.net ?? 0) }
       ]
     }
   ];
@@ -137,7 +137,7 @@ export default function AdminFinancas() {
             </div>
             <div className="flex h-full items-center justify-center">
               <span className="text-2xl xl:text-xl font-semibold text-foreground">
-                {formatCurrency(summary?.availableBalance || 0)}
+                {formatCurrency(summary?.availableBalance ?? 0)}
               </span>
             </div>
           </div>

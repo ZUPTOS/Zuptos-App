@@ -10,6 +10,7 @@ import { ProductType } from "@/lib/api-types";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -163,6 +164,8 @@ export default function Products() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [pendingTypes, setPendingTypes] = useState<string[]>([]);
+  const [pendingStatuses, setPendingStatuses] = useState<string[]>([]);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [newProductType, setNewProductType] = useState<ProductType>(ProductType.COURSE);
   const [newProductName, setNewProductName] = useState("");
@@ -265,15 +268,28 @@ export default function Products() {
   );
 
   const toggleType = (value: string) => {
-    setSelectedTypes(prev =>
+    setPendingTypes(prev =>
       prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
     );
   };
 
   const toggleStatus = (value: string) => {
-    setSelectedStatuses(prev =>
+    setPendingStatuses(prev =>
       prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
     );
+  };
+
+  const handleOpenFilters = () => {
+    setPendingTypes(selectedTypes);
+    setPendingStatuses(selectedStatuses);
+    setIsFilterOpen(true);
+  };
+
+  const handleApplyFilters = () => {
+    setSelectedTypes(pendingTypes);
+    setSelectedStatuses(pendingStatuses);
+    setCurrentPage(1);
+    setIsFilterOpen(false);
   };
 
   const adjustTextareaHeight = (element: HTMLTextAreaElement | null) => {
@@ -405,7 +421,7 @@ export default function Products() {
               type="button"
               className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-muted bg-card/40 text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               aria-label="Abrir filtros de produtos"
-              onClick={() => setIsFilterOpen(true)}
+              onClick={handleOpenFilters}
             >
               <Filter className="h-5 w-5" aria-hidden />
             </button>
@@ -606,7 +622,7 @@ export default function Products() {
                 <span className="relative flex items-center">
                   <input
                     type="checkbox"
-                    checked={selectedTypes.includes(option.value)}
+                    checked={pendingTypes.includes(option.value)}
                     onChange={() => toggleType(option.value)}
                     className="peer sr-only"
                   />
@@ -631,7 +647,7 @@ export default function Products() {
                 <span className="relative flex items-center">
                   <input
                     type="checkbox"
-                    checked={selectedStatuses.includes(option.value)}
+                    checked={pendingStatuses.includes(option.value)}
                     onChange={() => toggleStatus(option.value)}
                     className="peer sr-only"
                   />
@@ -647,10 +663,10 @@ export default function Products() {
         <div className="pt-2">
           <button
             type="button"
-            onClick={() => setIsFilterOpen(false)}
+            onClick={handleApplyFilters}
             className="h-[46px] w-full rounded-[7px] bg-gradient-to-r from-[#6C27D7] to-[#421E8B] px-4 py-3 text-sm font-semibold text-white"
           >
-            Adicionar filtro
+            Aplicar filtro
           </button>
         </div>
       </div>
@@ -769,20 +785,26 @@ export default function Products() {
               </div>
               <div className="space-y-2">
                 <p className="text-[16px] font-semibold text-foreground">Categoria</p>
-                <select
-                  value={newProductCategory}
-                  onChange={event => setNewProductCategory(event.target.value)}
-                  className={`${formInputClasses} appearance-none`}
-                >
-                  <option value="" disabled hidden>
-                    Selecione a categoria
-                  </option>
-                  {productCategoryOptions.map(option => (
-                    <option key={option} value={option}>
-                      {option}
+                <div className="relative">
+                  <select
+                    value={newProductCategory}
+                    onChange={event => setNewProductCategory(event.target.value)}
+                    className={`${formInputClasses} appearance-none pr-10`}
+                  >
+                    <option value="" disabled hidden>
+                      Selecione a categoria
                     </option>
-                  ))}
-                </select>
+                    {productCategoryOptions.map(option => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden
+                  />
+                </div>
               </div>
             </div>
           </div>
