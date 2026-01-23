@@ -87,7 +87,7 @@ describe("Products view", () => {
     await user.click(screen.getByLabelText(/Abrir filtros de produtos/i));
     expect(screen.getByText(/Tipo/i)).toBeInTheDocument();
     expect(screen.getByText(/Status/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Adicionar filtro/i }));
+    await user.click(screen.getByRole("button", { name: /Aplicar filtro/i }));
     expect(screen.queryByText(/Tipo/i)).not.toBeInTheDocument();
   });
 
@@ -139,7 +139,7 @@ describe("Products view", () => {
     const recusadoFilter = screen.getByLabelText(/Recusado/i);
     await user.click(recusadoFilter);
     expect(recusadoFilter).toBeChecked();
-    await user.click(screen.getByRole("button", { name: /Adicionar filtro/i }));
+    await user.click(screen.getByRole("button", { name: /Aplicar filtro/i }));
 
     const addButton = await screen.findByRole("button", { name: /Adicionar produto/i });
     await waitFor(() => expect(addButton).toBeEnabled());

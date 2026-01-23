@@ -30,6 +30,14 @@ type DigitArray = string[];
 const MASK_TEMPLATE = "dd/mm/aaaa - dd/mm/aaaa";
 const DIGIT_POSITIONS = [0, 1, 3, 4, 6, 7, 8, 9, 13, 14, 16, 17, 19, 20, 21, 22];
 const MAX_YEAR = 2999;
+const SEGMENT_SLOTS = [
+  { start: 0, end: 1, slot: 0 }, // dd (start)
+  { start: 3, end: 4, slot: 2 }, // mm (start)
+  { start: 6, end: 9, slot: 4 }, // aaaa (start)
+  { start: 13, end: 14, slot: 8 }, // dd (end)
+  { start: 16, end: 17, slot: 10 }, // mm (end)
+  { start: 19, end: 22, slot: 12 } // aaaa (end)
+];
 
 const filterOptions = [
   "Hoje",
@@ -88,6 +96,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   const [activeSlot, setActiveSlot] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pointerDownRef = useRef(false);
 
   const todayRef = useRef(getBrasiliaDate());
   const defaultRange = useMemo(() => {
@@ -225,13 +234,13 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   const isComplete = useMemo(() => digits.every(Boolean), [digits]);
 
   const findSlotFromPos = (pos: number) => {
-    let closest = 0;
+    let closest = SEGMENT_SLOTS[0].slot;
     let minDiff = Number.MAX_SAFE_INTEGER;
-    DIGIT_POSITIONS.forEach((slotPos, idx) => {
-      const diff = Math.abs(slotPos - pos);
+    SEGMENT_SLOTS.forEach(segment => {
+      const diff = pos < segment.start ? segment.start - pos : pos > segment.end ? pos - segment.end : 0;
       if (diff < minDiff) {
         minDiff = diff;
-        closest = idx;
+        closest = segment.slot;
       }
     });
     return closest;
@@ -361,8 +370,22 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
           value={maskValue}
           onFocus={() => {
             setIsOpen(true);
+            if (pointerDownRef.current) {
+              pointerDownRef.current = false;
+              requestAnimationFrame(() => {
+                const pos = inputRef.current?.selectionStart ?? 0;
+                focusSlot(findSlotFromPos(pos));
+              });
+              return;
+            }
             const firstEmpty = digits.findIndex(d => !d);
             focusSlot(firstEmpty >= 0 ? firstEmpty : DIGIT_POSITIONS.length - 1);
+          }}
+          onMouseDown={() => {
+            pointerDownRef.current = true;
+          }}
+          onTouchStart={() => {
+            pointerDownRef.current = true;
           }}
           onClick={handleClickPosition}
           onKeyDown={e => {

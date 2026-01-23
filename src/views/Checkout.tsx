@@ -41,8 +41,8 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     logoPosition === "center"
       ? "left-1/2 -translate-x-1/2"
       : logoPosition === "right"
-      ? "right-6"
-      : "left-6";
+      ? "right-4 sm:right-6"
+      : "left-4 sm:left-6";
   const showEmailConfirmation = checkout?.required_email_confirmation ?? false;
   const showDocument = checkout?.required_document ?? false;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -281,47 +281,49 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       )}
 
       {showBanner ? (
-        <div className="relative mb-10">
-          <div className="h-24 w-full">
+        <div className="mx-auto w-full max-w-[1180px] px-4">
+          <div className="relative mb-12 sm:mb-16">
+            <div className="h-[88px] w-full sm:h-[110px] lg:h-[140px]">
             {checkout?.banner && !bannerFailed ? (
               <Image
                 src={checkout.banner}
                 alt="Banner"
                 width={1920}
                 height={200}
-                className="h-24 w-full object-cover"
+                className="h-full w-full rounded-[14px] object-cover"
                 onError={() => setBannerFailed(true)}
               />
             ) : (
               <div
-                className="h-24 w-full rounded-[14px] border"
+                className="h-full w-full rounded-[14px] border"
                 style={{ backgroundColor: subCardBg, borderColor }}
               />
             )}
-          </div>
-          {showLogo && (
-            <div className={`absolute bottom-0 ${logoPositionClass} -translate-y-1/2`}>
-              <div
-                className="h-16 w-16 overflow-hidden rounded-full border"
-                style={{ backgroundColor: cardBg, borderColor }}
-              >
-                {checkout?.logo && !logoFailed ? (
-                  <Image
-                    src={checkout.logo}
-                    alt="Logo"
-                    width={64}
-                    height={64}
-                    className="h-full w-full object-cover"
-                    onError={() => setLogoFailed(true)}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-foreground/10 text-xs text-muted-foreground">
-                    Logo
-                  </div>
-                )}
-              </div>
             </div>
-          )}
+            {showLogo && (
+              <div className={`absolute bottom-0 ${logoPositionClass} translate-y-1/2`}>
+                <div
+                  className="h-14 w-14 overflow-hidden rounded-full border shadow-[0_10px_24px_rgba(0,0,0,0.25)] sm:h-16 sm:w-16"
+                  style={{ backgroundColor: cardBg, borderColor }}
+                >
+                  {checkout?.logo && !logoFailed ? (
+                    <Image
+                      src={checkout.logo}
+                      alt="Logo"
+                      width={64}
+                      height={64}
+                      className="h-full w-full object-cover"
+                      onError={() => setLogoFailed(true)}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-foreground/10 text-xs text-muted-foreground">
+                      Logo
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       ) : showLogo ? (
         <div className="mx-auto flex w-full max-w-[1180px] items-center gap-3 px-4 py-6">

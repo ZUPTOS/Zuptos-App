@@ -44,8 +44,14 @@ export default function Header({
     "Usuário"
   ).slice(0, 6);
   const accountType = (user?.kyc?.accountType || user?.kyc?.account_type || "").toUpperCase();
-  const accountBadge =
-    accountType.includes("CNPJ") ? "PJ" : accountType.includes("CPF") ? "PF" : userLocation;
+  const isAdminUser = user?.role === "admin" || user?.isAdmin;
+  const accountBadge = isAdminUser
+    ? "Admin"
+    : accountType.includes("CNPJ")
+      ? "PJ"
+      : accountType.includes("CPF")
+        ? "PF"
+        : userLocation;
   
   const handleLogout = async () => {
     try {
@@ -64,7 +70,7 @@ export default function Header({
     toggleTheme?.();
   };
   const profileButtonClasses = [
-    "group flex w-full min-w-0 sm:min-w-[257px] sm:w-auto h-[52px] sm:h-[57px] items-center gap-4 rounded-[7px] border px-4 py-3 text-left bg-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+    "group flex w-full min-w-0 sm:min-w-[225px] sm:w-auto h-[52px] sm:h-[57px] items-center gap-4 rounded-[7px] border px-4 py-3 text-left bg-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
     isLightMode
       ? "bg-card hover:bg-muted"
       : "bg-[#050505] border-white/10 hover:bg-[#0d0d0d] shadow-[0_18px_45px_rgba(0,0,0,0.6)]"

@@ -396,18 +396,23 @@ export default function AdminColaboradores() {
               </label>
               <label className="space-y-2 text-sm text-foreground">
                 <span className="font-semibold">Cargo</span>
-                <select
-                  className="w-full appearance-none rounded-[7px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground shadow-inner focus:border-primary/50 focus:outline-none"
-                  value={selectedRole}
-                  onChange={e => handleRoleSelect(e.target.value)}
-                >
-                  {roles.map(role => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                  <option value="__new__">Novo cargo...</option>
-                </select>
+                <div className="relative">
+                  <select
+                    className="w-full appearance-none rounded-[7px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground shadow-inner focus:border-primary/50 focus:outline-none"
+                    value={selectedRole}
+                    onChange={e => handleRoleSelect(e.target.value)}
+                  >
+                    {roles.map(role => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                    <option value="__new__">Novo cargo...</option>
+                  </select>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    ▼
+                  </span>
+                </div>
               </label>
 
               <div className="mt-2 flex items-center justify-between gap-3">
