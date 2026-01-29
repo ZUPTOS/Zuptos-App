@@ -103,6 +103,8 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
     handleDeleteOffer,
   } = useOffers({ productId, token, withLoading });
 
+  const resolvedCheckoutOptions = Array.isArray(checkoutOptions) ? checkoutOptions : [];
+
   return (
     <>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -363,12 +365,12 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                             setOfferBackRedirect("");
                           }
                         }}
-                        disabled={checkoutOptionsLoading || checkoutOptions.length === 0}
+                        disabled={checkoutOptionsLoading || resolvedCheckoutOptions.length === 0}
                       >
                         <option value="">
                           {checkoutOptionsLoading ? "Carregando checkouts..." : "Selecione um checkout"}
                         </option>
-                        {checkoutOptions.map(checkout => (
+                        {resolvedCheckoutOptions.map(checkout => (
                           <option key={checkout.id} value={checkout.id ?? ""}>
                             {checkout.name || checkout.id}
                           </option>

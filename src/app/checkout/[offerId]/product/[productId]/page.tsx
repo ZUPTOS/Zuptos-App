@@ -15,8 +15,15 @@ const pick = <T,>(...values: Array<T | null | undefined>) =>
 
 const toString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
 
-const toBoolean = (value: unknown): boolean | undefined =>
-  typeof value === "boolean" ? value : undefined;
+const toBoolean = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+};
 
 const toNumber = (value: unknown): number | undefined => {
   if (typeof value === "number") return value;
@@ -25,6 +32,37 @@ const toNumber = (value: unknown): number | undefined => {
     return Number.isNaN(parsed) ? undefined : parsed;
   }
   return undefined;
+};
+
+const normalizePublicAssetPath = (value?: string | null) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return trimmed;
+  return `/${trimmed}`;
+};
+
+const extractStorageBase = (value?: string | null) => {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    const marker = "/zuptos-checkouts/";
+    const index = url.pathname.indexOf(marker);
+    if (index === -1) return undefined;
+    return `${url.origin}${url.pathname.slice(0, index + marker.length)}`;
+  } catch {
+    return undefined;
+  }
+};
+
+const applyStorageBase = (value: string | undefined, base?: string) => {
+  if (!value) return undefined;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (!base) return value.startsWith("/") ? value : `/${value}`;
+  const trimmedBase = base.replace(/\/$/, "");
+  const trimmedValue = value.startsWith("/") ? value.slice(1) : value;
+  return `${trimmedBase}/${trimmedValue}`;
 };
 
 const normalizeProduct = (raw?: PublicCheckoutOfferResponse["product"] | null): Product | null => {
@@ -53,8 +91,20 @@ const normalizeCheckout = (
   if (!raw) return null;
   const data = raw as unknown as Record<string, unknown>;
   const base = raw as CheckoutType;
+  const paymentData = (data.productCheckoutPayment as Record<string, unknown> | undefined) ?? undefined;
+  const detailDiscount = (paymentData?.detailDiscount as Record<string, unknown> | undefined) ?? undefined;
+  const detailPaymentMethod = (paymentData?.detailPaymentMethod as Record<string, unknown> | undefined) ?? undefined;
+  const acceptedDocs: Array<"cpf" | "cnpj"> = [];
+  if (toBoolean(paymentData?.acceptDocumentIndividual)) acceptedDocs.push("cpf");
+  if (toBoolean(paymentData?.acceptDocumentCompany)) acceptedDocs.push("cnpj");
+  const paymentMethods: Array<"card" | "boleto" | "pix"> = [];
+  if (toBoolean(paymentData?.acceptCreditCard)) paymentMethods.push("card");
+  if (toBoolean(paymentData?.acceptTicket)) paymentMethods.push("boleto");
+  if (toBoolean(paymentData?.acceptPix)) paymentMethods.push("pix");
   return {
     ...base,
+    logo: normalizePublicAssetPath(toString(pick(base.logo, data.logo))),
+    banner: normalizePublicAssetPath(toString(pick(base.banner, data.banner))),
     required_address: pick(base.required_address, toBoolean(data.requiredAddress)),
     required_phone: pick(base.required_phone, toBoolean(data.requiredPhone)),
     required_birthdate: pick(base.required_birthdate, toBoolean(data.requiredBirthdate)),
@@ -81,20 +131,49 @@ const normalizeCheckout = (
     after_sale_message: pick(base.after_sale_message, toString(data.afterSaleMessage)),
     accepted_documents: pick(
       base.accepted_documents,
-      data.acceptedDocuments as CheckoutType["accepted_documents"]
+      data.acceptedDocuments as CheckoutType["accepted_documents"],
+      acceptedDocs.length ? acceptedDocs : undefined
     ),
     payment_methods: pick(
       base.payment_methods,
-      data.paymentMethods as CheckoutType["payment_methods"]
+      data.paymentMethods as CheckoutType["payment_methods"],
+      paymentMethods.length ? paymentMethods : undefined
     ),
     coupon_enabled: pick(base.coupon_enabled, toBoolean(data.couponEnabled)),
-    discount_card: pick(base.discount_card, toNumber(data.discountCard)),
-    discount_pix: pick(base.discount_pix, toNumber(data.discountPix)),
-    discount_boleto: pick(base.discount_boleto, toNumber(data.discountBoleto)),
-    installments_limit: pick(base.installments_limit, toNumber(data.installmentsLimit)),
+    discount_card: pick(
+      base.discount_card,
+      toNumber(data.discountCard),
+      toNumber(detailDiscount?.card)
+    ),
+    discount_pix: pick(
+      base.discount_pix,
+      toNumber(data.discountPix),
+      toNumber(detailDiscount?.pix)
+    ),
+    discount_boleto: pick(
+      base.discount_boleto,
+      toNumber(data.discountBoleto),
+      toNumber(detailDiscount?.boleto)
+    ),
+    installments_limit: pick(
+      base.installments_limit,
+      toNumber(data.installmentsLimit),
+      toNumber(detailPaymentMethod?.installments_limit)
+    ),
     installments_preselected: pick(
       base.installments_preselected,
-      toNumber(data.installmentsPreselected)
+      toNumber(data.installmentsPreselected),
+      toNumber(detailPaymentMethod?.installments_preselected)
+    ),
+    boleto_due_days: pick(
+      base.boleto_due_days,
+      toNumber(data.boletoDueDays),
+      toNumber(detailPaymentMethod?.boleto_due_days)
+    ),
+    pix_expire_minutes: pick(
+      base.pix_expire_minutes,
+      toNumber(data.pixExpireMinutes),
+      toNumber(detailPaymentMethod?.pix_expire_minutes)
     ),
     testimonials_enabled: pick(base.testimonials_enabled, toBoolean(data.testimonialsEnabled)),
     testimonials: pick(base.testimonials, data.testimonials as CheckoutType["testimonials"]),
@@ -104,6 +183,25 @@ const normalizeCheckout = (
     ),
     social_proof_enabled: pick(base.social_proof_enabled, toBoolean(data.socialProofEnabled)),
   };
+};
+
+const normalizeDepoiments = (
+  items: unknown,
+  storageBase?: string
+): NonNullable<CheckoutType["testimonials"]> => {
+  if (!Array.isArray(items)) return [];
+  return items.map(item => {
+    const data = item as Record<string, unknown>;
+    const rawImage = toString(pick(data.image, data.image_url, data.imageUrl));
+    return {
+      id: toString(data.id),
+      name: toString(data.name) ?? "Nome",
+      text: toString(pick(data.depoiment, data.text)) ?? "",
+      rating: toNumber(pick(data.rating, data.ratting)),
+      image: applyStorageBase(rawImage, storageBase),
+      active: pick(toBoolean(data.active), true),
+    };
+  });
 };
 
 const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bumps"]> => {
@@ -209,12 +307,27 @@ export default function PublicCheckoutPage() {
         const data = await fetchPublicCheckout(baseUrl, offerId, productId);
         console.log("[publicCheckout] Dados carregados:", { productId, offerId, data });
         const normalizedCheckout = normalizeCheckout(data.checkout);
+        const rawCheckout = data.checkout as Record<string, unknown> | undefined;
+        const storageBase =
+          extractStorageBase(toString(rawCheckout?.logo)) ||
+          extractStorageBase(toString(rawCheckout?.banner)) ||
+          extractStorageBase(normalizedCheckout?.logo ?? undefined) ||
+          extractStorageBase(normalizedCheckout?.banner ?? undefined);
+        const checkoutRecord = data.checkout as Record<string, unknown> | undefined;
+        const rawDepoiments =
+          (data as Record<string, unknown>).depoiments ??
+          checkoutRecord?.productCheckoutDepoiments;
+        const depoiments = normalizeDepoiments(rawDepoiments, storageBase);
         const normalizedProduct = normalizeProduct(data.product);
         if (!normalizedCheckout) {
           setError("Checkout não encontrado");
           return;
         }
-        setCheckout(normalizedCheckout);
+        setCheckout({
+          ...normalizedCheckout,
+          testimonials: depoiments.length ? depoiments : normalizedCheckout.testimonials,
+          testimonials_enabled: depoiments.length ? true : normalizedCheckout.testimonials_enabled,
+        });
         setProduct(normalizedProduct);
         setOffer(normalizeOffer(data, normalizedCheckout));
       } catch (err) {

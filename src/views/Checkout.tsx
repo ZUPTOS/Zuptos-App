@@ -1,9 +1,9 @@
 
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Checkout, Product, ProductOffer } from "@/lib/api";
 import { formatDocument, formatPhone, formatCardNumber, formatCardExpiry } from "@/lib/utils/formatters";
@@ -113,19 +113,31 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     h-10 w-full rounded-[6px] px-3 text-sm focus:outline-none
     ${isDark ? "border border-white/10 bg-[#0b0b0b] text-white placeholder:text-neutral-500" : "border border-black/10 bg-white text-[#0a0a0a] placeholder:text-neutral-500"}
   `;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const resolveAssetUrl = (src?: string | null) => {
+    if (!src) return undefined;
+    const trimmed = src.trim();
+    if (!trimmed) return undefined;
+    if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    const base = (publicApiBase ?? process.env.NEXT_PUBLIC_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+    if (trimmed.startsWith("/")) {
+      return base && /^https?:\/\//i.test(base) ? `${base}${trimmed}` : trimmed;
+    }
+    return base && /^https?:\/\//i.test(base) ? `${base}/${trimmed}` : `/${trimmed}`;
+  };
+
   const resolveTestimonialImage = (
     item: NonNullable<Checkout["testimonials"]>[number]
   ) => {
     const raw = item as Record<string, unknown>;
-    return (
+    const candidate =
       item.image ||
       item.avatar ||
       (typeof raw.image_url === "string" ? raw.image_url : undefined) ||
       (typeof raw.imageUrl === "string" ? raw.imageUrl : undefined) ||
       (typeof raw.avatar_url === "string" ? raw.avatar_url : undefined) ||
-      (typeof raw.avatarUrl === "string" ? raw.avatarUrl : undefined)
-    );
+      (typeof raw.avatarUrl === "string" ? raw.avatarUrl : undefined);
+    return resolveAssetUrl(candidate);
   };
 
   const [formState, setFormState] = useState({
@@ -178,6 +190,9 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
   useEffect(() => {
     setLogoFailed(false);
   }, [checkout?.logo]);
+
+  const bannerSrc = resolveAssetUrl(checkout?.banner);
+  const logoSrc = resolveAssetUrl(checkout?.logo);
 
 
   const handleInputChange = (field: keyof typeof formState, value: string) => {
@@ -284,12 +299,10 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
         <div className="mx-auto w-full max-w-[1180px] px-4">
           <div className="relative mb-12 sm:mb-16">
             <div className="h-[88px] w-full sm:h-[110px] lg:h-[140px]">
-            {checkout?.banner && !bannerFailed ? (
-              <Image
-                src={checkout.banner}
+            {bannerSrc && !bannerFailed ? (
+              <img
+                src={bannerSrc}
                 alt="Banner"
-                width={1920}
-                height={200}
                 className="h-full w-full rounded-[14px] object-cover"
                 onError={() => setBannerFailed(true)}
               />
@@ -306,12 +319,10 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                   className="h-14 w-14 overflow-hidden rounded-full border shadow-[0_10px_24px_rgba(0,0,0,0.25)] sm:h-16 sm:w-16"
                   style={{ backgroundColor: cardBg, borderColor }}
                 >
-                  {checkout?.logo && !logoFailed ? (
-                    <Image
-                      src={checkout.logo}
+                  {logoSrc && !logoFailed ? (
+                    <img
+                      src={logoSrc}
                       alt="Logo"
-                      width={64}
-                      height={64}
                       className="h-full w-full object-cover"
                       onError={() => setLogoFailed(true)}
                     />
@@ -328,12 +339,10 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       ) : showLogo ? (
         <div className="mx-auto flex w-full max-w-[1180px] items-center gap-3 px-4 py-6">
           <div className="h-12 w-12 overflow-hidden rounded-full border" style={{ borderColor }}>
-            {checkout?.logo && !logoFailed ? (
-              <Image
-                src={checkout.logo}
+            {logoSrc && !logoFailed ? (
+              <img
+                src={logoSrc}
                 alt="Logo"
-                width={48}
-                height={48}
                 className="h-full w-full object-cover"
                 onError={() => setLogoFailed(true)}
               />
@@ -451,11 +460,9 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                             aria-label={button.label}
                             onClick={() => setPaymentMethod(button.id)}
                           >
-                            <Image
+                            <img
                               src={button.iconSrc}
                               alt={button.label}
-                              width={28}
-                              height={28}
                               className="h-7 w-7 object-contain"
                             />
                           </button>
@@ -552,11 +559,9 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
             <div className="space-y-4 lg:col-start-2">
               <div className="rounded-[10px] border p-4" style={{ backgroundColor: cardBg, borderColor }}>
                 <div className="flex items-center gap-3">
-                  <Image
+                  <img
                     src={product?.image_url || "/images/produto.png"}
                     alt={title}
-                    width={64}
-                    height={64}
                     className="h-16 w-16 rounded-[10px] object-cover"
                   />
                   <div className="flex flex-col">
@@ -601,11 +606,9 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                         >
                           <div className="flex items-center gap-3">
                             {resolveTestimonialImage(item) ? (
-                              <Image
+                              <img
                                 src={resolveTestimonialImage(item) || "/images/produto.png"}
                                 alt={item.name || "Depoimento"}
-                                width={56}
-                                height={56}
                                 className="h-14 w-14 rounded-full object-cover"
                               />
                             ) : (
@@ -613,10 +616,21 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                             )}
                             <div className="flex flex-col gap-1">
                               <p className={`text-sm font-semibold ${textPrimary}`}>{item.name || "Nome e sobrenome"}</p>
-                              <div className="flex gap-1 text-[#8ea000]">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <Star key={i} className={`h-4 w-4 ${i < (item.rating ?? 0) ? "fill-[#8ea000]" : "text-neutral-600"}`} />
-                                ))}
+                              <div className="flex gap-1">
+                                {Array.from({ length: 5 }).map((_, i) => {
+                                  const ratingValue = Number(item.rating ?? 0);
+                                  const isFilled = i < ratingValue;
+                                  return (
+                                    <Star
+                                      key={i}
+                                      className={`h-4 w-4 ${
+                                        isFilled
+                                          ? "text-[#f5c542] fill-[#f5c542]"
+                                          : "text-muted-foreground/60 fill-transparent"
+                                      }`}
+                                    />
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
@@ -667,11 +681,9 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                                 />
                               );
                             })()}
-                            <Image
+                            <img
                               src="/images/produto.png"
                               alt={bump.title || "Order bump"}
-                              width={56}
-                              height={56}
                               className="h-[56px] w-[56px] rounded-[10px] object-cover"
                             />
                             <div className="flex flex-col gap-1">

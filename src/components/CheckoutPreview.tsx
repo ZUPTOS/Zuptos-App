@@ -45,7 +45,6 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
     const isLight = (theme || "dark").toLowerCase() === "light";
     const bg = isLight ? "#e1e1e1" : "#05070c";
     const cardBg = isLight ? "#ffffff" : "#0d111b";
-    const sideCardBg = isLight ? "#f4f4f4" : "#0f1522";
     const border = isLight ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)";
     const accent = accentColor || "#18a64a";
     const neutral = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)";
@@ -232,8 +231,8 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
         <head>
           <style>
             body { margin:0; padding:0; background:${bg}; font-family: Inter, system-ui, -apple-system, sans-serif; color:#cbd5e1; }
-            .top { height:64px; background:${accent}; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
-            .progress { height:56px; background:#d1d5db; }
+            .top { height:64px; background:${counterBgColor || accent}; display:flex; align-items:center; justify-content:center; color:${counterTextColor || "#fff"}; font-weight:700; }
+            .progress { height:56px; background:${counterBgColor ? `${counterBgColor}33` : "#d1d5db"}; }
             .wrap { padding:24px; }
             .content { display:flex; flex-direction:column; gap:16px; }
             .grid { display:grid; grid-template-columns: 1.25fr 0.75fr; gap:16px; }
@@ -294,7 +293,7 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
     <iframe
       title="Preview checkout"
       srcDoc={previewHtml}
-      className="h-[560px] w-full max-w-[760px] rounded-[12px] border border-foreground/10 bg-card/70 shadow-[0_20px_50px_rgba(0,0,0,0.35)]"
+      className="h-[560px] w-full max-w-[720px] rounded-[12px] border border-foreground/10 bg-card/70 shadow-[0_20px_50px_rgba(0,0,0,0.35)]"
     />
   );
 }

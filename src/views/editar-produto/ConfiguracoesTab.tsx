@@ -1,7 +1,7 @@
 'use client';
 
 import Image from "next/image";
-import { ProductSettingsCurrency, ProductSettingsLanguage, ProductSettingsStatus, ProductType } from "@/lib/api";
+import { ProductSettingsCurrency, ProductSettingsStatus, ProductType } from "@/lib/api";
 import { useSettings } from "./hooks/useSettings";
 
 type Props = {

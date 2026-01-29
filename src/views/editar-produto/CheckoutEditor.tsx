@@ -1,173 +1,37 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import Image from "next/image";
 import { productApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import CheckoutPreview from "@/components/CheckoutPreview";
 import type { CheckoutPayload, Product } from "@/lib/api";
 import { CheckoutTemplate } from "@/lib/api";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Pencil, Trash2 } from "lucide-react";
 import { notify } from "@/shared/ui/notification-toast";
-
-const fieldClass =
-  "h-10 w-full rounded-[8px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
+import { SectionCard, fieldClass } from "./checkout-editor/shared";
+import {
+  buildPreviewFromFile,
+  buildStoredPreview,
+  compressImageFile,
+  normalizeImageUrl,
+  resolveUploadedImageUrl,
+  resolveUploadedUrl,
+  type ImagePreview,
+} from "./checkout-editor/utils";
+import { RequiredFieldsSection } from "./checkout-editor/sections/RequiredFieldsSection";
+import { VisualSection } from "./checkout-editor/sections/VisualSection";
+import { PaymentsSection } from "./checkout-editor/sections/PaymentsSection";
+import { PreviewSection } from "./checkout-editor/sections/PreviewSection";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
   minimumFractionDigits: 2,
 });
-
-const SectionCard = ({
-  children,
-  title,
-  subtitle,
-  iconSrc,
-}: {
-  children: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  iconSrc?: string;
-}) => (
-  <div className="space-y-3 rounded-[12px] border border-foreground/15 bg-card/80 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-    <div className="space-y-1">
-      <div className="flex items-center gap-2">
-        {iconSrc && (
-          <div className="flex h-6 w-6 items-center justify-center rounded-[8px] bg-foreground/5">
-            <Image src={iconSrc} alt={title} width={16} height={16} className="h-4 w-4 object-contain" />
-          </div>
-        )}
-        <p className="text-base font-semibold text-foreground">{title}</p>
-      </div>
-      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-    </div>
-    {children}
-  </div>
-);
-
-type ImagePreview = {
-  src: string;
-  name: string;
-  ext: string;
-  size: number | null;
-  objectUrl?: string;
-};
-
-const formatBytes = (bytes: number | null) => {
-  if (bytes === null) return "-";
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  let value = bytes;
-  let index = 0;
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024;
-    index += 1;
-  }
-  const precision = value < 10 && index > 0 ? 1 : 0;
-  return `${value.toFixed(precision)} ${units[index]}`;
-};
-
-const truncateFileName = (name: string, maxLength = 7) =>
-  name.length > maxLength ? name.slice(0, maxLength) : name;
-
-const loadImageFromFile = (file: File) =>
-  new Promise<HTMLImageElement>((resolve, reject) => {
-    if (typeof window === "undefined") {
-      reject(new Error("Image compression not available on the server"));
-      return;
-    }
-    const objectUrl = URL.createObjectURL(file);
-    const img = new window.Image();
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(img);
-    };
-    img.onerror = (error) => {
-      URL.revokeObjectURL(objectUrl);
-      reject(error);
-    };
-    img.src = objectUrl;
-  });
-
-const compressImageFile = async (
-  file: File,
-  options: { maxWidth: number; maxHeight: number; quality?: number }
-) => {
-  const img = await loadImageFromFile(file);
-  const scale = Math.min(
-    options.maxWidth / img.width,
-    options.maxHeight / img.height,
-    1
-  );
-  const targetWidth = Math.max(1, Math.round(img.width * scale));
-  const targetHeight = Math.max(1, Math.round(img.height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("Não foi possível criar o contexto do canvas");
-  }
-  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-  const mime = file.type === "image/png" ? "image/png" : "image/jpeg";
-  const quality = mime === "image/png" ? undefined : options.quality ?? 0.82;
-  return canvas.toDataURL(mime, quality);
-};
-
-const parseFileName = (src: string) => {
-  try {
-    const url = new URL(src);
-    const segment = url.pathname.split("/").pop();
-    return decodeURIComponent(segment || "imagem");
-  } catch {
-    const segment = src.split("/").pop();
-    return decodeURIComponent(segment || "imagem");
-  }
-};
-
-const buildPreviewFromUrl = (src: string): ImagePreview => {
-  const name = parseFileName(src);
-  const dotIndex = name.lastIndexOf(".");
-  const baseName = dotIndex > 0 ? name.slice(0, dotIndex) : name;
-  const ext = dotIndex > 0 ? name.slice(dotIndex + 1) : "";
-  return {
-    src,
-    name: baseName,
-    ext: ext.toUpperCase() || "IMG",
-    size: null,
-  };
-};
-
-const buildStoredPreview = (src: string, label: string): ImagePreview => {
-  if (src.startsWith("blob:")) {
-    return {
-      src,
-      name: label,
-      ext: "IMG",
-      size: null,
-    };
-  }
-  return buildPreviewFromUrl(src);
-};
-
-const buildPreviewFromFile = (file: File, srcOverride?: string): ImagePreview => {
-  const rawName = file.name || "imagem";
-  const dotIndex = rawName.lastIndexOf(".");
-  const baseName = dotIndex > 0 ? rawName.slice(0, dotIndex) : rawName;
-  const ext = dotIndex > 0 ? rawName.slice(dotIndex + 1) : "";
-  const objectUrl = srcOverride ? undefined : URL.createObjectURL(file);
-  return {
-    src: srcOverride ?? objectUrl ?? "",
-    name: baseName,
-    ext: ext.toUpperCase() || "IMG",
-    size: file.size,
-    objectUrl,
-  };
-};
 
 type Props = {
   productId?: string;
@@ -197,16 +61,17 @@ export function CheckoutEditor({
   const { withLoading } = useLoadingOverlay();
   const [product, setProduct] = useState<Product | null>(null);
   const [productLoading, setProductLoading] = useState(false);
-  const [checkoutName, setCheckoutName] = useState("Checkout");
-  const [requiredAddress] = useState(true);
-  const [requiredPhone] = useState(true);
-  const [requiredBirthdate] = useState(true);
-  const [requiredDocument] = useState(true);
+  const [checkoutName, setCheckoutName] = useState("");
+  const [currentCheckoutName, setCurrentCheckoutName] = useState("Checkout");
+  const [requiredAddress, setRequiredAddress] = useState(true);
+  const [requiredPhone, setRequiredPhone] = useState(true);
+  const [requiredBirthdate, setRequiredBirthdate] = useState(true);
+  const [requiredDocument, setRequiredDocument] = useState(true);
   const [requiredEmailConfirmation, setRequiredEmailConfirmation] = useState(false);
   const [showLogo, setShowLogo] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
-  const [, setLogoFile] = useState<File | null>(null);
-  const [, setBannerFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<ImagePreview | null>(null);
   const [bannerPreview, setBannerPreview] = useState<ImagePreview | null>(null);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
@@ -225,13 +90,27 @@ export function CheckoutEditor({
   const [installmentsPreselected, setInstallmentsPreselected] = useState("12");
   const [boletoDueDays, setBoletoDueDays] = useState("3");
   const [pixExpireMinutes, setPixExpireMinutes] = useState("");
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [salesNotificationsEnabled, setSalesNotificationsEnabled] = useState(false);
   const [socialProofEnabled, setSocialProofEnabled] = useState(false);
+  const [socialProofMessage, setSocialProofMessage] = useState("");
+  const [socialProofMinClient, setSocialProofMinClient] = useState("");
   const [reviewsEnabled, setReviewsEnabled] = useState(false);
   const [acceptedDocuments, setAcceptedDocuments] = useState<Array<"cpf" | "cnpj">>(["cpf"]);
   const [paymentMethods, setPaymentMethods] = useState<Array<"card" | "boleto" | "pix">>(["card"]);
+  const [showSellerDetail, setShowSellerDetail] = useState(false);
+  const [afterSaleTitle, setAfterSaleTitle] = useState("");
+  const [afterSaleMessage, setAfterSaleMessage] = useState("");
   const [testimonials, setTestimonials] = useState<
-    { id?: string; name: string; text: string; rating: number; active: boolean; image?: string }[]
+    {
+      id?: string;
+      name: string;
+      text: string;
+      rating: number;
+      active: boolean;
+      image?: string;
+      imageFile?: File | null;
+    }[]
   >([]);
   const [testimonialDraft, setTestimonialDraft] = useState<{
     name: string;
@@ -244,6 +123,7 @@ export function CheckoutEditor({
     rating: 5,
     image: "",
   });
+  const [testimonialImageFile, setTestimonialImageFile] = useState<File | null>(null);
   const [editingTestimonialIndex, setEditingTestimonialIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
@@ -257,15 +137,6 @@ export function CheckoutEditor({
   const logoPreviewImageSrc = logoPreview && !logoPreview.src.startsWith("blob:") ? logoPreview.src : "";
   const bannerPreviewImageSrc =
     bannerPreview && !bannerPreview.src.startsWith("blob:") ? bannerPreview.src : "";
-
-  const readFileAsDataUrl = useCallback((file: File, onLoad: (value: string) => void) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      if (result) onLoad(result);
-    };
-    reader.readAsDataURL(file);
-  }, []);
 
   const handleLogoChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -289,13 +160,12 @@ export function CheckoutEditor({
         setLogoDataUrl(dataUrl);
       } catch (error) {
         console.error("Erro ao comprimir logo:", error);
-        readFileAsDataUrl(file, value => {
-          setLogoPreview(buildPreviewFromFile(file, value));
-          setLogoDataUrl(value);
-        });
+        const preview = buildPreviewFromFile(file);
+        setLogoPreview(preview);
+        setLogoDataUrl(null);
       }
     },
-    [readFileAsDataUrl]
+    []
   );
 
   const handleBannerChange = useCallback(
@@ -320,14 +190,31 @@ export function CheckoutEditor({
         setBannerDataUrl(dataUrl);
       } catch (error) {
         console.error("Erro ao comprimir banner:", error);
-        readFileAsDataUrl(file, value => {
-          setBannerPreview(buildPreviewFromFile(file, value));
-          setBannerDataUrl(value);
-        });
+        const preview = buildPreviewFromFile(file);
+        setBannerPreview(preview);
+        setBannerDataUrl(null);
       }
     },
-    [readFileAsDataUrl]
+    []
   );
+
+  const handleRemoveLogo = useCallback(() => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setLogoDataUrl(null);
+    if (logoInputRef.current) {
+      logoInputRef.current.value = "";
+    }
+  }, []);
+
+  const handleRemoveBanner = useCallback(() => {
+    setBannerFile(null);
+    setBannerPreview(null);
+    setBannerDataUrl(null);
+    if (bannerInputRef.current) {
+      bannerInputRef.current.value = "";
+    }
+  }, []);
 
   const handleTestimonialImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -340,8 +227,15 @@ export function CheckoutEditor({
       notify.error("A imagem deve ter menos de 10MB.");
       return;
     }
-    readFileAsDataUrl(file, value => setTestimonialDraft(prev => ({ ...prev, image: value })));
-  }, [readFileAsDataUrl]);
+    const objectUrl = URL.createObjectURL(file);
+    setTestimonialImageFile(file);
+    setTestimonialDraft(prev => {
+      if (prev.image?.startsWith("blob:")) {
+        URL.revokeObjectURL(prev.image);
+      }
+      return { ...prev, image: objectUrl };
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -426,6 +320,9 @@ export function CheckoutEditor({
       } else {
         notify.success("Depoimento removido");
       }
+      if (current.image?.startsWith("blob:")) {
+        URL.revokeObjectURL(current.image);
+      }
       setTestimonials(prev => prev.filter((_, i) => i !== index));
     },
     [testimonials, productId, checkoutId, token]
@@ -470,7 +367,42 @@ export function CheckoutEditor({
           : (depoiments as { depoiments?: unknown; data?: unknown } | null)?.depoiments ??
             (depoiments as { data?: unknown } | null)?.data ??
             [];
-        const mappedDepoiments = Array.isArray(depoimentsList)
+        const depoimentsDetailed = Array.isArray(depoimentsList)
+          ? await Promise.all(
+              depoimentsList.map(async item => {
+                const raw = item as { [key: string]: unknown };
+                const depoimentId = raw.id as string | undefined;
+                if (!depoimentId) return item;
+                try {
+                  return await productApi.getCheckoutDepoiment(productId, checkoutId, depoimentId, token);
+                } catch (error) {
+                  console.error("Erro ao buscar depoimento específico:", error);
+                  return item;
+                }
+              })
+            )
+          : [];
+        const mappedDepoiments = Array.isArray(depoimentsDetailed) && depoimentsDetailed.length
+          ? depoimentsDetailed.map(t => {
+              const raw = t as { [key: string]: unknown };
+              const imageValue =
+                (raw.image as string | undefined) ??
+                (raw.image_url as string | undefined) ??
+                (raw.imageUrl as string | undefined) ??
+                (raw.avatar as string | undefined) ??
+                (raw.avatar_url as string | undefined) ??
+                (raw.avatarUrl as string | undefined) ??
+                "";
+              return {
+                id: (raw.id as string | undefined) ?? undefined,
+                name: (raw.name as string | undefined) ?? "",
+                text: (raw.depoiment as string | undefined) ?? (raw.text as string | undefined) ?? "",
+                rating: Number(raw.ratting ?? raw.rating ?? 0),
+                active: (raw.active as boolean | undefined) ?? true,
+                image: imageValue,
+              };
+            })
+          : Array.isArray(depoimentsList)
           ? depoimentsList.map(t => {
               const raw = t as { [key: string]: unknown };
               const imageValue =
@@ -491,48 +423,169 @@ export function CheckoutEditor({
               };
             })
           : [];
-        setCheckoutName(data.name || "Checkout");
+
+        let paymentMethod: unknown = null;
+        const paymentMethodDetail: unknown = null;
+        try {
+          paymentMethod = await productApi.getCheckoutPaymentMethod(productId, checkoutId, token);
+          console.log("[checkout] PaymentMethod GET:", paymentMethod);
+          const rawPayment = paymentMethod as { id?: string; paymentMethodId?: string; payment_method_id?: string };
+          const resolvedPaymentMethodId =
+            rawPayment?.id ?? rawPayment?.paymentMethodId ?? rawPayment?.payment_method_id;
+          if (resolvedPaymentMethodId) {
+            setPaymentMethodId(resolvedPaymentMethodId);
+          }
+        } catch (error) {
+          console.error("Erro ao buscar payment method do checkout:", error);
+        }
+
+        try {
+          const messages = await productApi.getCheckoutMessages(productId, checkoutId, token);
+          console.log("[checkout] Messages GET:", messages);
+          const messagesList = Array.isArray(messages)
+            ? messages
+            : (messages as { messages?: unknown; data?: unknown } | null)?.messages ??
+              (messages as { data?: unknown } | null)?.data ??
+              [];
+          if (Array.isArray(messagesList)) {
+            await Promise.all(
+              messagesList.map(async item => {
+                const raw = item as { [key: string]: unknown };
+                const messageId = raw.id as string | undefined;
+                if (!messageId) return;
+                try {
+                  const detail = await productApi.getCheckoutMessageById(
+                    productId,
+                    checkoutId,
+                    messageId,
+                    token
+                  );
+                  console.log("[checkout] Message detail GET:", detail);
+                } catch (error) {
+                  console.error("Erro ao buscar mensagem específica:", error);
+                }
+              })
+            );
+          }
+        } catch (error) {
+          console.error("Erro ao buscar mensagens do checkout:", error);
+        }
+        const loadedName = data.name || "Checkout";
+        setCurrentCheckoutName(loadedName);
+        setCheckoutName("");
         setTheme((data.theme as "dark" | "light") || "dark");
-        setAccentColor(data.defaultColor || "#5f17ff");
-        setShowLogo(Boolean(data.logo));
+        setAccentColor((data.defaultColor as string | undefined) || (data.default_color as string | undefined) || "#5f17ff");
+        const normalizedLogo = normalizeImageUrl((data.logo as string | null | undefined) ?? "");
+        const normalizedBanner = normalizeImageUrl((data.banner as string | null | undefined) ?? "");
+        setShowLogo(Boolean(normalizedLogo));
         setLogoPosition((data.position_logo as "left" | "center" | "right") || "left");
-        setShowBanner(Boolean(data.banner));
-        if (data.logo) {
-          setLogoPreview(buildStoredPreview(String(data.logo), "Logo cadastrada"));
+        setShowBanner(Boolean(normalizedBanner));
+        if (normalizedLogo) {
+          setLogoPreview(buildStoredPreview(String(normalizedLogo), "Logo cadastrada"));
         } else {
           setLogoPreview(null);
         }
         setLogoDataUrl(null);
-        if (data.banner) {
-          setBannerPreview(buildStoredPreview(String(data.banner), "Banner cadastrado"));
+        if (normalizedBanner) {
+          setBannerPreview(buildStoredPreview(String(normalizedBanner), "Banner cadastrado"));
         } else {
           setBannerPreview(null);
         }
         setBannerDataUrl(null);
+        setRequiredAddress(data.required_address ?? true);
+        setRequiredPhone(data.required_phone ?? true);
+        setRequiredBirthdate(data.required_birthdate ?? true);
+        setRequiredDocument(data.required_document ?? true);
         setRequiredEmailConfirmation(Boolean(data.required_email_confirmation));
         setCountdownEnabled(Boolean(data.countdown_active || data.countdown));
         setCounterBgColor(data.countdown_background || "#111111");
         setCounterTextColor(data.countdown_text_color || "#FFFFFF");
-        setAcceptedDocuments(
-          data.accepted_documents && data.accepted_documents.length > 0
-            ? (data.accepted_documents as Array<"cpf" | "cnpj">)
-            : ["cpf"]
+        const paymentSource =
+          (paymentMethodDetail as Record<string, unknown> | null) ??
+          (paymentMethod as Record<string, unknown> | null);
+        const acceptCompany =
+          (paymentSource?.accept_document_company as boolean | undefined) ??
+          (paymentSource?.acceptDocumentCompany as boolean | undefined) ??
+          false;
+        const acceptIndividual =
+          (paymentSource?.accept_document_individual as boolean | undefined) ??
+          (paymentSource?.acceptDocumentIndividual as boolean | undefined) ??
+          false;
+        const acceptPix =
+          (paymentSource?.accept_pix as boolean | undefined) ??
+          (paymentSource?.acceptPix as boolean | undefined) ??
+          false;
+        const acceptCard =
+          (paymentSource?.accept_credit_card as boolean | undefined) ??
+          (paymentSource?.acceptCreditCard as boolean | undefined) ??
+          false;
+        const acceptTicket =
+          (paymentSource?.accept_ticket as boolean | undefined) ??
+          (paymentSource?.acceptTicket as boolean | undefined) ??
+          false;
+        const acceptCoupon =
+          (paymentSource?.accept_coupon as boolean | undefined) ??
+          (paymentSource?.acceptCoupon as boolean | undefined) ??
+          false;
+        const shownSeller =
+          (paymentSource?.shown_seller_detail as boolean | undefined) ??
+          (paymentSource?.shownSellerDetail as boolean | undefined) ??
+          false;
+        const requireAddress =
+          (paymentSource?.require_address as boolean | undefined) ??
+          (paymentSource?.requireAddress as boolean | undefined);
+
+        const acceptDocs = [
+          ...(acceptIndividual ? (["cpf"] as Array<"cpf" | "cnpj">) : []),
+          ...(acceptCompany ? (["cnpj"] as Array<"cpf" | "cnpj">) : []),
+        ];
+        const acceptPayments = [
+          ...(acceptCard ? (["card"] as Array<"card" | "boleto" | "pix">) : []),
+          ...(acceptTicket ? (["boleto"] as Array<"card" | "boleto" | "pix">) : []),
+          ...(acceptPix ? (["pix"] as Array<"card" | "boleto" | "pix">) : []),
+        ];
+        setAcceptedDocuments(acceptDocs.length ? acceptDocs : ["cpf"]);
+        setPaymentMethods(acceptPayments.length ? acceptPayments : ["card"]);
+        setCouponEnabled(Boolean(acceptCoupon));
+        setShowSellerDetail(Boolean(shownSeller));
+        if (typeof requireAddress === "boolean") {
+          setRequiredAddress(requireAddress);
+        }
+
+        const detailDiscount =
+          (paymentSource?.detail_discount as Record<string, unknown> | undefined) ??
+          (paymentSource?.detailDiscount as Record<string, unknown> | undefined);
+        const detailPayment =
+          (paymentSource?.detail_payment_method as Record<string, unknown> | undefined) ??
+          (paymentSource?.detailPaymentMethod as Record<string, unknown> | undefined);
+
+        setDiscountCard(detailDiscount?.card != null ? String(detailDiscount.card) : "");
+        setDiscountPix(detailDiscount?.pix != null ? String(detailDiscount.pix) : "");
+        setDiscountBoleto(detailDiscount?.boleto != null ? String(detailDiscount.boleto) : "");
+        setInstallmentsLimit(detailPayment?.installments_limit != null ? String(detailPayment.installments_limit) : "12");
+        setInstallmentsPreselected(
+          detailPayment?.installments_preselected != null ? String(detailPayment.installments_preselected) : "12"
         );
-        setPaymentMethods(
-          data.payment_methods && data.payment_methods.length > 0
-            ? (data.payment_methods as Array<"card" | "boleto" | "pix">)
-            : ["card"]
-        );
-        setCouponEnabled(Boolean(data.coupon_enabled));
-        setDiscountCard(data.discount_card != null ? String(data.discount_card) : "");
-        setDiscountPix(data.discount_pix != null ? String(data.discount_pix) : "");
-        setDiscountBoleto(data.discount_boleto != null ? String(data.discount_boleto) : "");
-        setInstallmentsLimit(data.installments_limit != null ? String(data.installments_limit) : "12");
-        setInstallmentsPreselected(data.installments_preselected != null ? String(data.installments_preselected) : "12");
-        setBoletoDueDays(data.boleto_due_days != null ? String(data.boleto_due_days) : "3");
-        setPixExpireMinutes(data.pix_expire_minutes != null ? String(data.pix_expire_minutes) : "");
+        setBoletoDueDays(detailPayment?.boleto_due_days != null ? String(detailPayment.boleto_due_days) : "3");
+        setPixExpireMinutes(detailPayment?.pix_expire_minutes != null ? String(detailPayment.pix_expire_minutes) : "");
         setSalesNotificationsEnabled(Boolean(data.sales_notifications_enabled));
         setSocialProofEnabled(Boolean(data.social_proof_enabled));
+        setSocialProofMessage((data.social_proofs_message as string | undefined) || "");
+        setSocialProofMinClient(
+          data.social_proofs_min_client != null
+            ? String(data.social_proofs_min_client)
+            : ""
+        );
+        setAfterSaleTitle(
+          (data.after_sale_title as string | undefined) ||
+            (data.after_sale_title as string | undefined) ||
+            ""
+        );
+        setAfterSaleMessage(
+          (data.after_sale_message as string | undefined) ||
+            (data.after_sale_message as string | undefined) ||
+            ""
+        );
         const payloadTestimonials = Array.isArray(data.testimonials)
           ? data.testimonials.map(t => {
               const raw = t as { [key: string]: unknown };
@@ -568,7 +621,9 @@ export function CheckoutEditor({
   const handleSave = async () => {
     if (!productId || !token) return;
     const normalizedName = checkoutName.trim();
-    if (!normalizedName || normalizedName.toLowerCase() === "checkout") {
+    const fallbackName = currentCheckoutName.trim();
+    const finalName = normalizedName || fallbackName;
+    if (!finalName || finalName.toLowerCase() === "checkout") {
       notify.error("Informe um nome válido para o checkout.");
       return;
     }
@@ -581,28 +636,16 @@ export function CheckoutEditor({
       return;
     }
     const payload: CheckoutPayload = {
-      name: normalizedName,
+      name: finalName,
       template: CheckoutTemplate.DEFAULT,
-      required_address: true,
-      required_phone: true,
-      required_birthdate: true,
-      required_document: true,
+      required_address: requiredAddress,
+      required_phone: requiredPhone,
+      required_birthdate: requiredBirthdate,
+      required_document: requiredDocument,
       required_email_confirmation: Boolean(requiredEmailConfirmation),
     };
     payload.theme = theme;
-    payload.defaultColor = accentColor;
-    payload.accepted_documents = acceptedDocuments;
-    payload.payment_methods = paymentMethods;
-    payload.coupon_enabled = couponEnabled;
-    if (couponEnabled) {
-      if (discountCard) payload.discount_card = Number(discountCard) || 0;
-      if (discountPix) payload.discount_pix = Number(discountPix) || 0;
-      if (discountBoleto) payload.discount_boleto = Number(discountBoleto) || 0;
-      if (installmentsLimit) payload.installments_limit = Number(installmentsLimit);
-      if (installmentsPreselected) payload.installments_preselected = Number(installmentsPreselected);
-      if (boletoDueDays) payload.boleto_due_days = Number(boletoDueDays);
-      if (pixExpireMinutes) payload.pix_expire_minutes = Number(pixExpireMinutes);
-    }
+    payload.default_color = accentColor;
 
     if (countdownEnabled) {
       payload.countdown = true;
@@ -610,12 +653,17 @@ export function CheckoutEditor({
       payload.countdown_background = counterBgColor;
       payload.countdown_text_color = counterTextColor;
     }
-    const logoValue = logoDataUrl ?? logoPreview?.src ?? undefined;
-    if (showLogo && logoValue) payload.logo = logoValue;
     if (showLogo) payload.position_logo = logoPosition;
-    const bannerValue = bannerDataUrl ?? bannerPreview?.src ?? undefined;
-    if (showBanner && bannerValue) payload.banner = bannerValue;
     payload.social_proof_enabled = socialProofEnabled;
+    if (socialProofEnabled) {
+      if (socialProofMessage.trim()) {
+        payload.social_proofs_message = socialProofMessage.trim();
+      }
+      const minClientValue = socialProofMinClient.trim();
+      if (minClientValue) {
+        payload.social_proofs_min_client = Number(minClientValue) || 0;
+      }
+    }
     payload.sales_notifications_enabled = salesNotificationsEnabled;
     payload.testimonials_enabled = reviewsEnabled;
     if (reviewsEnabled && testimonials.length) {
@@ -625,8 +673,14 @@ export function CheckoutEditor({
         text: item.text,
         rating: item.rating,
         active: item.active,
-        image: item.image || undefined,
+        image: normalizeImageUrl(item.image),
       }));
+    }
+    if (afterSaleTitle.trim()) {
+      payload.after_sale_title = afterSaleTitle.trim();
+    }
+    if (afterSaleMessage.trim()) {
+      payload.after_sale_message = afterSaleMessage.trim();
     }
 
     setIsSaving(true);
@@ -637,25 +691,116 @@ export function CheckoutEditor({
         : await productApi.createCheckout(productId, payload, token);
       console.log("[checkout] Resposta do servidor:", response);
       const targetCheckoutId = checkoutId ?? (response as { id?: string } | undefined)?.id;
+      if (targetCheckoutId && productId && token) {
+        try {
+          const paymentPayload = {
+            accept_document_company: acceptedDocuments.includes("cnpj"),
+            accept_document_individual: acceptedDocuments.includes("cpf"),
+            accept_pix: paymentMethods.includes("pix"),
+            accept_credit_card: paymentMethods.includes("card"),
+            accept_ticket: paymentMethods.includes("boleto"),
+            accept_coupon: couponEnabled,
+            shown_seller_detail: showSellerDetail,
+            require_address: requiredAddress,
+            detail_discount: couponEnabled
+              ? {
+                  card: discountCard ? Number(discountCard) || 0 : 0,
+                  pix: discountPix ? Number(discountPix) || 0 : 0,
+                  boleto: discountBoleto ? Number(discountBoleto) || 0 : 0,
+                }
+              : {},
+            detail_payment_method: {
+              installments_limit: installmentsLimit ? Number(installmentsLimit) : undefined,
+              installments_preselected: installmentsPreselected ? Number(installmentsPreselected) : undefined,
+              boleto_due_days: boletoDueDays ? Number(boletoDueDays) : undefined,
+              pix_expire_minutes: pixExpireMinutes ? Number(pixExpireMinutes) : undefined,
+            },
+          };
+          console.log("[checkout] Payload métodos de pagamento:", paymentPayload);
+          if (paymentMethodId && checkoutId) {
+            await productApi.updateCheckoutPaymentMethod(
+              productId,
+              checkoutId,
+              paymentMethodId,
+              paymentPayload,
+              token
+            );
+          } else {
+            await productApi.saveCheckoutPaymentMethods(productId, targetCheckoutId, paymentPayload, token);
+          }
+        } catch (error) {
+          console.error("Erro ao salvar métodos de pagamento:", error);
+          notify.error("Erro ao salvar métodos de pagamento.");
+        }
+        if (showLogo && logoFile) {
+          try {
+            console.log("[checkout] Upload logo:", {
+              productId,
+              checkoutId: targetCheckoutId,
+              file: logoFile?.name,
+            });
+            const uploadResponse = await productApi.uploadCheckoutAsset(
+              productId,
+              targetCheckoutId,
+              "logo",
+              logoFile,
+              token
+            );
+            const uploadedUrl = resolveUploadedUrl(uploadResponse, "logo");
+            if (uploadedUrl) {
+              setLogoPreview(buildStoredPreview(uploadedUrl, "Logo cadastrada"));
+              setLogoDataUrl(null);
+              setLogoFile(null);
+            }
+          } catch (error) {
+            console.error("Erro ao enviar logo:", error);
+            notify.error("Erro ao enviar logo.");
+          }
+        }
+        if (showBanner && bannerFile) {
+          try {
+            console.log("[checkout] Upload banner:", {
+              productId,
+              checkoutId: targetCheckoutId,
+              file: bannerFile?.name,
+            });
+            const uploadResponse = await productApi.uploadCheckoutAsset(
+              productId,
+              targetCheckoutId,
+              "banner",
+              bannerFile,
+              token
+            );
+            const uploadedUrl = resolveUploadedUrl(uploadResponse, "banner");
+            if (uploadedUrl) {
+              setBannerPreview(buildStoredPreview(uploadedUrl, "Banner cadastrado"));
+              setBannerDataUrl(null);
+              setBannerFile(null);
+            }
+          } catch (error) {
+            console.error("Erro ao enviar banner:", error);
+            notify.error("Erro ao enviar banner.");
+          }
+        }
+      }
       if (reviewsEnabled && targetCheckoutId) {
         const newTestimonials = testimonials.filter(item => !item.id);
         if (newTestimonials.length > 0) {
-          const created = await Promise.all(
-            newTestimonials.map(item =>
-              productApi.createCheckoutDepoiment(
-                productId,
-                targetCheckoutId,
-                {
-                  ...(item.image ? { image: item.image } : {}),
-                  name: item.name || "Nome",
-                  depoiment: item.text || "Depoimento",
-                  active: item.active ?? true,
-                  ratting: String(item.rating ?? ""),
-                },
-                token
-              )
-            )
-          );
+                  const created = await Promise.all(
+                    newTestimonials.map(item =>
+                      productApi.createCheckoutDepoiment(
+                        productId,
+                        targetCheckoutId,
+                        {
+                          name: item.name || "Nome",
+                          depoiment: item.text || "Depoimento",
+                          active: item.active ?? true,
+                          ratting: String(item.rating ?? ""),
+                        },
+                        token
+                      )
+                    )
+                  );
           setTestimonials(prev => {
             let createdIndex = 0;
             return prev.map(item => {
@@ -665,6 +810,41 @@ export function CheckoutEditor({
               return { ...item, id: (createdItem as { id?: string } | undefined)?.id ?? item.id };
             });
           });
+          await Promise.all(
+            newTestimonials.map(async (item, index) => {
+              const depoimentId = (created[index] as { id?: string } | undefined)?.id;
+              if (!depoimentId || !item.imageFile) return;
+              try {
+                console.log("[checkout] Upload imagem depoimento (create):", {
+                  productId,
+                  checkoutId: targetCheckoutId,
+                  depoimentId,
+                  file: item.imageFile?.name,
+                });
+                const uploadResponse = await productApi.uploadCheckoutDepoimentImage(
+                  productId,
+                  targetCheckoutId,
+                  depoimentId,
+                  item.imageFile,
+                  token
+                );
+                const uploadedUrl = resolveUploadedImageUrl(uploadResponse);
+                if (uploadedUrl) {
+                  if (item.image?.startsWith("blob:")) {
+                    URL.revokeObjectURL(item.image);
+                  }
+                  setTestimonials(prev =>
+                    prev.map(testimonial =>
+                      testimonial.id === depoimentId ? { ...testimonial, image: uploadedUrl, imageFile: null } : testimonial
+                    )
+                  );
+                }
+              } catch (error) {
+                console.error("Erro ao enviar imagem do depoimento:", error);
+                notify.error("Erro ao enviar imagem do depoimento.");
+              }
+            })
+          );
         }
       }
       if (onSaved) onSaved();
@@ -675,7 +855,15 @@ export function CheckoutEditor({
     }
   };
 
-  const handleCancel = onClose || onBack;
+  const handleCancel = useCallback(() => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    if (onBack) {
+      onBack();
+    }
+  }, [onClose, onBack]);
 
   return (
     <div className="w-full px-4 py-8">
@@ -749,582 +937,104 @@ export function CheckoutEditor({
         <h1 className="text-xl font-semibold text-foreground">Editar Checkout</h1>
 
         <div className="flex flex-col gap-3 overflow-y-auto pb-6">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,400px)_1fr]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,470px)_1fr]">
             <div className="space-y-3">
-              <SectionCard title="Nome">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground">Nome</label>
                 <input
                   className={fieldClass}
-                  placeholder="Digite um nome"
+                  placeholder={checkoutId ? currentCheckoutName || "Checkout" : "Digite um nome"}
                   value={checkoutName}
                   onChange={event => setCheckoutName(event.target.value)}
                 />
-              </SectionCard>
+              </div>
+              <RequiredFieldsSection
+                requiredAddress={requiredAddress}
+                setRequiredAddress={setRequiredAddress}
+                requiredPhone={requiredPhone}
+                setRequiredPhone={setRequiredPhone}
+                requiredBirthdate={requiredBirthdate}
+                setRequiredBirthdate={setRequiredBirthdate}
+                requiredDocument={requiredDocument}
+                setRequiredDocument={setRequiredDocument}
+                requiredEmailConfirmation={requiredEmailConfirmation}
+                setRequiredEmailConfirmation={setRequiredEmailConfirmation}
+              />
 
-              <SectionCard title="Campos obrigatórios no Checkout" iconSrc="/images/editar-produtos/warning.svg">
-                <div className="space-y-4 text-xs text-muted-foreground">
-                  <p className="font-semibold text-foreground">Itens Obrigatórios</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: "Endereço", active: requiredAddress },
-                      { label: "Telefone", active: requiredPhone },
-                      { label: "Data de nascimento", active: requiredBirthdate },
-                      { label: "CPF", active: requiredDocument },
-                    ].map(field => (
-                      <button
-                        key={field.label}
-                        type="button"
-                        disabled
-                        className="rounded-[6px] px-3 py-2 text-[11px] font-semibold bg-primary text-primary-foreground cursor-not-allowed opacity-90"
-                      >
-                        {field.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                  <span>Confirmação de email</span>
-                  <button
-                    type="button"
-                    className={`relative inline-flex h-5 w-10 items-center rounded-full ${requiredEmailConfirmation ? "bg-primary/70" : "bg-muted"}`}
-                    onClick={() => setRequiredEmailConfirmation(prev => !prev)}
-                  >
-                    <span
-                      className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                        requiredEmailConfirmation ? "left-[calc(100%-18px)]" : "left-[6px]"
-                      }`}
-                    />
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  O usuário será condicionado a reportar o email informado em um campo específico para sua confirmação.
-                </p>
-              </SectionCard>
-
-              <SectionCard title="Visual" iconSrc="/images/editar-produtos/visual.svg">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                    <span>Logotipo</span>
-                    <button
-                      type="button"
-                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${showLogo ? "bg-primary/70" : "bg-muted"}`}
-                      onClick={() => setShowLogo(prev => !prev)}
-                    >
-                      <span
-                        className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                          showLogo ? "left-[calc(100%-18px)]" : "left-[6px]"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  {showLogo && (
-                    <>
-                      <input
-                        ref={logoInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleLogoChange}
-                      />
-                      {logoPreview ? (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => logoInputRef.current?.click()}
-                          onKeyDown={event => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              logoInputRef.current?.click();
-                            }
-                          }}
-                          className="relative flex cursor-pointer items-center gap-3 rounded-[10px] border border-foreground/15 bg-card/60 p-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        >
-                          <button
-                            type="button"
-                            aria-label="Remover logo"
-                            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-foreground/20 bg-card text-xs text-muted-foreground transition hover:text-foreground"
-                            onClick={event => {
-                              event.stopPropagation();
-                              setLogoFile(null);
-                              setLogoPreview(null);
-                              setLogoDataUrl(null);
-                              if (logoInputRef.current) {
-                                logoInputRef.current.value = "";
-                              }
-                            }}
-                          >
-                            X
-                          </button>
-                          <div className="h-12 w-12 overflow-hidden rounded-[10px] border border-foreground/10 bg-foreground/5">
-                            {logoPreviewImageSrc ? (
-                              <img
-                                src={logoPreviewImageSrc}
-                                alt={logoPreview.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
-                                IMG
-                              </div>
-                            )}
-                          </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <p className="text-sm font-semibold text-foreground">
-                              {truncateFileName(logoPreview.name)}
-                              <span className="ml-2 text-xs font-semibold text-muted-foreground">
-                                {logoPreview.ext}
-                              </span>
-                            </p>
-                            <p>Tamanho: {formatBytes(logoPreview.size)}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => logoInputRef.current?.click()}
-                            className="flex w-full items-center justify-center gap-1 rounded-[12px] border border-foreground/20 bg-card/50 px-4 py-6 text-base font-semibold text-foreground transition hover:border-primary/60 hover:text-primary"
-                          >
-                            <span>Arraste a imagem ou</span>
-                            <span className="underline">clique aqui</span>
-                          </button>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>Aceitamos os formatos .jpg, .jpeg e .png com menos de 10mb.</p>
-                            <p>Sugestão de tamanho: 300 X 300</p>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {showLogo && (
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <span className="text-foreground">Posicionamento</span>
-                      <div className="relative">
-                        <select
-                          className="h-10 w-full appearance-none rounded-[8px] border border-foreground/15 bg-card px-3 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
-                          value={logoPosition}
-                          onChange={event =>
-                            setLogoPosition(event.target.value as "left" | "center" | "right")
-                          }
-                        >
-                          <option value="left">Esquerda</option>
-                          <option value="center">Centro</option>
-                          <option value="right">Direita</option>
-                        </select>
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
-                          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                              fillRule="evenodd"
-                              d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                    <span>Banner</span>
-                    <button
-                      type="button"
-                      className={`relative inline-flex h-5 w-10 items-center rounded-full ${showBanner ? "bg-primary/70" : "bg-muted"}`}
-                      onClick={() => setShowBanner(prev => !prev)}
-                    >
-                      <span
-                        className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                          showBanner ? "left-[calc(100%-18px)]" : "left-[6px]"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  {showBanner && (
-                    <>
-                      <input
-                        ref={bannerInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleBannerChange}
-                      />
-                      {bannerPreview ? (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => bannerInputRef.current?.click()}
-                          onKeyDown={event => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              bannerInputRef.current?.click();
-                            }
-                          }}
-                          className="relative flex cursor-pointer items-center gap-3 rounded-[10px] border border-foreground/15 bg-card/60 p-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        >
-                          <button
-                            type="button"
-                            aria-label="Remover banner"
-                            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-foreground/20 bg-card text-xs text-muted-foreground transition hover:text-foreground"
-                            onClick={event => {
-                              event.stopPropagation();
-                              setBannerFile(null);
-                              setBannerPreview(null);
-                              setBannerDataUrl(null);
-                              if (bannerInputRef.current) {
-                                bannerInputRef.current.value = "";
-                              }
-                            }}
-                          >
-                            X
-                          </button>
-                          <div className="h-12 w-20 overflow-hidden rounded-[10px] border border-foreground/10 bg-foreground/5">
-                            {bannerPreviewImageSrc ? (
-                              <img
-                                src={bannerPreviewImageSrc}
-                                alt={bannerPreview.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
-                                IMG
-                              </div>
-                            )}
-                          </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <p className="text-sm font-semibold text-foreground">
-                              {truncateFileName(bannerPreview.name)}
-                              <span className="ml-2 text-xs font-semibold text-muted-foreground">
-                                {bannerPreview.ext}
-                              </span>
-                            </p>
-                            <p>Tamanho: {formatBytes(bannerPreview.size)}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => bannerInputRef.current?.click()}
-                            className="flex w-full items-center justify-center gap-1 rounded-[12px] border border-foreground/20 bg-card/50 px-4 py-6 text-base font-semibold text-foreground transition hover:border-primary/60 hover:text-primary"
-                          >
-                            Arraste a imagem ou <span className="underline">clique aqui</span>
-                          </button>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>Aceitamos os formatos .jpg, .jpeg e .png com menos de 10mb.</p>
-                            <p>Sugestão de tamanho: 300 X 300</p>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground">Plano de Fundo</p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <button
-                        onClick={() => setTheme("light")}
-                        className={`rounded-[10px] border px-3 py-4 text-sm font-semibold shadow-inner ${
-                          theme === "light"
-                            ? "border-foreground/20 bg-[#d9d9d9] text-black"
-                            : "border-foreground/20 bg-card text-foreground"
-                        }`}
-                        type="button"
-                      >
-                        Claro
-                      </button>
-                      <button
-                        onClick={() => setTheme("dark")}
-                        className={`rounded-[10px] border px-3 py-4 text-sm font-semibold ${
-                          theme === "dark"
-                            ? "border-foreground/20 bg-[#232323] text-foreground"
-                            : "border-foreground/20 bg-card text-foreground"
-                        }`}
-                        type="button"
-                      >
-                        Escuro
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground">Cores de destaque</p>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      {[
-                        { color: "#000000", label: "Clean (padrão)" },
-                        { color: "#5f17ff", label: "Clean (padrão)" },
-                        { color: "#d000ff", label: "Clean (padrão)" },
-                        { color: "#007c35", label: "Clean (padrão)" },
-                        { color: "#c7a100", label: "Clean (padrão)" },
-                      ].map(option => (
-                        <div
-                          key={option.color}
-                          className="space-y-1 rounded-[10px] border border-foreground/15 bg-card p-2 text-center"
-                        >
-                          <button
-                            className="h-10 w-full rounded-[8px]"
-                            style={{ backgroundColor: option.color }}
-                            aria-label={option.label}
-                            onClick={() => setAccentColor(option.color)}
-                          />
-                          <p className="text-[11px] text-foreground">{option.label}</p>
-                        </div>
-                      ))}
-                      <div className="space-y-1 rounded-[10px] border border-foreground/15 bg-card p-2 text-center">
-                        <input
-                          type="color"
-                          className="h-10 w-full cursor-pointer rounded-[8px] border border-foreground/20 bg-card"
-                          aria-label="Personalizado"
-                          defaultValue="#6C27D7"
-                          onChange={event => setAccentColor(event.target.value)}
-                        />
-                        <p className="text-[11px] text-foreground">Personalizado</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </SectionCard>
+              <VisualSection
+                showLogo={showLogo}
+                setShowLogo={setShowLogo}
+                logoInputRef={logoInputRef}
+                logoPreview={logoPreview}
+                logoPreviewImageSrc={logoPreviewImageSrc}
+                onLogoChange={handleLogoChange}
+                onRemoveLogo={handleRemoveLogo}
+                logoPosition={logoPosition}
+                setLogoPosition={setLogoPosition}
+                showBanner={showBanner}
+                setShowBanner={setShowBanner}
+                bannerInputRef={bannerInputRef}
+                bannerPreview={bannerPreview}
+                bannerPreviewImageSrc={bannerPreviewImageSrc}
+                onBannerChange={handleBannerChange}
+                onRemoveBanner={handleRemoveBanner}
+                theme={theme}
+                setTheme={setTheme}
+                setAccentColor={setAccentColor}
+              />
             </div>
 
             <div className="space-y-2">
-              <SectionCard title="Pré-visualização">
-                <div className="flex flex-col items-center gap-2">
-                  <CheckoutPreview
-                    theme={theme}
-                    showLogo={showLogo}
-                    showBanner={showBanner}
-                    logoSrc={previewLogoSrc}
-                    bannerSrc={previewBannerSrc}
-                    logoPosition={logoPosition}
-                    showTestimonials={reviewsEnabled}
-                    showOrderBumps
-                    requiredAddress={requiredAddress}
-                    requiredPhone={requiredPhone}
-                    requiredBirthdate={requiredBirthdate}
-                    requiredDocument={requiredDocument}
-                    countdownEnabled={countdownEnabled}
-                    accentColor={accentColor}
-                    counterBgColor={counterBgColor}
-                    counterTextColor={counterTextColor}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Esta pré-visualização reflete as opções ativadas acima (logo, banner, campos obrigatórios, tema).
-                  </p>
-                </div>
-                <div className="flex items-center justify-end gap-3 pt-3">
-                  <button
-                    type="button"
-                    className="rounded-[8px] border border-foreground/20 bg-card px-4 py-2 text-sm text-foreground"
-                    onClick={handleCancel}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="rounded-[8px] bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_rgba(108,39,215,0.35)] disabled:opacity-60"
-                  >
-                    {isSaving ? "Salvando..." : "Salvar alterações"}
-                  </button>
-                </div>
-              </SectionCard>
+              <PreviewSection
+                theme={theme}
+                showLogo={showLogo}
+                showBanner={showBanner}
+                previewLogoSrc={previewLogoSrc}
+                previewBannerSrc={previewBannerSrc}
+                logoPosition={logoPosition}
+                reviewsEnabled={reviewsEnabled}
+                requiredAddress={requiredAddress}
+                requiredPhone={requiredPhone}
+                requiredBirthdate={requiredBirthdate}
+                requiredDocument={requiredDocument}
+                countdownEnabled={countdownEnabled}
+                accentColor={accentColor}
+                counterBgColor={counterBgColor}
+                counterTextColor={counterTextColor}
+                onCancel={handleCancel}
+                onSave={handleSave}
+                isSaving={isSaving}
+              />
             </div>
           </div>
 
-          <div className="space-y-3 w-full max-w-[400px]">
-            <SectionCard title="Pagamentos" iconSrc="/images/editar-produtos/pagamentos.svg">
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Aceitar pagamentos de</p>
-                <div className="flex gap-2 flex-wrap">
-                  {[
-                    { label: "CPF", value: "cpf" },
-                    { label: "CNPJ", value: "cnpj" },
-                  ].map(doc => {
-                    const active = acceptedDocuments.includes(doc.value as "cpf" | "cnpj");
-                    return (
-                      <button
-                        key={doc.value}
-                        type="button"
-                        className={`rounded-[8px] border px-3 py-2 text-xs font-semibold transition ${
-                          active
-                            ? "border-primary/60 bg-primary/10 text-primary"
-                            : "border-foreground/20 bg-card text-foreground"
-                        }`}
-                        onClick={() =>
-                          setAcceptedDocuments(prev => {
-                            const exists = prev.includes(doc.value as "cpf" | "cnpj");
-                            if (exists) {
-                              const next = prev.filter(item => item !== doc.value);
-                              return next.length ? next : prev;
-                            }
-                            return [...prev, doc.value as "cpf" | "cnpj"];
-                          })
-                        }
-                      >
-                        {doc.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-sm font-semibold text-foreground">Métodos aceitos</p>
-                <div className="flex gap-2 flex-wrap">
-                  {[
-                    { label: "Cartão de crédito", value: "card" },
-                    { label: "Boleto", value: "boleto" },
-                    { label: "Pix", value: "pix" },
-                  ].map(method => {
-                    const active = paymentMethods.includes(method.value as "card" | "boleto" | "pix");
-                    return (
-                      <button
-                        key={method.value}
-                        type="button"
-                        className={`rounded-[8px] border px-3 py-2 text-xs font-semibold transition ${
-                          active
-                            ? "border-primary/60 bg-primary/10 text-primary"
-                            : "border-foreground/20 bg-card text-foreground"
-                        }`}
-                        onClick={() =>
-                          setPaymentMethods(prev => {
-                            const exists = prev.includes(method.value as "card" | "boleto" | "pix");
-                            if (exists) {
-                              const next = prev.filter(item => item !== method.value);
-                              return next.length ? next : prev;
-                            }
-                            return [...prev, method.value as "card" | "boleto" | "pix"];
-                          })
-                        }
-                      >
-                        {method.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center justify-between text-sm font-semibold text-foreground pt-2">
-                  <span>Cupom de desconto</span>
-                  <button
-                    type="button"
-                    className={`relative inline-flex h-5 w-10 items-center rounded-full ${couponEnabled ? "bg-primary/70" : "bg-muted"}`}
-                    onClick={() => setCouponEnabled(prev => !prev)}
-                  >
-                    <span
-                      className={`absolute h-4 w-4 rounded-full bg-white transition ${
-                        couponEnabled ? "left-[calc(100%-18px)]" : "left-[6px]"
-                      }`}
-                    />
-                  </button>
-                </div>
-                {couponEnabled && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <label className="space-y-2 text-xs text-muted-foreground">
-                        <span>Cartão de crédito</span>
-                        <div className="relative">
-                          <input
-                            className={`${fieldClass} pr-10`}
-                            placeholder="0"
-                            value={discountCard}
-                            onChange={event => setDiscountCard(event.target.value)}
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
-                        </div>
-                      </label>
-                      <label className="space-y-2 text-xs text-muted-foreground">
-                        <span>Pix</span>
-                        <div className="relative">
-                          <input
-                            className={`${fieldClass} pr-10`}
-                            placeholder="0"
-                            value={discountPix}
-                            onChange={event => setDiscountPix(event.target.value)}
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
-                        </div>
-                      </label>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <label className="space-y-2 text-xs text-muted-foreground">
-                        <span>Boleto</span>
-                        <div className="relative">
-                          <input
-                            className={`${fieldClass} pr-10`}
-                            placeholder="0"
-                            value={discountBoleto}
-                            onChange={event => setDiscountBoleto(event.target.value)}
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
-                        </div>
-                      </label>
-                      <div className="hidden sm:block" />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-foreground">Cartão de crédito</p>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="relative">
-                          <input
-                            className={`${fieldClass} pr-8`}
-                            placeholder="Limite de parcelas"
-                            value={installmentsLimit}
-                            onChange={event => setInstallmentsLimit(event.target.value.replace(/\D/g, ""))}
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
-                        </div>
-                        <div className="relative">
-                          <input
-                            className={`${fieldClass} pr-8`}
-                            placeholder="Parcela pré-selecionada"
-                            value={installmentsPreselected}
-                            onChange={event => setInstallmentsPreselected(event.target.value.replace(/\D/g, ""))}
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">x</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2 space-y-2">
-                      <p className="text-sm font-semibold text-foreground">Boleto</p>
-                      <label className="space-y-2 text-xs text-muted-foreground">
-                        <span>Dias para vencimento</span>
-                        <select
-                          className={`${fieldClass} appearance-none`}
-                          value={boletoDueDays}
-                          onChange={event => setBoletoDueDays(event.target.value)}
-                        >
-                          {["1", "2", "3", "4", "5"].map(day => (
-                            <option key={day} value={day}>
-                              {day} dia{day === "1" ? "" : "s"}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-foreground">Pix</p>
-                      <label className="space-y-2 text-xs text-muted-foreground">
-                        <span>Tempo de expiração</span>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            className={`${fieldClass} pr-16`}
-                            placeholder="00"
-                            min={0}
-                            value={pixExpireMinutes}
-                            onChange={event => setPixExpireMinutes(event.target.value.replace(/\D/g, ""))}
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">Minutos</span>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-foreground">Preferências</p>
-                  <div className="space-y-2 text-xs text-muted-foreground">
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" className="ui-checkbox" />
-                      Mostrar nomes do vendedor no rodapé
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" className="ui-checkbox" />
-                      Solicitar endereço do comprador
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
+          <div className="space-y-3 w-full max-w-[450px]">
+            <PaymentsSection
+              acceptedDocuments={acceptedDocuments}
+              setAcceptedDocuments={setAcceptedDocuments}
+              paymentMethods={paymentMethods}
+              setPaymentMethods={setPaymentMethods}
+              couponEnabled={couponEnabled}
+              setCouponEnabled={setCouponEnabled}
+              discountCard={discountCard}
+              setDiscountCard={setDiscountCard}
+              discountPix={discountPix}
+              setDiscountPix={setDiscountPix}
+              discountBoleto={discountBoleto}
+              setDiscountBoleto={setDiscountBoleto}
+              installmentsLimit={installmentsLimit}
+              setInstallmentsLimit={setInstallmentsLimit}
+              installmentsPreselected={installmentsPreselected}
+              setInstallmentsPreselected={setInstallmentsPreselected}
+              boletoDueDays={boletoDueDays}
+              setBoletoDueDays={setBoletoDueDays}
+              pixExpireMinutes={pixExpireMinutes}
+              setPixExpireMinutes={setPixExpireMinutes}
+              showSellerDetail={showSellerDetail}
+              setShowSellerDetail={setShowSellerDetail}
+              requiredAddress={requiredAddress}
+              setRequiredAddress={setRequiredAddress}
+            />
 
             <SectionCard title="Gatilhos e Depoimentos" iconSrc="/images/editar-produtos/gatilhos.svg">
               <div className="space-y-4">
@@ -1469,6 +1179,8 @@ export function CheckoutEditor({
                     <textarea
                       className="min-h-[70px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                       placeholder="Outras ( num-visitantes ) visitantes estão finalizando a compra neste momento."
+                      value={socialProofMessage}
+                      onChange={event => setSocialProofMessage(event.target.value)}
                     />
                   )}
                 </div>
@@ -1478,6 +1190,8 @@ export function CheckoutEditor({
                   <input
                     className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="15 visitantes"
+                    value={socialProofMinClient}
+                    onChange={event => setSocialProofMinClient(event.target.value.replace(/[^\d]/g, ""))}
                   />
                 </div>
 
@@ -1544,6 +1258,7 @@ export function CheckoutEditor({
                                       rating: item.rating ?? 5,
                                       image: item.image || "",
                                     });
+                                  setTestimonialImageFile(null);
                                 }}
                               >
                                 <Pencil className="h-3 w-3" />
@@ -1561,11 +1276,9 @@ export function CheckoutEditor({
                           </div>
                           <div className="flex items-center gap-3">
                             {item.image ? (
-                              <Image
+                              <img
                                 src={item.image}
                                 alt={item.name || "Depoimento"}
-                                width={48}
-                                height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                               />
                             ) : (
@@ -1595,11 +1308,9 @@ export function CheckoutEditor({
                             onClick={() => testimonialImageInputRef.current?.click()}
                           >
                             {testimonialDraft.image ? (
-                              <Image
+                              <img
                                 src={testimonialDraft.image}
                                 alt="Preview depoimento"
-                                width={120}
-                                height={120}
                                 className="h-20 w-20 rounded-full object-cover"
                               />
                             ) : (
@@ -1673,6 +1384,7 @@ export function CheckoutEditor({
                                 rating: testimonialDraft.rating,
                                 active: activeValue,
                                 image: testimonialDraft.image || "",
+                                imageFile: testimonialImageFile ?? undefined,
                               };
                               if (editingTestimonialIndex !== null) {
                                 const current = testimonials[editingTestimonialIndex];
@@ -1683,7 +1395,6 @@ export function CheckoutEditor({
                                       checkoutId,
                                       current.id,
                                       {
-                                        ...(nextItem.image ? { image: nextItem.image } : {}),
                                         name: nextItem.name,
                                         depoiment: nextItem.text,
                                         active: nextItem.active,
@@ -1691,6 +1402,28 @@ export function CheckoutEditor({
                                       },
                                       token
                                     );
+                                    if (testimonialImageFile) {
+                                      console.log("[checkout] Upload imagem depoimento (update):", {
+                                        productId,
+                                        checkoutId,
+                                        depoimentId: current.id,
+                                        file: testimonialImageFile?.name,
+                                      });
+                                      const uploadResponse = await productApi.uploadCheckoutDepoimentImage(
+                                        productId,
+                                        checkoutId,
+                                        current.id,
+                                        testimonialImageFile,
+                                        token
+                                      );
+                                      const uploadedUrl = resolveUploadedImageUrl(uploadResponse);
+                                      if (uploadedUrl) {
+                                        if (nextItem.image?.startsWith("blob:")) {
+                                          URL.revokeObjectURL(nextItem.image);
+                                        }
+                                        nextItem.image = uploadedUrl;
+                                      }
+                                    }
                                     notify.success("Depoimento atualizado");
                                   } catch (error) {
                                     console.error("Erro ao atualizar depoimento:", error);
@@ -1710,6 +1443,7 @@ export function CheckoutEditor({
                                 return prev.map((item, i) => (i === editingTestimonialIndex ? { ...item, ...nextItem } : item));
                               });
                               setTestimonialDraft({ name: "", text: "", rating: 5, image: "" });
+                              setTestimonialImageFile(null);
                               setEditingTestimonialIndex(null);
                             }}
                           >
@@ -1727,13 +1461,20 @@ export function CheckoutEditor({
               <div className="space-y-3">
                 <label className="space-y-1 text-xs text-muted-foreground">
                   <span>Título da mensagem</span>
-                  <input className={fieldClass} placeholder="Agradecemos pela sua compra!" />
+                  <input
+                    className={fieldClass}
+                    placeholder="Agradecemos pela sua compra!"
+                    value={afterSaleTitle}
+                    onChange={event => setAfterSaleTitle(event.target.value)}
+                  />
                 </label>
                 <label className="space-y-1 text-xs text-muted-foreground">
                   <span>Descritivo</span>
                   <textarea
                     className="min-h-[80px] w-full rounded-[8px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                     placeholder="Você receberá um e-mail confirmando o seu pedido."
+                    value={afterSaleMessage}
+                    onChange={event => setAfterSaleMessage(event.target.value)}
                   />
                 </label>
               </div>

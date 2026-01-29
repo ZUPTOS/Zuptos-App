@@ -188,6 +188,7 @@ export interface CheckoutPayload {
   position_logo?: string;
   banner?: string;
   theme?: string;
+  default_color?: string;
   defaultColor?: string;
   countdown?: boolean;
   "countdown active"?: boolean;

@@ -19,15 +19,7 @@ export function useAdminFinanceList(params?: AdminFinanceListParams) {
     } finally {
       setIsLoading(false);
     }
-  }, [
-    params?.page,
-    params?.limit,
-    params?.userId,
-    params?.startDate,
-    params?.endDate,
-    params?.type,
-    params?.status,
-  ]);
+  }, [params]);
 
   useEffect(() => {
     fetchFinances();
