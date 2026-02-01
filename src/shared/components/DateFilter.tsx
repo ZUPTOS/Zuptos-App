@@ -8,11 +8,10 @@ import {
   CalendarGridHeader,
   CalendarHeaderCell,
   CalendarGrid,
+  DateField,
   DateInput,
-  DateRangePicker,
   DateSegment,
   Dialog,
-  Group,
   Heading,
   Popover,
   RangeCalendar
@@ -46,6 +45,7 @@ const toCalendarDate = (date: Date) =>
 
 const toJsDate = (date: CalendarDate) =>
   new Date(date.year, date.month - 1, date.day);
+
 
 const getPresetRange = (preset: string) => {
   const today = getBrasiliaDate();
@@ -91,9 +91,8 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const allowOpenRef = useRef(false);
-  const endInputRef = useRef<HTMLDivElement | null>(null);
-  const endYearDigitsRef = useRef(0);
+  const triggerRef = useRef<HTMLDivElement | null>(null);
+  const endFieldRef = useRef<HTMLDivElement | null>(null);
 
   const defaultRange = useMemo(() => {
     const today = getBrasiliaDate();
@@ -102,12 +101,12 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     return { start: cal, end: cal };
   }, []);
 
-  const [value, setValue] = useState<{ start: CalendarDate; end: CalendarDate }>(
+  const [rangeValue, setRangeValue] = useState<{ start: CalendarDate; end: CalendarDate }>(
     defaultRange
   );
 
-  const activeRange = value ?? defaultRange;
-  const isRangeComplete = activeRange.start.compare(activeRange.end) !== 0;
+  const activeRange = rangeValue;
+  const isRangeComplete = rangeValue.end.compare(rangeValue.start) > 0;
 
   const dateRangeLabel = useMemo(() => {
     const startDate = toJsDate(activeRange.start);
@@ -115,23 +114,18 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     return `${format(startDate, "dd/MM/yyyy", { locale: ptBR })} - ${format(endDate, "dd/MM/yyyy", { locale: ptBR })}`;
   }, [activeRange.end, activeRange.start]);
 
-  const handleChange = (range: { start: CalendarDate; end: CalendarDate } | null) => {
+  const handleRangeChange = (range: { start: CalendarDate; end: CalendarDate } | null) => {
     if (!range) return;
-    const nextStart = range.start;
-    const nextEnd = range.end ?? range.start;
-
-    if (nextEnd.compare(nextStart) < 0) {
-      const nextValue = { start: nextEnd, end: nextEnd };
-      setValue(nextValue);
+    if (range.end.compare(range.start) < 0) {
+      const nextValue = { start: range.end, end: range.end };
+      setRangeValue(nextValue);
       setSelectedPreset(null);
       onDateChange?.(toJsDate(nextValue.start), toJsDate(nextValue.end));
       return;
     }
-
-    const nextValue = { start: nextStart, end: nextEnd };
-    setValue(nextValue);
+    setRangeValue(range);
     setSelectedPreset(null);
-    onDateChange?.(toJsDate(nextValue.start), toJsDate(nextValue.end));
+    onDateChange?.(toJsDate(range.start), toJsDate(range.end));
   };
 
   const closePicker = () => {
@@ -146,11 +140,28 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
       start: toCalendarDate(range.start),
       end: toCalendarDate(range.end)
     };
-    setValue(nextValue);
+    setRangeValue(nextValue);
     setSelectedPreset(option);
     onDateChange?.(range.start, range.end);
     setShowCalendar(false);
     setIsOpen(false);
+  };
+
+  const handleStartChange = (date: CalendarDate | null) => {
+    if (!date) return;
+    const end = rangeValue.end.compare(date) < 0 ? date : rangeValue.end;
+    const nextValue = { start: date, end };
+    setRangeValue(nextValue);
+    setSelectedPreset(null);
+    onDateChange?.(toJsDate(nextValue.start), toJsDate(nextValue.end));
+  };
+
+  const handleEndChange = (date: CalendarDate | null) => {
+    if (!date) return;
+    const nextValue = { start: rangeValue.start, end: date };
+    setRangeValue(nextValue);
+    setSelectedPreset(null);
+    onDateChange?.(toJsDate(nextValue.start), toJsDate(nextValue.end));
   };
 
   const segmentClassName = ({
@@ -163,12 +174,15 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     isPlaceholder: boolean;
   }) => {
     if (type === "literal") {
-      return "px-0.5 text-muted-foreground";
+      return "mx-0.5 text-muted-foreground";
     }
+    const widthClass =
+      type === "year" ? "w-[4ch]" : type === "day" || type === "month" ? "w-[2ch]" : "";
     return [
-      "rounded-[6px] px-0.5 py-0.5 tabular-nums outline-none transition-colors",
+      "inline-flex justify-center rounded-[4px] px-1 py-1 tabular-nums outline-none transition-colors",
+      widthClass,
       isPlaceholder ? "text-muted-foreground" : "text-foreground",
-      isFocused ? "bg-purple-500/20 ring-1 ring-purple-500/50" : ""
+      isFocused ? "bg-primary/20 ring-2 ring-primary/60" : ""
     ]
       .filter(Boolean)
       .join(" ");
@@ -176,96 +190,67 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
 
   return (
     <I18nProvider locale="pt-BR">
-      <DateRangePicker
-        value={activeRange}
-        onChange={handleChange}
-        isOpen={isOpen}
-        shouldCloseOnSelect={false}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            setIsOpen(false);
-            return;
-          }
-          if (allowOpenRef.current) {
-            setIsOpen(true);
-            allowOpenRef.current = false;
-          }
-        }}
-        className="relative"
-      >
-        <Group
+      <div className="relative">
+        <div
+          ref={triggerRef}
           className="flex h-[48px] items-center gap-3 rounded-[7px] border border-border/70 bg-card px-4 text-sm"
           style={{ width: "clamp(240px, 20vw, 320px)" }}
         >
-          <Calendar className="h-4 w-4 text-foreground" />
-          <div className="flex flex-1 items-center gap-1">
-            <DateInput
-              slot="start"
-              className="flex items-center"
+          <button
+            type="button"
+            aria-label="Abrir filtro de datas"
+            className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-border/60 bg-background/50"
+            onClick={() => setIsOpen(true)}
+          >
+            <Calendar className="h-4 w-4 text-foreground" />
+          </button>
+          <div className="flex flex-1 items-center gap-1 text-sm font-medium text-foreground">
+            <DateField
+              value={rangeValue.start}
+              onChange={handleStartChange}
+              granularity="day"
               aria-label="Data inicial"
             >
-              {(segment) => (
-                <DateSegment segment={segment} className={segmentClassName} />
-              )}
-            </DateInput>
-            <span className="text-muted-foreground">-</span>
-            <div
-              className="flex items-center"
-              onFocusCapture={(event) => {
-                const target = event.target as HTMLElement | null;
-                const type = target?.getAttribute("data-type");
-                if (type === "year") {
-                  endYearDigitsRef.current = 0;
-                }
-              }}
-              onBlurCapture={() => {
-                endYearDigitsRef.current = 0;
-              }}
-              onKeyDownCapture={(event) => {
-                const target = event.target as HTMLElement | null;
-                const type = target?.getAttribute("data-type");
-                if (type !== "year") return;
-                if (event.key >= "0" && event.key <= "9") {
-                  endYearDigitsRef.current += 1;
-                  if (endYearDigitsRef.current >= 4) {
-                    requestAnimationFrame(() => {
-                      (target as HTMLElement).blur?.();
-                      closePicker();
-                      endYearDigitsRef.current = 0;
-                    });
-                  }
-                } else if (event.key === "Backspace") {
-                  endYearDigitsRef.current = Math.max(0, endYearDigitsRef.current - 1);
-                }
-              }}
-            >
-              <DateInput
-                slot="end"
-                className="flex items-center"
-                aria-label="Data final"
-                ref={endInputRef}
-              >
+              <DateInput className="flex items-center gap-0 leading-none">
                 {(segment) => (
                   <DateSegment segment={segment} className={segmentClassName} />
                 )}
               </DateInput>
+            </DateField>
+            <span className="text-muted-foreground">-</span>
+            <div
+              onBlurCapture={() => {
+                setTimeout(() => {
+                  const active = document.activeElement;
+                  const container = endFieldRef.current;
+                  if (container && active && container.contains(active)) return;
+                  if (rangeValue.end.compare(rangeValue.start) < 0) {
+                    setRangeValue({ start: rangeValue.start, end: rangeValue.start });
+                  }
+                }, 0);
+              }}
+              ref={endFieldRef}
+            >
+              <DateField
+                value={rangeValue.end}
+                onChange={handleEndChange}
+                granularity="day"
+                aria-label="Data final"
+              >
+                <DateInput className="flex items-center gap-0 leading-none">
+                  {(segment) => (
+                    <DateSegment segment={segment} className={segmentClassName} />
+                  )}
+                </DateInput>
+              </DateField>
             </div>
           </div>
-          <Button
-            slot="trigger"
-            type="button"
-            aria-label="Alternar filtro de datas"
-            className="text-muted-foreground"
-            onPress={() => {
-              allowOpenRef.current = true;
-              setIsOpen(true);
-            }}
-          >
-            <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} />
-          </Button>
-        </Group>
+        </div>
 
         <Popover
+          isOpen={isOpen}
+          onOpenChange={setIsOpen}
+          triggerRef={triggerRef}
           className="z-40 w-full max-w-[320px] rounded-[16px] border border-border/70 bg-card shadow-none dark:shadow-[0_24px_55px_rgba(0,0,0,0.55)]"
           offset={12}
         >
@@ -304,7 +289,11 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
 
             {showCalendar && (
               <div className="border-t border-border/60 pt-4">
-                <RangeCalendar className="space-y-3">
+                <RangeCalendar
+                  className="space-y-3"
+                  value={rangeValue}
+                  onChange={handleRangeChange}
+                >
                   <header className="flex items-center justify-between">
                     <Button
                       slot="previous"
@@ -377,7 +366,7 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
             )}
           </Dialog>
         </Popover>
-      </DateRangePicker>
+      </div>
     </I18nProvider>
   );
 }
