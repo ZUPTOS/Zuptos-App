@@ -15,8 +15,15 @@ const pick = <T,>(...values: Array<T | null | undefined>) =>
 
 const toString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
 
-const toBoolean = (value: unknown): boolean | undefined =>
-  typeof value === "boolean" ? value : undefined;
+const toBoolean = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+};
 
 const toNumber = (value: unknown): number | undefined => {
   if (typeof value === "number") return value;
@@ -25,6 +32,15 @@ const toNumber = (value: unknown): number | undefined => {
     return Number.isNaN(parsed) ? undefined : parsed;
   }
   return undefined;
+};
+
+const normalizePublicAssetPath = (value?: string | null) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return trimmed;
+  return `/${trimmed}`;
 };
 
 const normalizeProduct = (raw?: PublicCheckoutOfferResponse["product"] | null): Product | null => {
@@ -44,6 +60,7 @@ const normalizeProduct = (raw?: PublicCheckoutOfferResponse["product"] | null): 
     sale_url: toString(pick(data.sale_url, data.saleUrl)),
     login_username: toString(pick(data.login_username, data.loginUsername)),
     login_password: toString(pick(data.login_password, data.loginPassword)),
+    coupons: Array.isArray(data.coupons) ? (data.coupons as Product["coupons"]) : undefined,
   };
 };
 
@@ -53,8 +70,20 @@ const normalizeCheckout = (
   if (!raw) return null;
   const data = raw as unknown as Record<string, unknown>;
   const base = raw as CheckoutType;
+  const paymentData = (data.productCheckoutPayment as Record<string, unknown> | undefined) ?? undefined;
+  const detailDiscount = (paymentData?.detailDiscount as Record<string, unknown> | undefined) ?? undefined;
+  const detailPaymentMethod = (paymentData?.detailPaymentMethod as Record<string, unknown> | undefined) ?? undefined;
+  const acceptedDocs: Array<"cpf" | "cnpj"> = [];
+  if (toBoolean(paymentData?.acceptDocumentIndividual)) acceptedDocs.push("cpf");
+  if (toBoolean(paymentData?.acceptDocumentCompany)) acceptedDocs.push("cnpj");
+  const paymentMethods: Array<"card" | "boleto" | "pix"> = [];
+  if (toBoolean(paymentData?.acceptCreditCard)) paymentMethods.push("card");
+  if (toBoolean(paymentData?.acceptTicket)) paymentMethods.push("boleto");
+  if (toBoolean(paymentData?.acceptPix)) paymentMethods.push("pix");
   return {
     ...base,
+    logo: normalizePublicAssetPath(toString(pick(base.logo, data.logo))),
+    banner: normalizePublicAssetPath(toString(pick(base.banner, data.banner))),
     required_address: pick(base.required_address, toBoolean(data.requiredAddress)),
     required_phone: pick(base.required_phone, toBoolean(data.requiredPhone)),
     required_birthdate: pick(base.required_birthdate, toBoolean(data.requiredBirthdate)),
@@ -64,14 +93,24 @@ const normalizeCheckout = (
       toBoolean(data.requiredEmailConfirmation)
     ),
     position_logo: pick(base.position_logo, toString(data.positionLogo)),
+    default_color: pick(base.default_color, toString(data.defaultColor), toString(data.default_color)),
+    defaultColor: pick(base.defaultColor, toString(data.defaultColor), toString(data.default_color)),
     countdown_active: pick(
       base.countdown_active,
       toBoolean(data.countdownActive),
       toBoolean(data["countdown active"])
     ),
     countdown_expire: pick(base.countdown_expire, toString(data.countdownExpire)),
-    countdown_background: pick(base.countdown_background, toString(data.countdownBackground)),
-    countdown_text_color: pick(base.countdown_text_color, toString(data.countdownTextColor)),
+    countdown_background: pick(
+      base.countdown_background,
+      toString(data.countdownBackground),
+      toString(data.countdown_background)
+    ),
+    countdown_text_color: pick(
+      base.countdown_text_color,
+      toString(data.countdownTextColor),
+      toString(data.countdown_text_color)
+    ),
     social_proofs_message: pick(base.social_proofs_message, toString(data.socialProofsMessage)),
     social_proofs_min_client: pick(
       base.social_proofs_min_client,
@@ -81,35 +120,108 @@ const normalizeCheckout = (
     after_sale_message: pick(base.after_sale_message, toString(data.afterSaleMessage)),
     accepted_documents: pick(
       base.accepted_documents,
-      data.acceptedDocuments as CheckoutType["accepted_documents"]
+      data.acceptedDocuments as CheckoutType["accepted_documents"],
+      acceptedDocs.length ? acceptedDocs : undefined
     ),
     payment_methods: pick(
       base.payment_methods,
-      data.paymentMethods as CheckoutType["payment_methods"]
+      data.paymentMethods as CheckoutType["payment_methods"],
+      paymentMethods.length ? paymentMethods : undefined
     ),
     coupon_enabled: pick(base.coupon_enabled, toBoolean(data.couponEnabled)),
-    discount_card: pick(base.discount_card, toNumber(data.discountCard)),
-    discount_pix: pick(base.discount_pix, toNumber(data.discountPix)),
-    discount_boleto: pick(base.discount_boleto, toNumber(data.discountBoleto)),
-    installments_limit: pick(base.installments_limit, toNumber(data.installmentsLimit)),
+    discount_card: pick(
+      base.discount_card,
+      toNumber(data.discountCard),
+      toNumber(detailDiscount?.card)
+    ),
+    discount_pix: pick(
+      base.discount_pix,
+      toNumber(data.discountPix),
+      toNumber(detailDiscount?.pix)
+    ),
+    discount_boleto: pick(
+      base.discount_boleto,
+      toNumber(data.discountBoleto),
+      toNumber(detailDiscount?.boleto)
+    ),
+    installments_limit: pick(
+      base.installments_limit,
+      toNumber(data.installmentsLimit),
+      toNumber(detailPaymentMethod?.installments_limit)
+    ),
     installments_preselected: pick(
       base.installments_preselected,
-      toNumber(data.installmentsPreselected)
+      toNumber(data.installmentsPreselected),
+      toNumber(detailPaymentMethod?.installments_preselected)
+    ),
+    boleto_due_days: pick(
+      base.boleto_due_days,
+      toNumber(data.boletoDueDays),
+      toNumber(detailPaymentMethod?.boleto_due_days)
+    ),
+    pix_expire_minutes: pick(
+      base.pix_expire_minutes,
+      toNumber(data.pixExpireMinutes),
+      toNumber(detailPaymentMethod?.pix_expire_minutes)
     ),
     testimonials_enabled: pick(base.testimonials_enabled, toBoolean(data.testimonialsEnabled)),
     testimonials: pick(base.testimonials, data.testimonials as CheckoutType["testimonials"]),
     sales_notifications_enabled: pick(
       base.sales_notifications_enabled,
-      toBoolean(data.salesNotificationsEnabled)
+      toBoolean(data.salesNotificationsEnabled),
+      toBoolean(data.sellNotification),
+      toBoolean(data.sell_notification)
     ),
+    sell_notification: pick(
+      base.sell_notification,
+      toBoolean(data.sellNotification),
+      toBoolean(data.sell_notification)
+    ),
+    sell_time: pick(base.sell_time, toNumber(data.sellTime), toNumber(data.sell_time)),
+    people_buy: pick(base.people_buy, toNumber(data.peopleBuy), toNumber(data.people_buy)),
+    buy_now: pick(base.buy_now, toNumber(data.buyNow), toNumber(data.buy_now)),
+    buy_at_thirty: pick(base.buy_at_thirty, toNumber(data.buyAtThirty), toNumber(data.buy_at_thirty)),
+    buy_at_hour: pick(base.buy_at_hour, toNumber(data.buyAtHour), toNumber(data.buy_at_hour)),
     social_proof_enabled: pick(base.social_proof_enabled, toBoolean(data.socialProofEnabled)),
   };
+};
+
+const normalizeDepoiments = (items: unknown): NonNullable<CheckoutType["testimonials"]> => {
+  if (!Array.isArray(items)) return [];
+  return items.map(item => {
+    const data = item as Record<string, unknown>;
+    const rawImage = toString(pick(data.image, data.image_url, data.imageUrl));
+    return {
+      id: toString(data.id),
+      name: toString(data.name) ?? "Nome",
+      text: toString(pick(data.depoiment, data.text)) ?? "",
+      rating: toNumber(pick(data.rating, data.ratting)),
+      image: rawImage,
+      active: pick(toBoolean(data.active), true),
+    };
+  });
 };
 
 const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bumps"]> => {
   if (!Array.isArray(items)) return [];
   return items.map(item => {
     const data = item as Record<string, unknown>;
+    const bumpOffer = (pick(data.bumpedOfferShow, data.bumped_offer_show) ?? null) as
+      | Record<string, unknown>
+      | null;
+    const bumpOfferPrice = bumpOffer
+      ? toNumber(pick(bumpOffer.offerPrice, bumpOffer.offer_price, bumpOffer.price))
+      : undefined;
+    const bumpOfferNormal = bumpOffer
+      ? toNumber(
+          pick(
+            bumpOffer.normalPrice,
+            bumpOffer.normal_price,
+            bumpOffer.price_before,
+            bumpOffer.priceBefore
+          )
+        )
+      : undefined;
     const promoPrice = toNumber(
       pick(
         data.offer_price,
@@ -118,7 +230,8 @@ const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bu
         data.discountPrice,
         data.promotional_price,
         data.promotionalPrice,
-        data.price
+        data.price,
+        bumpOfferPrice
       )
     );
     const normalPrice = toNumber(
@@ -128,7 +241,8 @@ const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bu
         data.original_price,
         data.originalPrice,
         data.price_before,
-        data.priceBefore
+        data.priceBefore,
+        bumpOfferNormal
       )
     );
     return {
@@ -209,12 +323,21 @@ export default function PublicCheckoutPage() {
         const data = await fetchPublicCheckout(baseUrl, offerId, productId);
         console.log("[publicCheckout] Dados carregados:", { productId, offerId, data });
         const normalizedCheckout = normalizeCheckout(data.checkout);
+        const checkoutRecord = data.checkout as Record<string, unknown> | undefined;
+        const rawDepoiments =
+          (data as Record<string, unknown>).depoiments ??
+          checkoutRecord?.productCheckoutDepoiments;
+        const depoiments = normalizeDepoiments(rawDepoiments);
         const normalizedProduct = normalizeProduct(data.product);
         if (!normalizedCheckout) {
           setError("Checkout não encontrado");
           return;
         }
-        setCheckout(normalizedCheckout);
+        setCheckout({
+          ...normalizedCheckout,
+          testimonials: depoiments.length ? depoiments : normalizedCheckout.testimonials,
+          testimonials_enabled: depoiments.length ? true : normalizedCheckout.testimonials_enabled,
+        });
         setProduct(normalizedProduct);
         setOffer(normalizeOffer(data, normalizedCheckout));
       } catch (err) {

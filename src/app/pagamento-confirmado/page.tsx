@@ -41,7 +41,6 @@ export default function PagamentoConfirmadoPage() {
   const textMuted = isDark ? "text-white/70" : "text-[#0a0a0a]/70";
   const cardBg = isDark ? "bg-[#141414]" : "bg-white";
   const innerCardBg = isDark ? "bg-[#1b1b1b]" : "bg-[#f3f3f3]"; // Slightly darker white/gray for light mode contrast
-  const borderColor = isDark ? "border-white/10" : "border-black/5";
   const iconBorder = isDark ? "border-white/10" : "border-black/10";
   const dividerColor = isDark ? "border-white/15" : "border-black/10";
   const circleBg = isDark ? "bg-[#0b0b0b]" : "bg-[#f6f6f6]"; // Matches main bg to create cutout effect

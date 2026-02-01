@@ -40,7 +40,6 @@ export async function request<T>(
 
   if (method === "GET") {
     // Log every GET request to help debug admin endpoints.
-    console.log("[api] GET", { url, path: normalizedPath });
   }
 
   const headers = new Headers(defaultHeaders);

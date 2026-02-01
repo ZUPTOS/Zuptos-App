@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
-import { CheckoutEditor } from "@/views/editar-produto/CheckoutEditor";
+import { CheckoutEditorCreate } from "@/views/editar-produto/CheckoutEditorCreate";
+import { CheckoutEditorEdit } from "@/views/editar-produto/CheckoutEditorEdit";
 
 export default function EditarCheckoutView() {
   const router = useRouter();
@@ -25,12 +26,20 @@ export default function EditarCheckoutView() {
 
   return (
     <DashboardLayout userName="Zuptos" userLocation="RJ" pageTitle="">
-      <CheckoutEditor
-        productId={productId}
-        checkoutId={checkoutId}
-        onBack={handleBack}
-        onSaved={handleBack}
-      />
+      {checkoutId ? (
+        <CheckoutEditorEdit
+          productId={productId}
+          checkoutId={checkoutId}
+          onBack={handleBack}
+          onSaved={handleBack}
+        />
+      ) : (
+        <CheckoutEditorCreate
+          productId={productId}
+          onBack={handleBack}
+          onSaved={handleBack}
+        />
+      )}
     </DashboardLayout>
   );
 }

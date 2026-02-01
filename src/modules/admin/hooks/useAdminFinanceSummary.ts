@@ -24,7 +24,7 @@ export function useAdminFinanceSummary(params?: UseAdminFinanceSummaryParams) {
     } finally {
       setIsLoading(false);
     }
-  }, [params?.startDate, params?.endDate]);
+  }, [params]);
 
   useEffect(() => {
     fetchSummary();

@@ -71,6 +71,7 @@ export interface Product {
   sale_url?: string;
   login_username?: string;
   login_password?: string;
+  coupons?: ProductCoupon[];
 }
 
 export enum ProductType {
@@ -188,6 +189,7 @@ export interface CheckoutPayload {
   position_logo?: string;
   banner?: string;
   theme?: string;
+  default_color?: string;
   defaultColor?: string;
   countdown?: boolean;
   "countdown active"?: boolean;
@@ -212,6 +214,12 @@ export interface CheckoutPayload {
   testimonials_enabled?: boolean;
   testimonials?: Testimonial[];
   sales_notifications_enabled?: boolean;
+  sell_notification?: boolean;
+  sell_time?: number;
+  buy_at_hour?: number;
+  buy_at_thirty?: number;
+  buy_now?: number;
+  people_buy?: number;
   social_proof_enabled?: boolean;
 }
 
