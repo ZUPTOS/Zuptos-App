@@ -24,8 +24,8 @@ type PaymentsSectionProps = {
   setPixExpireMinutes: Dispatch<SetStateAction<string>>;
   showSellerDetail: boolean;
   setShowSellerDetail: Dispatch<SetStateAction<boolean>>;
-  requiredAddress: boolean;
-  setRequiredAddress: Dispatch<SetStateAction<boolean>>;
+  preferenceRequireAddress: boolean;
+  setPreferenceRequireAddress: Dispatch<SetStateAction<boolean>>;
 };
 
 export const PaymentsSection = ({
@@ -51,10 +51,19 @@ export const PaymentsSection = ({
   setPixExpireMinutes,
   showSellerDetail,
   setShowSellerDetail,
-  requiredAddress,
-  setRequiredAddress,
-}: PaymentsSectionProps) => (
-  <SectionCard title="Pagamentos" iconSrc="/images/editar-produtos/pagamentos.svg">
+  preferenceRequireAddress,
+  setPreferenceRequireAddress,
+}: PaymentsSectionProps) => {
+  const formatPercentInput = (value: string) => {
+    const numeric = value.replace(/\D/g, "");
+    if (!numeric) return "";
+    const parsed = Number.parseInt(numeric, 10);
+    if (Number.isNaN(parsed)) return "";
+    return String(Math.min(100, parsed));
+  };
+
+  return (
+    <SectionCard title="Pagamentos" iconSrc="/images/editar-produtos/pagamentos.svg">
     <div className="space-y-3">
       <p className="text-sm font-semibold text-foreground">Aceitar pagamentos de</p>
       <div className="flex gap-2 flex-wrap">
@@ -109,8 +118,7 @@ export const PaymentsSection = ({
                 setPaymentMethods(prev => {
                   const exists = prev.includes(method.value as "card" | "boleto" | "pix");
                   if (exists) {
-                    const next = prev.filter(item => item !== method.value);
-                    return next.length ? next : prev;
+                    return prev.filter(item => item !== method.value);
                   }
                   return [...prev, method.value as "card" | "boleto" | "pix"];
                 })
@@ -142,10 +150,12 @@ export const PaymentsSection = ({
               <span>Cartão de crédito</span>
               <div className="relative">
                 <input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className={`${fieldClass} pr-10`}
                   placeholder="0"
                   value={discountCard}
-                  onChange={event => setDiscountCard(event.target.value)}
+                  onChange={event => setDiscountCard(formatPercentInput(event.target.value))}
                 />
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
               </div>
@@ -154,10 +164,12 @@ export const PaymentsSection = ({
               <span>Pix</span>
               <div className="relative">
                 <input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className={`${fieldClass} pr-10`}
                   placeholder="0"
                   value={discountPix}
-                  onChange={event => setDiscountPix(event.target.value)}
+                  onChange={event => setDiscountPix(formatPercentInput(event.target.value))}
                 />
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
               </div>
@@ -168,10 +180,12 @@ export const PaymentsSection = ({
               <span>Boleto</span>
               <div className="relative">
                 <input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className={`${fieldClass} pr-10`}
                   placeholder="0"
                   value={discountBoleto}
-                  onChange={event => setDiscountBoleto(event.target.value)}
+                  onChange={event => setDiscountBoleto(formatPercentInput(event.target.value))}
                 />
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">%</span>
               </div>
@@ -205,17 +219,22 @@ export const PaymentsSection = ({
             <p className="text-sm font-semibold text-foreground">Boleto</p>
             <label className="space-y-2 text-xs text-muted-foreground">
               <span>Dias para vencimento</span>
-              <select
-                className={`${fieldClass} appearance-none`}
-                value={boletoDueDays}
-                onChange={event => setBoletoDueDays(event.target.value)}
-              >
-                {["1", "2", "3", "4", "5"].map(day => (
-                  <option key={day} value={day}>
-                    {day} dia{day === "1" ? "" : "s"}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  className={`${fieldClass} appearance-none pr-10`}
+                  value={boletoDueDays}
+                  onChange={event => setBoletoDueDays(event.target.value)}
+                >
+                  {["1", "2", "3", "4", "5"].map(day => (
+                    <option key={day} value={day}>
+                      {day} dia{day === "1" ? "" : "s"}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                  ▾
+                </span>
+              </div>
             </label>
           </div>
           <div className="space-y-2">
@@ -253,13 +272,14 @@ export const PaymentsSection = ({
             <input
               type="checkbox"
               className="ui-checkbox"
-              checked={requiredAddress}
-              onChange={event => setRequiredAddress(event.target.checked)}
+              checked={preferenceRequireAddress}
+              onChange={event => setPreferenceRequireAddress(event.target.checked)}
             />
             Solicitar endereço do comprador
           </label>
         </div>
       </div>
     </div>
-  </SectionCard>
-);
+    </SectionCard>
+  );
+};

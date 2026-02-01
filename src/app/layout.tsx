@@ -24,13 +24,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const fontClasses = `${sora.className} ${sora.variable}`;
-
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning className={sora.variable}>
       <body
         suppressHydrationWarning
-        className={`min-h-screen bg-background text-foreground transition-colors ${fontClasses}`}
+        className={`min-h-screen bg-background text-foreground transition-colors ${sora.className}`}
       >
         <Providers>{children}</Providers>
       </body>

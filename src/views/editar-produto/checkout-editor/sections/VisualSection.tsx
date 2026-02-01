@@ -23,6 +23,7 @@ type VisualSectionProps = {
   onRemoveBanner: () => void;
   theme: "light" | "dark";
   setTheme: Dispatch<SetStateAction<"light" | "dark">>;
+  accentColor: string;
   setAccentColor: Dispatch<SetStateAction<string>>;
 };
 
@@ -45,6 +46,7 @@ export const VisualSection = ({
   onRemoveBanner,
   theme,
   setTheme,
+  accentColor,
   setAccentColor,
 }: VisualSectionProps) => (
   <SectionCard title="Visual" iconSrc="/images/editar-produtos/visual.svg">
@@ -53,7 +55,7 @@ export const VisualSection = ({
         <span>Logotipo</span>
         <button
           type="button"
-          className={`relative inline-flex h-5 w-10 items-center rounded-full ${showLogo ? "bg-primary/70" : "bg-muted"}`}
+          className={`relative inline-flex h-5 w-10 items-center rounded-full ${showLogo ? "bg-gray-400" : "bg-muted"}`}
           onClick={() => setShowLogo(prev => !prev)}
         >
           <span
@@ -287,11 +289,27 @@ export const VisualSection = ({
               className="space-y-1 rounded-[10px] border border-foreground/15 bg-card p-2 text-center"
             >
               <button
-                className="h-10 w-full rounded-[8px]"
+                className="relative h-10 w-full overflow-hidden rounded-[8px]"
                 style={{ backgroundColor: option.color }}
                 aria-label={option.label}
                 onClick={() => setAccentColor(option.color)}
-              />
+              >
+                {accentColor === option.color && (
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[8px] bg-[#1f1f1f]/60">
+                    <svg
+                      className="h-5 w-5 text-white"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.704 5.29a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.793-6.793a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                )}
+              </button>
               <p className="text-[11px] text-foreground">{option.label}</p>
             </div>
           ))}

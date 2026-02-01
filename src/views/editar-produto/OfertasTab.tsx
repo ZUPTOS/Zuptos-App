@@ -815,11 +815,24 @@ export function OfertasTab({ productId, token, withLoading }: Props) {
                               </div>
                               <p className="text-lg font-semibold text-foreground">
                                 {(() => {
+                                  const bumpOffer =
+                                    orderBumpOffers.find(offer => offer.id === item.offer) ??
+                                    orderBumpOffers.find(
+                                      offer =>
+                                        offer.id === (item as { offer_id?: string }).offer_id ||
+                                        (offer as { offer_id?: string }).offer_id === item.offer
+                                    );
+                                  const rawOfferPrice =
+                                    bumpOffer?.offer_price ??
+                                    (bumpOffer as { offerPrice?: number | string }).offerPrice ??
+                                    (bumpOffer as { price?: number | string }).price;
                                   const bumpPrice =
-                                    item.price ??
-                                    parseBRLToNumber(offerPrice) ??
-                                    parseBRLToNumber(subscriptionPrice);
-                                  return bumpPrice !== undefined
+                                    rawOfferPrice != null
+                                      ? typeof rawOfferPrice === "number"
+                                        ? rawOfferPrice
+                                        : parseBRLToNumber(String(rawOfferPrice))
+                                      : item.price;
+                                  return bumpPrice !== undefined && bumpPrice !== null && !Number.isNaN(bumpPrice)
                                     ? bumpPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
                                     : "Preço não informado";
                                 })()}

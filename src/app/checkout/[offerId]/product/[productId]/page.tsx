@@ -43,28 +43,6 @@ const normalizePublicAssetPath = (value?: string | null) => {
   return `/${trimmed}`;
 };
 
-const extractStorageBase = (value?: string | null) => {
-  if (!value) return undefined;
-  try {
-    const url = new URL(value);
-    const marker = "/zuptos-checkouts/";
-    const index = url.pathname.indexOf(marker);
-    if (index === -1) return undefined;
-    return `${url.origin}${url.pathname.slice(0, index + marker.length)}`;
-  } catch {
-    return undefined;
-  }
-};
-
-const applyStorageBase = (value: string | undefined, base?: string) => {
-  if (!value) return undefined;
-  if (/^https?:\/\//i.test(value)) return value;
-  if (!base) return value.startsWith("/") ? value : `/${value}`;
-  const trimmedBase = base.replace(/\/$/, "");
-  const trimmedValue = value.startsWith("/") ? value.slice(1) : value;
-  return `${trimmedBase}/${trimmedValue}`;
-};
-
 const normalizeProduct = (raw?: PublicCheckoutOfferResponse["product"] | null): Product | null => {
   if (!raw) return null;
   const data = raw as unknown as Record<string, unknown>;
@@ -82,6 +60,7 @@ const normalizeProduct = (raw?: PublicCheckoutOfferResponse["product"] | null): 
     sale_url: toString(pick(data.sale_url, data.saleUrl)),
     login_username: toString(pick(data.login_username, data.loginUsername)),
     login_password: toString(pick(data.login_password, data.loginPassword)),
+    coupons: Array.isArray(data.coupons) ? (data.coupons as Product["coupons"]) : undefined,
   };
 };
 
@@ -114,14 +93,24 @@ const normalizeCheckout = (
       toBoolean(data.requiredEmailConfirmation)
     ),
     position_logo: pick(base.position_logo, toString(data.positionLogo)),
+    default_color: pick(base.default_color, toString(data.defaultColor), toString(data.default_color)),
+    defaultColor: pick(base.defaultColor, toString(data.defaultColor), toString(data.default_color)),
     countdown_active: pick(
       base.countdown_active,
       toBoolean(data.countdownActive),
       toBoolean(data["countdown active"])
     ),
     countdown_expire: pick(base.countdown_expire, toString(data.countdownExpire)),
-    countdown_background: pick(base.countdown_background, toString(data.countdownBackground)),
-    countdown_text_color: pick(base.countdown_text_color, toString(data.countdownTextColor)),
+    countdown_background: pick(
+      base.countdown_background,
+      toString(data.countdownBackground),
+      toString(data.countdown_background)
+    ),
+    countdown_text_color: pick(
+      base.countdown_text_color,
+      toString(data.countdownTextColor),
+      toString(data.countdown_text_color)
+    ),
     social_proofs_message: pick(base.social_proofs_message, toString(data.socialProofsMessage)),
     social_proofs_min_client: pick(
       base.social_proofs_min_client,
@@ -179,16 +168,25 @@ const normalizeCheckout = (
     testimonials: pick(base.testimonials, data.testimonials as CheckoutType["testimonials"]),
     sales_notifications_enabled: pick(
       base.sales_notifications_enabled,
-      toBoolean(data.salesNotificationsEnabled)
+      toBoolean(data.salesNotificationsEnabled),
+      toBoolean(data.sellNotification),
+      toBoolean(data.sell_notification)
     ),
+    sell_notification: pick(
+      base.sell_notification,
+      toBoolean(data.sellNotification),
+      toBoolean(data.sell_notification)
+    ),
+    sell_time: pick(base.sell_time, toNumber(data.sellTime), toNumber(data.sell_time)),
+    people_buy: pick(base.people_buy, toNumber(data.peopleBuy), toNumber(data.people_buy)),
+    buy_now: pick(base.buy_now, toNumber(data.buyNow), toNumber(data.buy_now)),
+    buy_at_thirty: pick(base.buy_at_thirty, toNumber(data.buyAtThirty), toNumber(data.buy_at_thirty)),
+    buy_at_hour: pick(base.buy_at_hour, toNumber(data.buyAtHour), toNumber(data.buy_at_hour)),
     social_proof_enabled: pick(base.social_proof_enabled, toBoolean(data.socialProofEnabled)),
   };
 };
 
-const normalizeDepoiments = (
-  items: unknown,
-  storageBase?: string
-): NonNullable<CheckoutType["testimonials"]> => {
+const normalizeDepoiments = (items: unknown): NonNullable<CheckoutType["testimonials"]> => {
   if (!Array.isArray(items)) return [];
   return items.map(item => {
     const data = item as Record<string, unknown>;
@@ -198,7 +196,7 @@ const normalizeDepoiments = (
       name: toString(data.name) ?? "Nome",
       text: toString(pick(data.depoiment, data.text)) ?? "",
       rating: toNumber(pick(data.rating, data.ratting)),
-      image: applyStorageBase(rawImage, storageBase),
+      image: rawImage,
       active: pick(toBoolean(data.active), true),
     };
   });
@@ -208,6 +206,22 @@ const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bu
   if (!Array.isArray(items)) return [];
   return items.map(item => {
     const data = item as Record<string, unknown>;
+    const bumpOffer = (pick(data.bumpedOfferShow, data.bumped_offer_show) ?? null) as
+      | Record<string, unknown>
+      | null;
+    const bumpOfferPrice = bumpOffer
+      ? toNumber(pick(bumpOffer.offerPrice, bumpOffer.offer_price, bumpOffer.price))
+      : undefined;
+    const bumpOfferNormal = bumpOffer
+      ? toNumber(
+          pick(
+            bumpOffer.normalPrice,
+            bumpOffer.normal_price,
+            bumpOffer.price_before,
+            bumpOffer.priceBefore
+          )
+        )
+      : undefined;
     const promoPrice = toNumber(
       pick(
         data.offer_price,
@@ -216,7 +230,8 @@ const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bu
         data.discountPrice,
         data.promotional_price,
         data.promotionalPrice,
-        data.price
+        data.price,
+        bumpOfferPrice
       )
     );
     const normalPrice = toNumber(
@@ -226,7 +241,8 @@ const normalizeOrderBumps = (items: unknown): NonNullable<ProductOffer["order_bu
         data.original_price,
         data.originalPrice,
         data.price_before,
-        data.priceBefore
+        data.priceBefore,
+        bumpOfferNormal
       )
     );
     return {
@@ -307,17 +323,11 @@ export default function PublicCheckoutPage() {
         const data = await fetchPublicCheckout(baseUrl, offerId, productId);
         console.log("[publicCheckout] Dados carregados:", { productId, offerId, data });
         const normalizedCheckout = normalizeCheckout(data.checkout);
-        const rawCheckout = data.checkout as Record<string, unknown> | undefined;
-        const storageBase =
-          extractStorageBase(toString(rawCheckout?.logo)) ||
-          extractStorageBase(toString(rawCheckout?.banner)) ||
-          extractStorageBase(normalizedCheckout?.logo ?? undefined) ||
-          extractStorageBase(normalizedCheckout?.banner ?? undefined);
         const checkoutRecord = data.checkout as Record<string, unknown> | undefined;
         const rawDepoiments =
           (data as Record<string, unknown>).depoiments ??
           checkoutRecord?.productCheckoutDepoiments;
-        const depoiments = normalizeDepoiments(rawDepoiments, storageBase);
+        const depoiments = normalizeDepoiments(rawDepoiments);
         const normalizedProduct = normalizeProduct(data.product);
         if (!normalizedCheckout) {
           setError("Checkout não encontrado");

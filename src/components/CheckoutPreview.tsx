@@ -230,7 +230,8 @@ export default function CheckoutPreview(props: CheckoutPreviewProps) {
       <html>
         <head>
           <style>
-            body { margin:0; padding:0; background:${bg}; font-family: Inter, system-ui, -apple-system, sans-serif; color:#cbd5e1; }
+            @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
+            body { margin:0; padding:0; background:${bg}; font-family: 'Sora', system-ui, -apple-system, sans-serif; color:#cbd5e1; }
             .top { height:64px; background:${counterBgColor || accent}; display:flex; align-items:center; justify-content:center; color:${counterTextColor || "#fff"}; font-weight:700; }
             .progress { height:56px; background:${counterBgColor ? `${counterBgColor}33` : "#d1d5db"}; }
             .wrap { padding:24px; }

@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Checkout, Product, ProductOffer } from "@/lib/api";
+import type { Checkout, Product, ProductCoupon, ProductOffer } from "@/lib/api";
 import { formatDocument, formatPhone, formatCardNumber, formatCardExpiry } from "@/lib/utils/formatters";
 
 const paymentButtons = [
@@ -43,13 +43,93 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       : logoPosition === "right"
       ? "right-4 sm:right-6"
       : "left-4 sm:left-6";
-  const showEmailConfirmation = checkout?.required_email_confirmation ?? false;
-  const showDocument = checkout?.required_document ?? false;
+  const toBoolean = (value: unknown) =>
+    value === true || value === "true" || value === 1 || value === "1";
+  const pick = <T,>(...values: Array<T | null | undefined>) =>
+    values.find(value => value !== undefined && value !== null);
+  const toNumber = (value: unknown): number | undefined => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+    return undefined;
+  };
+  const toText = (value: unknown): string | undefined =>
+    typeof value === "string" ? value : undefined;
+  const rawCheckout = checkout as Record<string, unknown> | null | undefined;
+  const paymentData = rawCheckout?.productCheckoutPayment as Record<string, unknown> | undefined;
+  const rawProduct = product as Record<string, unknown> | null | undefined;
+  const coupons = useMemo(() => {
+    const rawCoupons = rawProduct?.coupons;
+    if (!Array.isArray(rawCoupons)) return [] as ProductCoupon[];
+    return rawCoupons.map(item => {
+      const data = item as Record<string, unknown>;
+      return {
+        id: toText(data.id) ?? "",
+        internal_name: toText(data.internalName ?? data.internal_name),
+        coupon_code: toText(data.couponCode ?? data.coupon_code ?? data.code),
+        discount_amount: toNumber(data.discountAmount ?? data.discount_amount ?? data.discount),
+        is_percentage: toBoolean(data.isPercentage ?? data.is_percentage),
+        minimum_purchase_amount: toNumber(
+          data.minimumPurchaseAmount ?? data.minimum_purchase_amount
+        ),
+        limit_usage: toNumber(data.limitUsage ?? data.limit_usage),
+        expires_at: toText(data.expiresAt ?? data.expires_at),
+        status: toText(data.status),
+        name: toText(data.name),
+      } satisfies ProductCoupon;
+    });
+  }, [rawProduct]);
+  const acceptDocumentIndividual = toBoolean(
+    paymentData?.acceptDocumentIndividual ?? paymentData?.accept_document_individual
+  );
+  const acceptDocumentCompany = toBoolean(
+    paymentData?.acceptDocumentCompany ?? paymentData?.accept_document_company
+  );
+  const showEmailConfirmation =
+    checkout?.required_email_confirmation ??
+    toBoolean(rawCheckout?.requiredEmailConfirmation) ??
+    false;
+  const rawCountdownExpire = pick(
+    checkout?.countdown_expire,
+    rawCheckout?.countdownExpire,
+    rawCheckout?.countdown_expire
+  );
+  const countdownMinutes = toNumber(rawCountdownExpire);
+  const countdownActiveMessage =
+    toText(rawCheckout?.countdown_message_active) ??
+    toText(rawCheckout?.countdownMessageActive) ??
+    toText(rawCheckout?.countdown_message) ??
+    toText(rawCheckout?.countdownMessage) ??
+    checkout?.after_sale_title ??
+    "Tempo limitado";
+  const countdownExpiredMessage =
+    toText(rawCheckout?.countdown_message_expired) ??
+    toText(rawCheckout?.countdownMessageExpired) ??
+    checkout?.after_sale_message ??
+    "Tempo esgotado.";
+  const acceptAnyDocument = acceptDocumentIndividual || acceptDocumentCompany;
+  const showDocument = Boolean(
+    checkout?.required_document ??
+      toBoolean(rawCheckout?.requiredDocument) ??
+      acceptAnyDocument
+  );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const showBirthdate = checkout?.required_birthdate ?? false;
-  const showPhone = checkout?.required_phone ?? false;
+  const showBirthdate =
+    checkout?.required_birthdate ??
+    toBoolean(rawCheckout?.requiredBirthdate) ??
+    false;
+  const showPhone =
+    checkout?.required_phone ??
+    toBoolean(rawCheckout?.requiredPhone) ??
+    false;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const showAddress = checkout?.required_address ?? false;
+  const showAddress =
+    checkout?.required_address ??
+    toBoolean(rawCheckout?.requiredAddress) ??
+    toBoolean(paymentData?.requireAddress ?? paymentData?.require_address) ??
+    false;
   const testimonials = useMemo(
     () => (checkout?.testimonials ?? []).filter(item => item.active !== false),
     [checkout?.testimonials]
@@ -78,10 +158,6 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     plan?.normal_price ?? plan?.normalPrice ?? plan?.plan_price ?? plan?.planPrice ?? plan?.price_first_cycle ?? plan?.priceFirstCycle;
   const planPromo = plan?.discount_price ?? plan?.discountPrice;
   const offerBasePrice = offer?.offer_price ?? (offer?.free ? 0 : undefined);
-  const orderBumpNormal = offerType === "subscription" ? planNormal ?? planPromo ?? offerBasePrice : offerBasePrice;
-  const orderBumpPromo = offerType === "subscription" ? planPromo : null;
-  const orderBumpHasDiscount =
-    orderBumpNormal != null && orderBumpPromo != null && Number(orderBumpNormal) !== Number(orderBumpPromo);
   const formatBRL = (value: number) =>
     Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const hasOrderBumps = Boolean(offer?.order_bumps?.length);
@@ -98,9 +174,54 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     : "R$ 0,00";
   const availablePaymentMethods = useMemo(() => {
     const methods = checkout?.payment_methods;
-    return methods && methods.length > 0 ? methods : ["card", "pix", "boleto"];
-  }, [checkout?.payment_methods]);
+    if (methods && methods.length > 0) return methods;
+    const fallback: Array<"card" | "pix" | "boleto"> = [];
+    const acceptCreditCard = toBoolean(paymentData?.acceptCreditCard ?? paymentData?.accept_credit_card);
+    const acceptPix = toBoolean(paymentData?.acceptPix ?? paymentData?.accept_pix);
+    const acceptTicket = toBoolean(paymentData?.acceptTicket ?? paymentData?.accept_ticket);
+    if (acceptCreditCard) fallback.push("card");
+    if (acceptPix) fallback.push("pix");
+    if (acceptTicket) fallback.push("boleto");
+    return fallback.length ? fallback : ["card", "pix", "boleto"];
+  }, [checkout?.payment_methods, paymentData]);
   const [paymentMethod, setPaymentMethod] = useState<string>(availablePaymentMethods[0] ?? "card");
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(() => {
+    if (!showCountdown) return 0;
+    if (typeof countdownMinutes === "number" && Number.isFinite(countdownMinutes)) {
+      return Math.max(0, Math.floor(countdownMinutes * 60));
+    }
+    return 0;
+  });
+  useEffect(() => {
+    setPaymentMethod(prev =>
+      availablePaymentMethods.includes(prev) ? prev : availablePaymentMethods[0] ?? "card"
+    );
+  }, [availablePaymentMethods]);
+
+  useEffect(() => {
+    if (!showCountdown) return;
+    if (typeof countdownMinutes === "number" && Number.isFinite(countdownMinutes)) {
+      setCountdownSeconds(Math.max(0, Math.floor(countdownMinutes * 60)));
+    }
+  }, [showCountdown, countdownMinutes]);
+
+  useEffect(() => {
+    if (!showCountdown) return;
+    if (countdownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCountdownSeconds(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [showCountdown, countdownSeconds]);
+
+  const formatCountdown = (totalSeconds: number) => {
+    const safe = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safe / 3600);
+    const minutes = Math.floor((safe % 3600) / 60);
+    const seconds = safe % 60;
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [selectedBumps, setSelectedBumps] = useState<Record<string, boolean>>({});
   const [bannerFailed, setBannerFailed] = useState(false);
@@ -194,6 +315,55 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
   const bannerSrc = resolveAssetUrl(checkout?.banner);
   const logoSrc = resolveAssetUrl(checkout?.logo);
 
+  const couponEnabled = toBoolean(paymentData?.acceptCoupon ?? paymentData?.accept_coupon);
+  const selectedBumpsTotal = useMemo(() => {
+    if (!offer?.order_bumps?.length) return 0;
+    return offer.order_bumps.reduce((sum, bump) => {
+      if (!bump.id || !selectedBumps[bump.id]) return sum;
+      const value = Number(bump.offer_price ?? bump.price ?? 0);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+  }, [offer?.order_bumps, selectedBumps]);
+  const subtotalValue = productPriceValue + selectedBumpsTotal;
+  const discountLines = useMemo(() => {
+    if (!couponEnabled) return [] as Array<{ id: string; label: string; value: number; code?: string }>;
+    const activeCoupons = coupons.filter(coupon => {
+      if (!coupon.status) return true;
+      return coupon.status.toLowerCase() === "active";
+    });
+    return activeCoupons.map(coupon => {
+      const discountValue = coupon.is_percentage
+        ? (subtotalValue * Number(coupon.discount_amount ?? 0)) / 100
+        : Number(coupon.discount_amount ?? 0);
+      const percentageLabel = coupon.is_percentage
+        ? ` (${Number(coupon.discount_amount ?? 0)}%)`
+        : "";
+      const label =
+        coupon.internal_name ||
+        coupon.name ||
+        coupon.coupon_code ||
+        "Desconto";
+      return {
+        id: coupon.id,
+        label: `${label}${percentageLabel}`,
+        value: Math.max(0, discountValue),
+        code: coupon.coupon_code,
+      };
+    });
+  }, [couponEnabled, coupons, subtotalValue]);
+  const totalDiscount = discountLines.reduce((sum, item) => sum + item.value, 0);
+  const totalValue = Math.max(0, subtotalValue - totalDiscount);
+  const selectedBumpLines = useMemo(() => {
+    if (!offer?.order_bumps?.length) return [] as Array<{ id: string; label: string; value: number }>;
+    return offer.order_bumps
+      .filter(bump => bump.id && selectedBumps[bump.id])
+      .map(bump => ({
+        id: bump.id as string,
+        label: bump.title ? `Order Bump - ${bump.title}` : "Order Bump",
+        value: Number(bump.offer_price ?? bump.price ?? 0),
+      }));
+  }, [offer?.order_bumps, selectedBumps]);
+
 
   const handleInputChange = (field: keyof typeof formState, value: string) => {
     let formattedValue = value;
@@ -253,12 +423,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       const data = await response.json().catch(() => null);
       console.log("[publicCheckout] Resposta do pagamento:", { status: response.status, data });
       if (response.ok) {
-        const priceValue =
-          offer?.free
-            ? 0
-            : offerType === "subscription"
-              ? Number(planPromo ?? planNormal ?? offerBasePrice ?? 0)
-              : Number(offerBasePrice ?? 0);
+        const priceValue = totalValue;
         const params = new URLSearchParams({
           product: title,
           price: Number.isFinite(priceValue) ? String(priceValue) : "0",
@@ -283,12 +448,14 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
       {showCountdown ? (
         <header
           className="flex items-center justify-between gap-4 px-4 py-4 text-xl font-semibold sm:px-8"
-          style={{ backgroundColor: accent }}
+          style={{ backgroundColor: checkout?.countdown_background || accent }}
         >
-          <span className="tracking-tight">{checkout?.countdown_expire || "00:00:00"}</span>
+          <span className="tracking-tight">
+            {countdownSeconds > 0 ? formatCountdown(countdownSeconds) : "00:00:00"}
+          </span>
           <CheckCircle2 className="h-10 w-10" />
           <span className="text-sm sm:text-base" style={{ color: checkout?.countdown_text_color || "#fff" }}>
-            {checkout?.after_sale_title || "Tempo limitado"}
+            {countdownSeconds > 0 ? countdownActiveMessage : countdownExpiredMessage}
           </span>
         </header>
       ) : (
@@ -554,6 +721,7 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                   </div>
                 </div>
               </div>
+
             </div>
 
             <div className="space-y-4 lg:col-start-2">
@@ -653,10 +821,21 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                   <div className={`px-5 pt-5 text-lg font-semibold ${textPrimary}`}>Order Bumps</div>
                   <div className="p-5 pt-3 space-y-3">
                     {offer?.order_bumps?.map((bump, idx) => {
+                      const bumpPromoValue =
+                        bump.offer_price ?? bump.price ?? (offerType === "subscription" ? planPromo : undefined);
+                      const bumpNormalValue =
+                        bump.normal_price ??
+                        bump.offer_price ??
+                        bump.price ??
+                        (offerType === "subscription" ? planNormal ?? planPromo : undefined);
+                      const bumpHasDiscount =
+                        bumpNormalValue != null &&
+                        bumpPromoValue != null &&
+                        Number(bumpNormalValue) !== Number(bumpPromoValue);
                       const formattedNormal =
-                        orderBumpNormal != null ? formatBRL(Number(orderBumpNormal)) : null;
+                        bumpNormalValue != null ? formatBRL(Number(bumpNormalValue)) : null;
                       const formattedPromo =
-                        orderBumpPromo != null ? formatBRL(Number(orderBumpPromo)) : null;
+                        bumpPromoValue != null ? formatBRL(Number(bumpPromoValue)) : null;
                       return (
                         <label
                           key={bump.id ?? `${idx}-${bump.title}`}
@@ -689,9 +868,9 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                             <div className="flex flex-col gap-1">
                               <p className={`text-sm font-semibold ${textPrimary}`}>{bump.title || "Order Bump"}</p>
                               <div className="flex flex-wrap items-center gap-2 text-xs">
-                                {offer?.free ? (
+                                {Number(bumpPromoValue ?? 0) === 0 ? (
                                   <span className="text-emerald-400">Gratuito</span>
-                                ) : orderBumpHasDiscount ? (
+                                ) : bumpHasDiscount ? (
                                   <>
                                     <span className="text-rose-500">{formattedNormal}</span>
                                     <span className={isDark ? "text-neutral-400" : "text-neutral-600"}>por apenas</span>
@@ -711,6 +890,62 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                   </div>
                 </div>
               )}
+
+              <div className="rounded-[10px] border" style={{ backgroundColor: cardBg, borderColor }}>
+                <div className={`px-5 pt-5 text-lg font-semibold ${textPrimary}`}>Resumo</div>
+                <div className="p-5 pt-4 text-sm">
+                  <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
+                    <span>Produto</span>
+                    <span className={textPrimary}>{formatBRL(productPriceValue)}</span>
+                  </div>
+
+                  {selectedBumpLines.length > 0 && (
+                    <div className="mt-3 space-y-2 text-xs">
+                      {selectedBumpLines.map(line => (
+                        <div key={line.id} className="flex items-center justify-between">
+                          <span className={isDark ? "text-neutral-400" : "text-neutral-600"}>
+                            {line.label}
+                          </span>
+                          <span className={textPrimary}>{formatBRL(line.value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {discountLines.length > 0 && (
+                    <div className="mt-3 space-y-2 text-xs">
+                      {discountLines.map(line => (
+                        <div key={line.id || line.label} className="flex items-center justify-between">
+                          <span className={isDark ? "text-neutral-400" : "text-neutral-600"}>
+                            {line.label}
+                            {line.code ? ` (${line.code})` : ""}
+                          </span>
+                          <span className="text-emerald-400">- {formatBRL(line.value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="relative mt-4 pt-4">
+                    <div
+                      className="absolute left-0 right-0 top-0 border-t border-dashed"
+                      style={{ borderColor }}
+                    />
+                    <span
+                      className="absolute -left-3 top-0 h-5 w-5 -translate-y-1/2 rounded-full border"
+                      style={{ backgroundColor: background, borderColor }}
+                    />
+                    <span
+                      className="absolute -right-3 top-0 h-5 w-5 -translate-y-1/2 rounded-full border"
+                      style={{ backgroundColor: background, borderColor }}
+                    />
+                    <div className="flex items-center justify-between text-base font-semibold">
+                      <span className={textPrimary}>Total</span>
+                      <span className={textPrimary}>{formatBRL(totalValue)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <button
                 type="button"

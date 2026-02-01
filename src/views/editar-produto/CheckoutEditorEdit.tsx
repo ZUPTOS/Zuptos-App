@@ -3,16 +3,15 @@
 
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
-import Image from "next/image";
 import { productApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import type { CheckoutPayload, Product } from "@/lib/api";
 import { CheckoutTemplate } from "@/lib/api";
 import { useLoadingOverlay } from "@/contexts/LoadingOverlayContext";
-import { Skeleton } from "@/shared/ui/skeleton";
 import { Pencil, Trash2 } from "lucide-react";
 import { notify } from "@/shared/ui/notification-toast";
 import { SectionCard, fieldClass } from "./checkout-editor/shared";
+import { ProductHeader } from "./components/ProductHeader";
 import {
   buildPreviewFromFile,
   buildStoredPreview,
@@ -27,26 +26,18 @@ import { VisualSection } from "./checkout-editor/sections/VisualSection";
 import { PaymentsSection } from "./checkout-editor/sections/PaymentsSection";
 import { PreviewSection } from "./checkout-editor/sections/PreviewSection";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  minimumFractionDigits: 2,
-});
-
 type Props = {
   productId?: string;
   checkoutId?: string;
-  mode?: "create" | "edit";
   onBack?: () => void;
   backLabel?: string;
   onClose?: () => void;
   onSaved?: () => void;
 };
 
-export function CheckoutEditor({
+export function CheckoutEditorEdit({
   productId: productIdProp,
   checkoutId,
-  mode,
   onBack,
   backLabel,
   onClose,
@@ -83,6 +74,7 @@ export function CheckoutEditor({
   const [counterBgColor, setCounterBgColor] = useState("#111111");
   const [counterTextColor, setCounterTextColor] = useState("#FFFFFF");
   const [countdownEnabled, setCountdownEnabled] = useState(false);
+  const [countdownExpireMinutes, setCountdownExpireMinutes] = useState("");
   const [accentColor, setAccentColor] = useState("#5f17ff");
   const [couponEnabled, setCouponEnabled] = useState(false);
   const [discountCard, setDiscountCard] = useState("");
@@ -94,6 +86,7 @@ export function CheckoutEditor({
   const [pixExpireMinutes, setPixExpireMinutes] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [salesNotificationsEnabled, setSalesNotificationsEnabled] = useState(false);
+  const [salesNotificationInterval, setSalesNotificationInterval] = useState("");
   const [socialProofEnabled, setSocialProofEnabled] = useState(false);
   const [socialProofMessage, setSocialProofMessage] = useState("");
   const [socialProofMinClient, setSocialProofMinClient] = useState("");
@@ -143,7 +136,7 @@ export function CheckoutEditor({
   const [editingTestimonialIndex, setEditingTestimonialIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isEdit = mode === "edit" || Boolean(checkoutId);
+  const isEdit = true;
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
   const testimonialImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -495,17 +488,19 @@ export function CheckoutEditor({
 
         if (resolvedPaymentMethodId) {
           setPaymentMethodId(resolvedPaymentMethodId);
-          try {
-            const paymentDetail = await productApi.getCheckoutPaymentMethodById(
-              productId,
-              checkoutId,
-              resolvedPaymentMethodId,
-              token
-            );
-            console.log("[checkout] PaymentMethod GET:", paymentDetail);
-            paymentSource = (paymentDetail as Record<string, unknown> | null) ?? paymentSource;
-          } catch (error) {
-            console.error("Erro ao buscar payment method do checkout:", error);
+          if (!paymentSource) {
+            try {
+              const paymentDetail = await productApi.getCheckoutPaymentMethodById(
+                productId,
+                checkoutId,
+                resolvedPaymentMethodId,
+                token
+              );
+              console.log("[checkout] PaymentMethod GET:", paymentDetail);
+              paymentSource = (paymentDetail as Record<string, unknown> | null) ?? paymentSource;
+            } catch (error) {
+              console.error("Erro ao buscar payment method do checkout:", error);
+            }
           }
         } else {
           setPaymentMethodId(null);
@@ -541,6 +536,18 @@ export function CheckoutEditor({
               } catch (error) {
                 console.error("Erro ao buscar mensagem específica:", error);
               }
+            }
+          }
+          if (!resolvedMessage) {
+            const messageFromCheckout =
+              coerceFirstRecord(checkoutPayload.productCheckoutMessage) ??
+              coerceFirstRecord(checkoutPayload.productCheckoutMessages) ??
+              coerceFirstRecord(checkoutPayload.product_checkout_message) ??
+              coerceFirstRecord(checkoutPayload.product_checkout_messages) ??
+              null;
+            if (messageFromCheckout) {
+              resolvedMessage = messageFromCheckout;
+              resolvedMessageId = (messageFromCheckout.id as string | undefined) ?? resolvedMessageId;
             }
           }
           setMessageId(resolvedMessageId ?? null);
@@ -600,6 +607,10 @@ export function CheckoutEditor({
         );
         setCounterBgColor((checkoutPayload.countdown_background as string | undefined) || "#111111");
         setCounterTextColor((checkoutPayload.countdown_text_color as string | undefined) || "#FFFFFF");
+        const rawExpire =
+          (checkoutPayload.countdown_expire as string | number | undefined) ??
+          (checkoutPayload.countdownExpire as string | number | undefined);
+        setCountdownExpireMinutes(rawExpire != null ? String(rawExpire) : "");
         const paymentSourceFallback = paymentSource;
         const acceptCompany =
           (paymentSourceFallback?.accept_document_company as boolean | undefined) ??
@@ -666,7 +677,48 @@ export function CheckoutEditor({
         );
         setBoletoDueDays(detailPayment?.boleto_due_days != null ? String(detailPayment.boleto_due_days) : "3");
         setPixExpireMinutes(detailPayment?.pix_expire_minutes != null ? String(detailPayment.pix_expire_minutes) : "");
-        setSalesNotificationsEnabled(Boolean(checkoutPayload.sales_notifications_enabled));
+        const sellNotificationEnabled =
+          (checkoutPayload.sell_notification as boolean | undefined) ??
+          (checkoutPayload.sellNotification as boolean | undefined) ??
+          (checkoutPayload.sales_notifications_enabled as boolean | undefined);
+        setSalesNotificationsEnabled(Boolean(sellNotificationEnabled));
+        const sellTimeValue =
+          (checkoutPayload.sell_time as number | string | undefined) ??
+          (checkoutPayload.sellTime as number | string | undefined);
+        setSalesNotificationInterval(
+          sellTimeValue != null && String(sellTimeValue).trim()
+            ? String(sellTimeValue).replace(/[^\d]/g, "")
+            : ""
+        );
+        const normalizeMinRule = (value: unknown) => {
+          const num = Number(value);
+          if (!Number.isFinite(num) || num <= 0) {
+            return { enabled: false, min: "" };
+          }
+          return { enabled: true, min: String(num) };
+        };
+        const minPeople = normalizeMinRule(
+          (checkoutPayload.people_buy as number | string | undefined) ??
+            (checkoutPayload.peopleBuy as number | string | undefined)
+        );
+        const minBuyNow = normalizeMinRule(
+          (checkoutPayload.buy_now as number | string | undefined) ??
+            (checkoutPayload.buyNow as number | string | undefined)
+        );
+        const minBuyThirty = normalizeMinRule(
+          (checkoutPayload.buy_at_thirty as number | string | undefined) ??
+            (checkoutPayload.buyAtThirty as number | string | undefined)
+        );
+        const minBuyHour = normalizeMinRule(
+          (checkoutPayload.buy_at_hour as number | string | undefined) ??
+            (checkoutPayload.buyAtHour as number | string | undefined)
+        );
+        setNotificationRules([
+          { id: "buying", label: "XX pessoas estão comprando o produto.", ...minPeople },
+          { id: "just-bought", label: "XX pessoas compraram o produto agora mesmo.", ...minBuyNow },
+          { id: "last-30", label: "XX pessoas compraram o produto nos últimos 30 minutos.", ...minBuyThirty },
+          { id: "last-hour", label: "XX pessoas compraram o produto na última hora.", ...minBuyHour },
+        ]);
         setSocialProofEnabled(Boolean(checkoutPayload.social_proof_enabled));
         setSocialProofMessage((checkoutPayload.social_proofs_message as string | undefined) || "");
         setSocialProofMinClient(
@@ -751,6 +803,9 @@ export function CheckoutEditor({
       payload.countdown_active = true;
       payload.countdown_background = counterBgColor;
       payload.countdown_text_color = counterTextColor;
+      if (countdownExpireMinutes.trim()) {
+        payload.countdown_expire = countdownExpireMinutes.trim();
+      }
     }
     if (showLogo) payload.position_logo = logoPosition;
     payload.social_proof_enabled = socialProofEnabled;
@@ -763,7 +818,21 @@ export function CheckoutEditor({
         payload.social_proofs_min_client = Number(minClientValue) || 0;
       }
     }
-    payload.sales_notifications_enabled = salesNotificationsEnabled;
+    const ruleMap = Object.fromEntries(notificationRules.map(rule => [rule.id, rule]));
+    const getMinValue = (id: string) => {
+      const rule = ruleMap[id] as { enabled?: boolean; min?: string } | undefined;
+      if (!salesNotificationsEnabled || !rule?.enabled) return 0;
+      const parsed = Number(rule.min);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    payload.sell_notification = salesNotificationsEnabled;
+    payload.sell_time = salesNotificationsEnabled
+      ? Number(salesNotificationInterval) || 0
+      : 0;
+    payload.people_buy = getMinValue("buying");
+    payload.buy_now = getMinValue("just-bought");
+    payload.buy_at_thirty = getMinValue("last-30");
+    payload.buy_at_hour = getMinValue("last-hour");
     payload.testimonials_enabled = reviewsEnabled;
     if (reviewsEnabled && testimonials.length) {
       payload.testimonials = testimonials.map(item => ({
@@ -806,18 +875,9 @@ export function CheckoutEditor({
               token
             );
           } else {
-            const createdMessage = await productApi.createCheckoutMessage(
-              productId,
-              targetCheckoutId,
-              messagePayload,
-              token
+            console.warn(
+              "[checkout] Mensagem pós-compra não encontrada para atualizar. Pulando PATCH."
             );
-            const createdMessageId =
-              (createdMessage as { id?: string; data?: { id?: string } } | undefined)?.id ??
-              (createdMessage as { data?: { id?: string } } | undefined)?.data?.id;
-            if (createdMessageId) {
-              setMessageId(createdMessageId);
-            }
           }
         } catch (error) {
           console.error("Erro ao salvar mensagem pós-compra:", error);
@@ -852,39 +912,16 @@ export function CheckoutEditor({
               : undefined,
           };
           console.log("[checkout] Payload métodos de pagamento:", paymentPayload);
-          if (isEdit) {
-            if (!paymentMethodId) {
-              notify.error("Método de pagamento não encontrado para atualizar.");
-            } else {
-              await productApi.updateCheckoutPaymentMethod(
-                productId,
-                targetCheckoutId,
-                paymentMethodId,
-                paymentPayload,
-                token
-              );
-            }
-          } else if (paymentMethodId && checkoutId) {
+          if (!paymentMethodId) {
+            notify.error("Método de pagamento não encontrado para atualizar.");
+          } else {
             await productApi.updateCheckoutPaymentMethod(
               productId,
-              checkoutId,
+              targetCheckoutId,
               paymentMethodId,
               paymentPayload,
               token
             );
-          } else {
-            const createdPayment = await productApi.saveCheckoutPaymentMethods(
-              productId,
-              targetCheckoutId,
-              paymentPayload,
-              token
-            );
-            const createdId =
-              (createdPayment as { id?: string; data?: { id?: string } } | undefined)?.id ??
-              (createdPayment as { data?: { id?: string } } | undefined)?.data?.id;
-            if (createdId) {
-              setPaymentMethodId(createdId);
-            }
           }
         } catch (error) {
           console.error("Erro ao salvar métodos de pagamento:", error);
@@ -1038,59 +1075,7 @@ export function CheckoutEditor({
           </div>
         )}
 
-        <div className="flex flex-col gap-4 rounded-[12px] border border-foreground/10 bg-card/80 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="overflow-hidden rounded-[10px] bg-foreground/10">
-              {productLoading ? (
-                <Skeleton className="h-[72px] w-[72px]" />
-              ) : (
-                <Image
-                  src={product?.image_url || "/images/produto.png"}
-                  alt={product?.name || "Produto"}
-                  width={72}
-                  height={72}
-                  className="h-[72px] w-[72px] object-cover"
-                />
-              )}
-            </div>
-            <div className="space-y-1">
-              {productLoading ? (
-                <>
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-16" />
-                </>
-              ) : (
-                <>
-                  <p className="text-base font-semibold text-foreground">{product?.name ?? "-----"}</p>
-                  <p className="text-xs font-semibold text-emerald-400">
-                    {product?.status && product.status.trim() ? product.status : "Ativo"}
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="text-right text-sm text-muted-foreground">
-            {productLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-28 ml-auto" />
-                <Skeleton className="h-3 w-24 ml-auto" />
-              </div>
-            ) : (
-              <>
-                <p className="font-semibold text-foreground">
-                  {product?.total_invoiced !== undefined
-                    ? `${currencyFormatter.format(Number(product.total_invoiced))} faturados`
-                    : "R$ ----- faturados"}
-                </p>
-                <p>
-                  {product?.total_sold !== undefined
-                    ? `${product.total_sold} vendas realizadas`
-                    : "-- vendas realizadas"}
-                </p>
-              </>
-            )}
-          </div>
-        </div>
+        <ProductHeader product={product} loading={productLoading} />
 
         <h1 className="text-xl font-semibold text-foreground">Editar Checkout</h1>
 
@@ -1215,6 +1200,23 @@ export function CheckoutEditor({
                 {countdownEnabled && (
                   <>
                     <div className="space-y-2 text-sm text-muted-foreground">
+                      <span>Tempo de expiração</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          className="h-11 w-24 rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          placeholder="15"
+                          value={countdownExpireMinutes}
+                          onChange={e => setCountdownExpireMinutes(e.target.value)}
+                        />
+                        <div className="flex h-11 items-center rounded-[10px] border border-foreground/15 bg-card px-4 text-sm text-muted-foreground">
+                          minutos
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-muted-foreground">
                       <span>Texto de mensagem ativa</span>
                       <textarea
                         className="min-h-[72px] w-full rounded-[10px] border border-foreground/15 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
@@ -1291,58 +1293,64 @@ export function CheckoutEditor({
                     <input
                       className="h-11 w-full rounded-[10px] border border-foreground/15 bg-card px-3 text-sm text-muted-foreground focus:border-primary focus:outline-none"
                       placeholder="15 segundos"
+                      value={salesNotificationInterval}
+                      onChange={event =>
+                        setSalesNotificationInterval(event.target.value.replace(/\D/g, ""))
+                      }
                     />
                   )}
                 </div>
 
-                <div className="space-y-2 text-xs text-muted-foreground">
-                  <div className="flex items-center justify-between text-sm text-foreground">
-                    <span>Configure as notificações</span>
-                    <span className="text-[11px] text-muted-foreground">Qnt mínima</span>
+                {salesNotificationsEnabled && (
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between text-sm text-foreground">
+                      <span>Configure as notificações</span>
+                      <span className="text-[11px] text-muted-foreground">Qnt mínima</span>
+                    </div>
+                    {notificationRules.map(rule => (
+                      <label key={rule.id} className="flex items-center gap-3 text-foreground">
+                        <input
+                          type="checkbox"
+                          className="ui-checkbox"
+                          checked={rule.enabled}
+                          onChange={() =>
+                            setNotificationRules(prev =>
+                              prev.map(item =>
+                                item.id === rule.id ? { ...item, enabled: !item.enabled } : item
+                              )
+                            )
+                          }
+                        />
+                        <span
+                          className={`flex-1 text-xs ${
+                            rule.enabled ? "text-foreground" : "text-muted-foreground"
+                          }`}
+                        >
+                          {rule.label}
+                        </span>
+                        <input
+                          className={`h-9 w-14 rounded-[8px] border border-foreground/20 px-2 text-xs focus:outline-none ${
+                            rule.enabled
+                              ? "bg-card text-foreground"
+                              : "bg-card/40 text-muted-foreground"
+                          }`}
+                          placeholder="1"
+                          disabled={!rule.enabled}
+                          value={rule.min}
+                          onChange={event =>
+                            setNotificationRules(prev =>
+                              prev.map(item =>
+                                item.id === rule.id
+                                  ? { ...item, min: event.target.value.replace(/\D/g, "") }
+                                  : item
+                              )
+                            )
+                          }
+                        />
+                      </label>
+                    ))}
                   </div>
-                  {notificationRules.map(rule => (
-                    <label key={rule.id} className="flex items-center gap-3 text-foreground">
-                      <input
-                        type="checkbox"
-                        className="ui-checkbox"
-                        checked={rule.enabled}
-                        onChange={() =>
-                          setNotificationRules(prev =>
-                            prev.map(item =>
-                              item.id === rule.id ? { ...item, enabled: !item.enabled } : item
-                            )
-                          )
-                        }
-                      />
-                      <span
-                        className={`flex-1 text-xs ${
-                          rule.enabled ? "text-foreground" : "text-muted-foreground"
-                        }`}
-                      >
-                        {rule.label}
-                      </span>
-                      <input
-                        className={`h-9 w-14 rounded-[8px] border border-foreground/20 px-2 text-xs focus:outline-none ${
-                          rule.enabled
-                            ? "bg-card text-foreground"
-                            : "bg-card/40 text-muted-foreground"
-                        }`}
-                        placeholder="1"
-                        disabled={!rule.enabled}
-                        value={rule.min}
-                        onChange={event =>
-                          setNotificationRules(prev =>
-                            prev.map(item =>
-                              item.id === rule.id
-                                ? { ...item, min: event.target.value.replace(/\D/g, "") }
-                                : item
-                            )
-                          )
-                        }
-                      />
-                    </label>
-                  ))}
-                </div>
+                )}
 
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between text-sm font-semibold text-foreground">
