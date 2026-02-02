@@ -273,6 +273,9 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     cardCvv: "",
     cardInstallments: "1",
   });
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<ProductCoupon | null>(null);
 
   const [emailError, setEmailError] = useState(false);
 
@@ -325,32 +328,46 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     }, 0);
   }, [offer?.order_bumps, selectedBumps]);
   const subtotalValue = productPriceValue + selectedBumpsTotal;
+  const paymentDiscountLine = useMemo(() => {
+    const rawDetail = (paymentData?.detailDiscount ?? paymentData?.detail_discount) as
+      | Record<string, unknown>
+      | undefined;
+    if (!rawDetail) return null;
+    const methodKey = paymentMethod === "card" ? "card" : paymentMethod === "pix" ? "pix" : "boleto";
+    const percent = toNumber(rawDetail[methodKey]);
+    if (!percent || percent <= 0) return null;
+    const label =
+      paymentMethod === "card"
+        ? "Cartão de crédito"
+        : paymentMethod === "pix"
+        ? "Pix"
+        : "Boleto";
+    const value = (subtotalValue * percent) / 100;
+    return {
+      id: `payment-${methodKey}`,
+      label: `Desconto ${label} (${percent}%)`,
+      value: Math.max(0, value),
+    };
+  }, [paymentData, paymentMethod, subtotalValue]);
+  const couponDiscountLine = useMemo(() => {
+    if (!couponEnabled || !appliedCoupon) return null;
+    const discountValue = Number(appliedCoupon.minimum_purchase_amount ?? 0);
+    if (!Number.isFinite(discountValue) || discountValue <= 0) {
+      return null;
+    }
+    const label = appliedCoupon.coupon_code ? `CUPOM: ${appliedCoupon.coupon_code}` : "Desconto";
+    return {
+      id: appliedCoupon.id,
+      label,
+      value: Math.max(0, discountValue),
+    };
+  }, [couponEnabled, appliedCoupon]);
   const discountLines = useMemo(() => {
-    if (!couponEnabled) return [] as Array<{ id: string; label: string; value: number; code?: string }>;
-    const activeCoupons = coupons.filter(coupon => {
-      if (!coupon.status) return true;
-      return coupon.status.toLowerCase() === "active";
-    });
-    return activeCoupons.map(coupon => {
-      const discountValue = coupon.is_percentage
-        ? (subtotalValue * Number(coupon.discount_amount ?? 0)) / 100
-        : Number(coupon.discount_amount ?? 0);
-      const percentageLabel = coupon.is_percentage
-        ? ` (${Number(coupon.discount_amount ?? 0)}%)`
-        : "";
-      const label =
-        coupon.internal_name ||
-        coupon.name ||
-        coupon.coupon_code ||
-        "Desconto";
-      return {
-        id: coupon.id,
-        label: `${label}${percentageLabel}`,
-        value: Math.max(0, discountValue),
-        code: coupon.coupon_code,
-      };
-    });
-  }, [couponEnabled, coupons, subtotalValue]);
+    const lines: Array<{ id: string; label: string; value: number; code?: string }> = [];
+    if (paymentDiscountLine) lines.push(paymentDiscountLine);
+    if (couponDiscountLine) lines.push(couponDiscountLine);
+    return lines;
+  }, [paymentDiscountLine, couponDiscountLine]);
   const totalDiscount = discountLines.reduce((sum, item) => sum + item.value, 0);
   const totalValue = Math.max(0, subtotalValue - totalDiscount);
   const selectedBumpLines = useMemo(() => {
@@ -374,6 +391,28 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
     if (field === "cardExpiry") formattedValue = formatCardExpiry(value);
 
     setFormState(prev => ({ ...prev, [field]: formattedValue }));
+  };
+
+  const handleApplyCoupon = () => {
+    if (!couponEnabled) return;
+    const code = couponCode.trim();
+    if (!code) {
+      setAppliedCoupon(null);
+      setCouponError(null);
+      return;
+    }
+    const found = coupons.find(coupon => {
+      const status = coupon.status?.toLowerCase();
+      if (status && status !== "active") return false;
+      return (coupon.coupon_code ?? "").toLowerCase() === code.toLowerCase();
+    });
+    if (!found) {
+      setAppliedCoupon(null);
+      setCouponError("Cupom não aceito");
+      return;
+    }
+    setAppliedCoupon(found);
+    setCouponError(null);
   };
 
   const handleConfirmPayment = async () => {
@@ -893,7 +932,31 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
 
               <div className="rounded-[10px] border" style={{ backgroundColor: cardBg, borderColor }}>
                 <div className={`px-5 pt-5 text-lg font-semibold ${textPrimary}`}>Resumo</div>
-                <div className="p-5 pt-4 text-sm">
+                <div className="p-5 pt-4 text-sm space-y-4">
+                  {couponEnabled && (
+                    <div className="flex items-center gap-3">
+                      <input
+                        className={`${inputClass} h-11 flex-1`}
+                        placeholder="Digite seu cupom"
+                        value={couponCode}
+                        onChange={event => {
+                          setCouponCode(event.target.value);
+                          setCouponError(null);
+                          setAppliedCoupon(null);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={`h-11 rounded-[6px] border px-5 text-sm font-semibold ${
+                          isDark ? "border-white/20 bg-[#121212] text-white" : "border-black/20 bg-white text-[#0a0a0a]"
+                        }`}
+                        onClick={handleApplyCoupon}
+                      >
+                        Aplicar
+                      </button>
+                      {couponError && <span className="text-xs text-rose-400 whitespace-nowrap">{couponError}</span>}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
                     <span>Produto</span>
                     <span className={textPrimary}>{formatBRL(productPriceValue)}</span>
@@ -926,18 +989,18 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                     </div>
                   )}
 
-                  <div className="relative mt-4 pt-4">
+                  <div className="relative pt-4">
                     <div
-                      className="absolute left-0 right-0 top-0 border-t border-dashed"
+                      className="absolute -left-5 -right-5 top-0 border-t border-dashed"
                       style={{ borderColor }}
                     />
                     <span
-                      className="absolute -left-3 top-0 h-5 w-5 -translate-y-1/2 rounded-full border"
-                      style={{ backgroundColor: background, borderColor }}
+                      className="absolute -left-8 top-0 h-6 w-6 -translate-y-1/2 rounded-full"
+                      style={{ backgroundColor: background }}
                     />
                     <span
-                      className="absolute -right-3 top-0 h-5 w-5 -translate-y-1/2 rounded-full border"
-                      style={{ backgroundColor: background, borderColor }}
+                      className="absolute -right-8 top-0 h-6 w-6 -translate-y-1/2 rounded-full"
+                      style={{ backgroundColor: background }}
                     />
                     <div className="flex items-center justify-between text-base font-semibold">
                       <span className={textPrimary}>Total</span>
