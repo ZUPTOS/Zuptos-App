@@ -143,8 +143,8 @@ export const PaymentsSection = ({
           />
         </button>
       </div>
-      {couponEnabled && (
-        <div className="space-y-3">
+      <p className="text-sm font-semibold text-foreground">Descontos</p>
+      <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="space-y-2 text-xs text-muted-foreground">
               <span>Cartão de crédito</span>
@@ -255,7 +255,6 @@ export const PaymentsSection = ({
             </label>
           </div>
         </div>
-      )}
       <div className="space-y-2">
         <p className="text-sm font-semibold text-foreground">Preferências</p>
         <div className="space-y-2 text-xs text-muted-foreground">

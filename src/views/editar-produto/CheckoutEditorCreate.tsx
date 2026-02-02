@@ -879,6 +879,33 @@ export function CheckoutEditorCreate({
       }
       if (targetCheckoutId && productId && token && shouldSendPaymentMethods) {
         try {
+          const parsePercent = (value: string) => {
+            const normalized = value.replace(",", ".");
+            const parsed = Number(normalized);
+            return Number.isFinite(parsed) ? parsed : 0;
+          };
+          const discountValues = {
+            card: parsePercent(discountCard),
+            pix: parsePercent(discountPix),
+            boleto: parsePercent(discountBoleto),
+          };
+          const detailDiscount = Object.entries(discountValues).reduce((acc, [key, value]) => {
+            if (value > 0) {
+              acc[key] = value;
+            }
+            return acc;
+          }, {} as Record<string, number>);
+          const hasDetailDiscount = Object.keys(detailDiscount).length > 0;
+          const toNumberOrUndefined = (value: string) => (value.trim() === "" ? undefined : Number(value));
+          const detailPaymentMethod = {
+            installments_limit: toNumberOrUndefined(installmentsLimit),
+            installments_preselected: toNumberOrUndefined(installmentsPreselected),
+            boleto_due_days: toNumberOrUndefined(boletoDueDays),
+            pix_expire_minutes: toNumberOrUndefined(pixExpireMinutes),
+          };
+          const hasDetailPaymentMethod = Object.values(detailPaymentMethod).some(
+            value => value !== undefined && !Number.isNaN(value)
+          );
           const paymentPayload = {
             accept_document_company: acceptedDocuments.includes("cnpj"),
             accept_document_individual: acceptedDocuments.includes("cpf"),
@@ -888,21 +915,8 @@ export function CheckoutEditorCreate({
             accept_coupon: couponEnabled,
             shown_seller_detail: showSellerDetail,
             require_address: preferenceRequireAddress,
-            detail_discount: couponEnabled
-              ? {
-                  card: discountCard ? Number(discountCard) || 0 : 0,
-                  pix: discountPix ? Number(discountPix) || 0 : 0,
-                  boleto: discountBoleto ? Number(discountBoleto) || 0 : 0,
-                }
-              : undefined,
-            detail_payment_method: couponEnabled
-              ? {
-                  installments_limit: installmentsLimit ? Number(installmentsLimit) : undefined,
-                  installments_preselected: installmentsPreselected ? Number(installmentsPreselected) : undefined,
-                  boleto_due_days: boletoDueDays ? Number(boletoDueDays) : undefined,
-                  pix_expire_minutes: pixExpireMinutes ? Number(pixExpireMinutes) : undefined,
-                }
-              : undefined,
+            detail_discount: hasDetailDiscount ? detailDiscount : undefined,
+            detail_payment_method: hasDetailPaymentMethod ? detailPaymentMethod : undefined,
           };
           console.log("[checkout] Payload métodos de pagamento:", paymentPayload);
           const createdPayment = await productApi.saveCheckoutPaymentMethods(

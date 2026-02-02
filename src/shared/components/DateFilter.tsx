@@ -128,11 +128,6 @@ export default function DateFilter({ onDateChange }: DateFilterProps) {
     onDateChange?.(toJsDate(range.start), toJsDate(range.end));
   };
 
-  const closePicker = () => {
-    setIsOpen(false);
-    setShowCalendar(false);
-  };
-
   const handlePresetSelect = (option: string) => {
     const range = getPresetRange(option);
     if (!range) return;
