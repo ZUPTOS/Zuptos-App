@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
+import { notifyApiError } from "@/lib/notify-error";
 import type { CreateProductCouponRequest, ProductCoupon } from "@/lib/api";
 import { formatBRLInput, parseBRLToNumber, formatPercentInput, parsePercentToNumber } from "./couponUtils";
 import { readCache, writeCache } from "./tabCache";
@@ -178,6 +179,7 @@ export function useCoupons({ productId, token, withLoading }: Params) {
     } catch (error) {
       console.error("Erro ao salvar cupom:", error);
       setCouponsError("Não foi possível salvar o cupom.");
+      notifyApiError(error, { title: "Não foi possível salvar o cupom" });
     } finally {
       setCouponSaving(false);
     }
@@ -217,6 +219,7 @@ export function useCoupons({ productId, token, withLoading }: Params) {
     } catch (error) {
       console.error("Erro ao excluir cupom:", error);
       setCouponsError("Não foi possível excluir o cupom.");
+      notifyApiError(error, { title: "Não foi possível excluir o cupom" });
     } finally {
       setDeletingCoupon(false);
     }

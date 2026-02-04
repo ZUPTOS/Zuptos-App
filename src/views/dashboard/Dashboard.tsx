@@ -37,7 +37,15 @@ const filterModalGroups = [
 ] as const;
 
 export default function Dashboard() {
-  const { salesData, financeData, healthData, journeyData } = useDashboardData();
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const brasilia = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    );
+    brasilia.setHours(0, 0, 0, 0);
+    return { start: new Date(brasilia), end: new Date(brasilia) };
+  });
+  const { salesData, financeData, healthData, journeyData } = useDashboardData(dateRange);
   
   const [isFilterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, boolean>>({});
@@ -127,7 +135,9 @@ export default function Dashboard() {
         {/* Mobile / Tablet / Laptop Layout (< 1280px) */}
         <div className="flex flex-col gap-6 xl:hidden">
             <div className="w-full">
-              <DateFilter />
+              <DateFilter
+                onDateChange={(start, end) => setDateRange({ start, end })}
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -234,7 +244,9 @@ export default function Dashboard() {
         >
             {/* 1. DateFilter */}
             <div style={{ gridArea: "datefilter" }} className="h-[48px]">
-                <DateFilter />
+                <DateFilter
+                  onDateChange={(start, end) => setDateRange({ start, end })}
+                />
             </div>
 
             {/* 2. Filter Dropdown */}

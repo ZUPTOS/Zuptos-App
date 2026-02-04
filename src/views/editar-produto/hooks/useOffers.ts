@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/shared/ui/notification-toast";
+import { notifyApiError } from "@/lib/notify-error";
 import { productApi } from "@/lib/api";
 import type {
   Checkout,
@@ -295,15 +296,15 @@ export function useOffers({ productId, token, withLoading }: Params) {
     const baseOfferPrice =
       offerType === "preco_unico" ? parseBRLToNumber(offerPrice) : parseBRLToNumber(subscriptionPrice);
     if (baseOfferPrice === undefined || Number.isNaN(baseOfferPrice)) {
-      toast.error("Valor da oferta não fornecido");
+      notify.error("Valor da oferta não fornecido");
       return;
     }
     if (!orderBumpForm.product || !orderBumpForm.offer) {
-      toast.error("Selecione produto e oferta para o Order Bump");
+      notify.error("Selecione produto e oferta para o Order Bump");
       return;
     }
     if (!orderBumpForm.title.trim()) {
-      toast.error("Informe o título do order bump");
+      notify.error("Informe o título do order bump");
       return;
     }
     const next: OrderBump = {
@@ -402,7 +403,7 @@ export function useOffers({ productId, token, withLoading }: Params) {
       const hasBumps = orderBumps.length > 0;
       const hasMissingInfo = orderBumps.some(bump => !bump.title || !bump.offer);
       if (!hasBumps || hasMissingInfo) {
-        toast.error("Oder bump não especificado");
+        notify.error("Order bump não especificado");
         return;
       }
     }
@@ -462,6 +463,7 @@ export function useOffers({ productId, token, withLoading }: Params) {
       closeOfferModal();
     } catch (error) {
       console.error("Erro ao criar oferta:", error);
+      notifyApiError(error, { title: "Não foi possível salvar a oferta" });
     } finally {
       setSavingOffer(false);
     }
@@ -476,6 +478,7 @@ export function useOffers({ productId, token, withLoading }: Params) {
       await loadOffers(true);
     } catch (error) {
       console.error("Erro ao excluir oferta:", error);
+      notifyApiError(error, { title: "Não foi possível excluir a oferta" });
     } finally {
       setDeletingOffer(false);
     }

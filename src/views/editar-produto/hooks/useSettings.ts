@@ -5,6 +5,7 @@ import { productApi } from "@/lib/api";
 import { ProductSettingsStatus } from "@/lib/api";
 import type { Product, ProductSettings, UpdateProductSettingsRequest } from "@/lib/api";
 import { notify } from "@/shared/ui/notification-toast";
+import { notifyApiError } from "@/lib/notify-error";
 import { readCache, writeCache } from "./tabCache";
 
 type Params = {
@@ -216,6 +217,7 @@ export function useSettings({ productId, token, withLoading }: Params) {
     } catch (err) {
       console.error("Erro ao salvar configurações:", err);
       setError("Não foi possível salvar as configurações.");
+      notifyApiError(err, { title: "Não foi possível salvar as configurações" });
     } finally {
       setSaving(false);
     }
@@ -266,6 +268,7 @@ export function useSettings({ productId, token, withLoading }: Params) {
     } catch (err) {
       console.error("Erro ao desativar produto:", err);
       setError("Não foi possível desativar o produto.");
+      notifyApiError(err, { title: "Não foi possível desativar o produto" });
     } finally {
       setSaving(false);
     }
