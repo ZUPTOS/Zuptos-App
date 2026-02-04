@@ -927,7 +927,18 @@ export function CheckoutEditorEdit({
           };
           console.log("[checkout] Payload métodos de pagamento:", paymentPayload);
           if (!paymentMethodId) {
-            notify.error("Método de pagamento não encontrado para atualizar.");
+            const createdPayment = await productApi.saveCheckoutPaymentMethods(
+              productId,
+              targetCheckoutId,
+              paymentPayload,
+              token
+            );
+            const createdId =
+              (createdPayment as { id?: string; data?: { id?: string } } | undefined)?.id ??
+              (createdPayment as { data?: { id?: string } } | undefined)?.data?.id;
+            if (createdId) {
+              setPaymentMethodId(createdId);
+            }
           } else {
             await productApi.updateCheckoutPaymentMethod(
               productId,
