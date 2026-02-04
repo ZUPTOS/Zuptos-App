@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
 import type { ProductDeliverable } from "@/lib/api";
 import { notify } from "@/shared/ui/notification-toast";
+import { notifyApiError } from "@/lib/notify-error";
 import { readCache, writeCache } from "./tabCache";
 
 type Params = {
@@ -204,6 +205,7 @@ export function useDeliverables({ productId, token, withLoading }: Params) {
     } catch (err) {
       console.error("Erro ao criar entregável:", err);
       setDeliverableFormError("Não foi possível salvar o entregável.");
+      notifyApiError(err, { title: "Não foi possível criar o entregável" });
     } finally {
       setSavingDeliverable(false);
     }
@@ -267,6 +269,7 @@ export function useDeliverables({ productId, token, withLoading }: Params) {
     } catch (err) {
       console.error("Erro ao atualizar entregável:", err);
       setDeliverableFormError("Não foi possível atualizar o entregável.");
+      notifyApiError(err, { title: "Não foi possível atualizar o entregável" });
     } finally {
       setSavingDeliverable(false);
     }
@@ -292,6 +295,7 @@ export function useDeliverables({ productId, token, withLoading }: Params) {
       setDeleteTarget(null);
     } catch (err) {
       console.error("Erro ao excluir entregável:", err);
+      notifyApiError(err, { title: "Não foi possível excluir o entregável" });
     } finally {
       setDeletingDeliverable(false);
     }

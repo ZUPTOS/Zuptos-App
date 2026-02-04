@@ -22,6 +22,41 @@ interface UseDashboardDataReturn {
   refetch: () => Promise<void>;
 }
 
+type DateRange = { start: Date; end: Date };
+type NormalizedRange = { start: Date; end: Date };
+
+const normalizeRange = (range?: DateRange | null): NormalizedRange | null => {
+  if (!range) return null;
+  const start = new Date(range.start);
+  const end = new Date(range.end);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+  if (end.getTime() < start.getTime()) {
+    return { start: end, end: start };
+  }
+  return { start, end };
+};
+
+const isWithinRange = (date: Date, range: NormalizedRange) => {
+  const time = date.getTime();
+  return time >= range.start.getTime() && time <= range.end.getTime();
+};
+
+const isApprovedStatus = (status?: string | null) => {
+  const normalized = (status ?? "").toString().trim().toLowerCase();
+  if (!normalized) return false;
+  return [
+    "approved",
+    "aprovado",
+    "paid",
+    "pago",
+    "completed",
+    "complete",
+    "success",
+    "successful"
+  ].includes(normalized);
+};
+
 // Helper to generate 00:00 to 23:00 buckets
 const generateHourlyBuckets = () => {
   const buckets: Record<string, number> = {};
@@ -52,7 +87,7 @@ const safeDate = (value?: string | null) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const buildSeries = (salesList: RawSaleItem[]) => {
+const buildSeries = (salesList: RawSaleItem[], range?: NormalizedRange | null) => {
   type Aggregate = { total: number; count: number; date: number };
   const dailyMap = new Map<string, Aggregate>();
   const monthlyMap = new Map<string, Aggregate>();
@@ -61,70 +96,6 @@ const buildSeries = (salesList: RawSaleItem[]) => {
   const saleDates = salesList
     .map(sale => safeDate(sale.sale_date || sale.created_at))
     .filter((date): date is Date => !!date);
-
-  if (saleDates.length === 0) {
-    const today = new Date();
-    const todayStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-    const start = new Date(todayStart);
-    start.setDate(start.getDate() - 6);
-
-    const daily: Array<{
-      time: string;
-      faturamento: number;
-      receitaLiquida: number;
-      vendas: number;
-      ticketMedio: number;
-      chargeback: number;
-      reembolso: number;
-    }> = [];
-
-    const cursor = new Date(start);
-    while (cursor <= todayStart) {
-      const label = formatDayLabel(cursor);
-      daily.push({
-        time: label,
-        faturamento: 0,
-        receitaLiquida: 0,
-        vendas: 0,
-        ticketMedio: 0,
-        chargeback: 0,
-        reembolso: 0
-      });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    const monthLabel = formatMonthLabel(todayStart);
-    const yearLabel = todayStart.getFullYear().toString();
-    return {
-      daily,
-      monthly: [
-        {
-          month: monthLabel,
-          faturamento: 0,
-          receitaLiquida: 0,
-          vendas: 0,
-          ticketMedio: 0,
-          chargeback: 0,
-          reembolso: 0
-        }
-      ],
-      yearly: [
-        {
-          year: yearLabel,
-          faturamento: 0,
-          receitaLiquida: 0,
-          vendas: 0,
-          ticketMedio: 0,
-          chargeback: 0,
-          reembolso: 0
-        }
-      ]
-    };
-  }
 
   salesList.forEach(sale => {
     const date = safeDate(sale.sale_date || sale.created_at);
@@ -149,28 +120,42 @@ const buildSeries = (salesList: RawSaleItem[]) => {
   });
 
   const sortedDates = [...saleDates].sort((a, b) => a.getTime() - b.getTime());
-  const startDate = new Date(
-    sortedDates[0].getFullYear(),
-    sortedDates[0].getMonth(),
-    sortedDates[0].getDate()
-  );
-  const endDate = new Date(
-    sortedDates[sortedDates.length - 1].getFullYear(),
-    sortedDates[sortedDates.length - 1].getMonth(),
-    sortedDates[sortedDates.length - 1].getDate()
-  );
+  const startDateFromSales = sortedDates.length
+    ? new Date(sortedDates[0].getFullYear(), sortedDates[0].getMonth(), sortedDates[0].getDate())
+    : null;
+  const endDateFromSales = sortedDates.length
+    ? new Date(
+        sortedDates[sortedDates.length - 1].getFullYear(),
+        sortedDates[sortedDates.length - 1].getMonth(),
+        sortedDates[sortedDates.length - 1].getDate()
+      )
+    : null;
+
   const today = new Date();
-  const todayStart = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-  );
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const fallbackStart = new Date(todayStart);
   fallbackStart.setDate(fallbackStart.getDate() - 6);
+
+  const rangeStart = range
+    ? new Date(range.start.getFullYear(), range.start.getMonth(), range.start.getDate())
+    : null;
+  const rangeEnd = range
+    ? new Date(range.end.getFullYear(), range.end.getMonth(), range.end.getDate())
+    : null;
+
+  const resolvedStartDate = rangeStart ?? startDateFromSales ?? fallbackStart;
+  const resolvedEndDate = rangeEnd ?? endDateFromSales ?? todayStart;
+
   const dailyStartDate =
-    startDate.getTime() < fallbackStart.getTime() ? startDate : fallbackStart;
+    rangeStart ??
+    (startDateFromSales && startDateFromSales.getTime() < fallbackStart.getTime()
+      ? startDateFromSales
+      : fallbackStart);
   const dailyEndDate =
-    endDate.getTime() > todayStart.getTime() ? endDate : todayStart;
+    rangeEnd ??
+    (endDateFromSales && endDateFromSales.getTime() > todayStart.getTime()
+      ? endDateFromSales
+      : todayStart);
 
   const buildDailyPoints = () => {
     const points: Array<{
@@ -203,8 +188,8 @@ const buildSeries = (salesList: RawSaleItem[]) => {
   };
 
   const buildMonthlyPoints = () => {
-    const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-    const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+    const startMonth = new Date(resolvedStartDate.getFullYear(), resolvedStartDate.getMonth(), 1);
+    const endMonth = new Date(resolvedEndDate.getFullYear(), resolvedEndDate.getMonth(), 1);
     const monthsSpanDifferentYear = startMonth.getFullYear() !== endMonth.getFullYear();
     const points: Array<{
       month: string;
@@ -239,8 +224,8 @@ const buildSeries = (salesList: RawSaleItem[]) => {
   };
 
   const buildYearlyPoints = () => {
-    const startYear = startDate.getFullYear();
-    const endYear = endDate.getFullYear();
+    const startYear = resolvedStartDate.getFullYear();
+    const endYear = resolvedEndDate.getFullYear();
     const points: Array<{
       year: string;
       faturamento: number;
@@ -282,7 +267,7 @@ const LEVELS = [
   { id: 'prata', name: 'Prata', threshold: 500000 }
 ];
 
-export function useDashboardData(): UseDashboardDataReturn {
+export function useDashboardData(dateRange?: DateRange | null): UseDashboardDataReturn {
   // Initialize with mock data structure (safe fallbacks)
   const [salesData, setSalesData] = useState<DashboardSalesResponse>(
     mockData.revenue as unknown as DashboardSalesResponse
@@ -336,25 +321,35 @@ export function useDashboardData(): UseDashboardDataReturn {
       console.log("✅ [useDashboardData] Raw API Responses:", { sales, finance, health, journey });
 
       // --- Transform Sales Data ---
-      let grossRevenue = 0;
-      if (Array.isArray(sales)) {
-        // Calculate Gross Revenue
-        grossRevenue = sales.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
-        
-        // Mock growth for now (or calculate if enough history)
-        const growthPercentage = 20.3; 
-        const { daily, monthly, yearly } = buildSeries(sales);
+      const normalizedRange = normalizeRange(dateRange);
+      const salesList = Array.isArray(sales) ? sales : [];
+      const approvedSales = salesList.filter(sale => isApprovedStatus(sale.status));
+      const filteredSales = normalizedRange
+        ? approvedSales.filter(sale => {
+            const saleDate = safeDate(sale.sale_date || sale.created_at);
+            if (!saleDate) return false;
+            return isWithinRange(saleDate, normalizedRange);
+          })
+        : approvedSales;
 
-        // Transform for charts (Daily/Monthly/Yearly)
-        setSalesData(prev => ({
-          ...prev,
-          grossRevenue,
-          growthPercentage,
-          daily,
-          monthly,
-          yearly
-        }));
-      }
+      const grossRevenue = filteredSales.reduce(
+        (acc, item) => acc + (parseFloat(item.amount) || 0),
+        0
+      );
+
+      // Mock growth for now (or calculate if enough history)
+      const growthPercentage = 20.3;
+      const { daily, monthly, yearly } = buildSeries(filteredSales, normalizedRange);
+
+      // Transform for charts (Daily/Monthly/Yearly)
+      setSalesData(prev => ({
+        ...prev,
+        grossRevenue,
+        growthPercentage,
+        daily,
+        monthly,
+        yearly
+      }));
 
       // --- Transform Finance Data ---
       if (finance) {
@@ -363,7 +358,7 @@ export function useDashboardData(): UseDashboardDataReturn {
         const calcPending = Number(finance.total_pending ?? 0);
 
         // --- Calculate Payment Methods from SALES (as requested) ---
-        const salesList = Array.isArray(sales) ? sales : [];
+        const salesList = filteredSales;
         
         const methodMap: Record<string, string> = {
           'credit_card': 'credit_card', 
@@ -523,7 +518,7 @@ export function useDashboardData(): UseDashboardDataReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [dateRange]);
 
   useEffect(() => {
     fetchData();

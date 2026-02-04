@@ -7,6 +7,7 @@ import { Check, CheckCircle2, CreditCard, Lock, ShieldCheck, Star } from "lucide
 import { useRouter } from "next/navigation";
 import type { Checkout, Product, ProductCoupon, ProductOffer } from "@/lib/api";
 import { formatDocument, formatPhone, formatCardNumber, formatCardExpiry } from "@/lib/utils/formatters";
+import { notify } from "@/shared/ui/notification-toast";
 
 const paymentButtons = [
   { id: "pix", label: "Pix", iconSrc: "/images/pix.svg" },
@@ -319,6 +320,17 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
   const logoSrc = resolveAssetUrl(checkout?.logo);
 
   const couponEnabled = toBoolean(paymentData?.acceptCoupon ?? paymentData?.accept_coupon);
+  const paymentMethodDiscounts = useMemo(() => {
+    const rawDetail = (paymentData?.detailDiscount ?? paymentData?.detail_discount) as
+      | Record<string, unknown>
+      | undefined;
+    if (!rawDetail) return {};
+    return {
+      card: toNumber(rawDetail.card ?? rawDetail.credit_card ?? rawDetail.creditCard),
+      pix: toNumber(rawDetail.pix),
+      boleto: toNumber(rawDetail.boleto ?? rawDetail.ticket)
+    } as { card?: number; pix?: number; boleto?: number };
+  }, [paymentData]);
   const selectedBumpsTotal = useMemo(() => {
     if (!offer?.order_bumps?.length) return 0;
     return offer.order_bumps.reduce((sum, bump) => {
@@ -472,11 +484,11 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
         });
         router.push(`/pagamento-confirmado?${params.toString()}`);
       } else {
-        alert("Erro ao processar pagamento: " + (data?.message || "Tente novamente"));
+        notify.error("Pagamento não aprovado", data?.message || "Tente novamente.");
       }
     } catch (error) {
       console.error("[publicCheckout] Erro ao confirmar pagamento:", error);
-      alert("Erro de conexão ao processar pagamento.");
+      notify.error("Falha ao processar pagamento", "Verifique sua conexão e tente novamente.");
     } finally {
       setSubmittingPayment(false);
     }
@@ -653,27 +665,62 @@ export default function Checkout({ checkout, product, offer, offerId, productId,
                 <div className="p-5 pt-3 space-y-6">
                   <div className="space-y-4">
                     <p className={`text-sm font-semibold ${textPrimary}`}>Forma de pagamento</p>
-                    <div className="flex items-center gap-3">
+                    <div className="w-full max-w-[280px]">
+                      <div className="grid grid-cols-2 gap-3">
                       {visiblePaymentButtons.map(button => {
                         const isSelected = paymentMethod === button.id;
+                        const discount =
+                          paymentMethodDiscounts[button.id as "card" | "pix" | "boleto"];
+                        const showDiscount =
+                          typeof discount === "number" && Number.isFinite(discount) && discount > 0;
+                        const discountLabel = showDiscount
+                          ? `${Number.isInteger(discount) ? discount : discount.toFixed(1).replace(".", ",")}% OFF`
+                          : "";
+                        const displayLabel =
+                          button.id === "card"
+                            ? "Cartão de crédito"
+                            : button.id === "pix"
+                            ? "Pix"
+                            : "Boleto";
                         return (
                           <button
                             key={button.id}
                             type="button"
-                            className={`flex h-10 w-10 items-center justify-center rounded-[6px] border transition ${
-                              isDark ? "border-white/20 bg-[#111] text-white" : "border-black/10 bg-white text-[#0a0a0a]"
-                            } hover:border-emerald-500 ${isSelected ? "border-emerald-500 ring-2 ring-emerald-500/30" : ""}`}
-                            aria-label={button.label}
+                            className={`relative flex min-h-[60px] flex-col items-start justify-center gap-1 rounded-[10px] border px-2 py-2 text-left text-[12px] font-medium transition ${
+                              isDark
+                                ? "border-white/15 bg-[#0f0f0f] text-white"
+                                : "border-black/10 bg-white text-[#0a0a0a]"
+                            } hover:border-primary/60 ${
+                              isSelected ? "border-primary ring-2 ring-primary/30" : ""
+                            }`}
+                            aria-label={displayLabel}
                             onClick={() => setPaymentMethod(button.id)}
                           >
-                            <img
-                              src={button.iconSrc}
-                              alt={button.label}
-                              className="h-7 w-7 object-contain"
-                            />
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={button.iconSrc}
+                                alt={displayLabel}
+                                className="h-7 w-7 object-contain"
+                              />
+                              {showDiscount && (
+                                <span
+                                  className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
+                                    isDark
+                                      ? "border-primary/30 bg-primary/15 text-primary-foreground"
+                                      : "border-primary/30 bg-primary/15 text-primary"
+                                  }`}
+                                >
+                                  {discountLabel}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[12px] font-medium leading-tight text-muted-foreground">
+                              {displayLabel}
+                            </span>
                           </button>
                         );
                       })}
+                      </div>
                     </div>
                   </div>
 

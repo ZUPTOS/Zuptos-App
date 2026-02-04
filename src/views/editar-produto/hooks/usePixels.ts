@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi, ProviderTrackingName, TrackingStatus, TrackingType } from "@/lib/api";
+import { notifyApiError } from "@/lib/notify-error";
 import type { CreateProductTrackingRequest, ProductPlan } from "@/lib/api";
 import { readCache, writeCache } from "./tabCache";
 
@@ -165,6 +166,7 @@ export function usePixels({ productId, token, withLoading }: Params) {
       setShowPixelModal(false);
     } catch (error) {
       console.error("Erro ao salvar pixel:", error);
+      notifyApiError(error, { title: "Não foi possível salvar o pixel" });
     } finally {
       setTrackingSaving(false);
     }
@@ -225,6 +227,7 @@ export function usePixels({ productId, token, withLoading }: Params) {
       setPixelsRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error("Erro ao excluir pixel:", error);
+      notifyApiError(error, { title: "Não foi possível excluir o pixel" });
     } finally {
       setDeletingTracking(false);
     }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
+import { notifyApiError } from "@/lib/notify-error";
 import type { Checkout } from "@/lib/api";
 import { readCache, writeCache } from "./tabCache";
 
@@ -90,6 +91,7 @@ export function useCheckouts({ productId, token, withLoading }: Params) {
       await loadCheckouts(true);
     } catch (err) {
       console.error("Erro ao excluir checkout:", err);
+      notifyApiError(err, { title: "Não foi possível excluir o checkout" });
     } finally {
       setDeletingCheckout(false);
     }

@@ -84,6 +84,16 @@ export const normalizeImageUrl = (value?: string | null) => {
   if (!trimmed) return undefined;
   if (trimmed === "null" || trimmed === "undefined") return undefined;
   if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return undefined;
+  const lower = trimmed.toLowerCase();
+  try {
+    const url = new URL(trimmed);
+    const path = url.pathname.toLowerCase();
+    if (path === "/null" || path.endsWith("/null") || path.includes("/null/")) {
+      return undefined;
+    }
+  } catch {
+    if (lower === "null" || lower.includes("/null")) return undefined;
+  }
   return trimmed;
 };
 

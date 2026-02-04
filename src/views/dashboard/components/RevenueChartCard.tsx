@@ -43,9 +43,16 @@ const formatTooltipValue = (value: number, metricKey?: string) => {
     return value.toLocaleString("pt-BR");
   };
 
-const ChartTooltip = ({ active, payload, options, hideValues }: ChartTooltipProps) => {
+const formatTooltipHeader = (label: unknown, chartType: ChartType) => {
+  if (label === null || label === undefined || label === "") return REVENUE_TOOLTIP_DATE;
+  const labelText = typeof label === "string" || typeof label === "number" ? String(label) : REVENUE_TOOLTIP_DATE;
+  if (chartType === "yearly") return `Ano ${labelText}`;
+  return labelText;
+};
+
+const ChartTooltip = ({ active, payload, options, hideValues, label, chartType }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
-  const header = REVENUE_TOOLTIP_DATE;
+  const header = formatTooltipHeader(label, chartType);
 
   return (
     <div className="min-w-[180px] rounded-[12px] border border-card bg-card px-3 py-2.5 text-card-foreground shadow-xl xl:text-[11px] 2xl:text-[13px]">

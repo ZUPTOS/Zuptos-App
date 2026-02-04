@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productApi } from "@/lib/api";
+import { notifyApiError } from "@/lib/notify-error";
 import type { CreateProductStrategyRequest, ProductOffer, ProductStrategy } from "@/lib/api";
 import { readCache, writeCache } from "./tabCache";
 
@@ -293,6 +294,7 @@ export function useUpsell({ productId, token, withLoading }: Params) {
       await loadStrategies(true);
     } catch (error) {
       console.error("Erro ao salvar estratégia:", error);
+      notifyApiError(error, { title: "Não foi possível salvar a estratégia" });
     } finally {
       setSavingStrategy(false);
     }
@@ -307,6 +309,7 @@ export function useUpsell({ productId, token, withLoading }: Params) {
       await loadStrategies(true);
     } catch (error) {
       console.error("Erro ao excluir estratégia:", error);
+      notifyApiError(error, { title: "Não foi possível excluir a estratégia" });
     } finally {
       setDeletingStrategy(false);
     }
