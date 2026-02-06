@@ -22,6 +22,7 @@ interface NavItem {
   label: string;
   iconSrc?: string;
   IconComponent?: ComponentType<{ className?: string }>;
+  iconClassName?: string;
   href: string;
 }
 
@@ -78,6 +79,7 @@ export default function Sidebar() {
       label: "Área de membros",
       href: "/members",
       IconComponent: Users,
+      iconClassName: "h-7 w-7",
     },
     {
       id: "financas",
@@ -286,7 +288,7 @@ export default function Sidebar() {
                   />
                 ) : Icon ? (
                   <Icon
-                    className={`h-5 w-5 xl:h-3.5 xl:w-3.5 2xl:h-4 2xl:w-4 ${
+                    className={`${item.iconClassName ?? "h-5 w-5 xl:h-3.5 xl:w-3.5 2xl:h-4 2xl:w-4"} ${
                       isActive ? "text-primary" : "text-muted-foreground"
                     }`}
                   />

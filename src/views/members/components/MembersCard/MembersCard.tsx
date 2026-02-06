@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import type { MembersArea } from "../../types/members.types";
 
 type MembersCardProps = {
@@ -7,6 +8,8 @@ type MembersCardProps = {
 };
 
 export default function MembersCard({ area }: MembersCardProps) {
+  const router = useRouter();
+
   const handleCopy = async () => {
     if (typeof navigator === "undefined") return;
     try {
@@ -16,10 +19,26 @@ export default function MembersCard({ area }: MembersCardProps) {
     }
   };
 
+  const handleOpenProducts = () => {
+    router.push(`/members/${encodeURIComponent(area.id)}`);
+  };
+
   const studentsLabel = String(area.studentsCount).padStart(2, "0");
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-[4px] border border-border bg-card">
+    <article
+      className="flex cursor-pointer flex-col overflow-hidden rounded-[4px] border border-border bg-card transition hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      role="button"
+      tabIndex={0}
+      onClick={handleOpenProducts}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleOpenProducts();
+        }
+      }}
+    >
       <div className="h-[140px] bg-muted/70" aria-hidden="true" />
       <div className="flex flex-col gap-2.5 p-3.5">
         <div>
@@ -35,7 +54,10 @@ export default function MembersCard({ area }: MembersCardProps) {
           <button
             type="button"
             className="inline-flex h-7 w-8 items-center justify-center rounded-[4px] border border-border bg-background transition hover:bg-muted/40"
-            onClick={() => void handleCopy()}
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleCopy();
+            }}
             aria-label="Copiar URL"
           >
             <span
