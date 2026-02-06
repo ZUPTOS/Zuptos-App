@@ -5,6 +5,13 @@ export type MembersArea = {
   url: string;
 };
 
+export type MembersProduct = {
+  id: string;
+  areaId: string;
+  name: string;
+  modulesCount: number;
+};
+
 export type PaginationMeta = {
   page: number;
   perPage: number;
@@ -14,5 +21,10 @@ export type PaginationMeta = {
 
 export type MembersListResponse = {
   data: MembersArea[];
+  meta: PaginationMeta;
+};
+
+export type MembersProductsListResponse = {
+  data: MembersProduct[];
   meta: PaginationMeta;
 };
