@@ -24,13 +24,13 @@ const customJestConfig: Config = {
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["lcov", "json-summary", "text", "text-summary"] satisfies Config["coverageReporters"],
-  // Baseline to prevent coverage regressions. Increase gradually as the suite grows.
+  // Keep a minimum global coverage to avoid regressions.
   coverageThreshold: {
     global: {
-      statements: 40,
-      branches: 20,
-      functions: 35,
-      lines: 40,
+      statements: 80,
+      branches: 60,
+      functions: 70,
+      lines: 80,
     },
   } satisfies Config["coverageThreshold"],
   reporters: [
