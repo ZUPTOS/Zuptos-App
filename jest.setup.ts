@@ -16,6 +16,27 @@ if (typeof window !== "undefined") {
 (globalThis as any).ResizeObserver =
   globalThis.ResizeObserver || ResizeObserver;
 
+// Radix UI uses Pointer Events + pointer capture in some components (e.g. Select).
+// jsdom doesn't fully implement this API, so provide no-op fallbacks for tests.
+if (typeof HTMLElement !== "undefined") {
+  if (typeof HTMLElement.prototype.hasPointerCapture !== "function") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (HTMLElement.prototype as any).hasPointerCapture = () => false;
+  }
+  if (typeof HTMLElement.prototype.setPointerCapture !== "function") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (HTMLElement.prototype as any).setPointerCapture = () => {};
+  }
+  if (typeof HTMLElement.prototype.releasePointerCapture !== "function") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (HTMLElement.prototype as any).releasePointerCapture = () => {};
+  }
+  if (typeof HTMLElement.prototype.scrollIntoView !== "function") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (HTMLElement.prototype as any).scrollIntoView = () => {};
+  }
+}
+
 // jsdom doesn't provide fetch by default. Provide a stub that fails fast so network
 // calls are explicit in tests (mock per-test or mock the API layer).
 if (typeof (globalThis as any).fetch === "undefined") {
