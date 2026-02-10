@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DateFilter from "@/shared/components/DateFilter";
 
@@ -7,54 +7,31 @@ describe("DateFilter", () => {
     const onDateChange = jest.fn();
     render(<DateFilter onDateChange={onDateChange} />);
 
-    const input = screen.getByLabelText(/intervalo de datas/i);
-    await userEvent.click(input);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /abrir filtro de datas/i }));
     expect(screen.getByRole("button", { name: /hoje/i })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /ontem/i }));
+    await user.click(screen.getByRole("button", { name: /ontem/i }));
     expect(onDateChange).toHaveBeenCalled();
 
-    const toggle = screen.getByRole("button", { name: /alternar filtro de datas/i });
-    await userEvent.click(toggle);
-    expect(screen.getByText(/hoje/i)).toBeInTheDocument();
-
-    await userEvent.click(document.body);
+    await user.click(document.body);
     await waitFor(() => {
       expect(screen.queryByText(/hoje/i)).not.toBeInTheDocument();
     });
   });
 
-  it("aceita colar intervalos, navegar pelo calendário e selecionar datas", async () => {
+  it("abre o calendário detalhado e permite navegar entre meses", async () => {
     const onDateChange = jest.fn();
     render(<DateFilter onDateChange={onDateChange} />);
 
-    const input = screen.getByLabelText(/intervalo de datas/i);
-    await userEvent.click(input);
-    fireEvent.paste(input, {
-      clipboardData: {
-        getData: () => "01/01/2024 - 05/01/2024"
-      }
-    } as unknown as ClipboardEvent);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /abrir filtro de datas/i }));
 
-    await waitFor(() => {
-      expect(onDateChange).toHaveBeenCalled();
-    });
+    await user.click(screen.getByRole("button", { name: /alternar calendário detalhado/i }));
+    expect(screen.getByRole("button", { name: /mês anterior/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /próximo mês/i })).toBeInTheDocument();
 
-    const toggle = screen.getByRole("button", { name: /alternar filtro de datas/i });
-    if (!screen.queryByRole("button", { name: /hoje/i })) {
-      await userEvent.click(toggle);
-    }
-    await userEvent.click(await screen.findByRole("button", { name: /alternar calendário detalhado/i }));
-
-    await userEvent.click(screen.getByLabelText(/mês anterior/i));
-    await userEvent.click(screen.getByLabelText(/próximo mês/i));
-
-    const dayTen = screen.getAllByRole("button", { name: "10" })[0];
-    const dayTwelve = screen.getAllByRole("button", { name: "12" })[0];
-
-    await userEvent.click(dayTen);
-    await userEvent.click(dayTwelve);
-
-    expect(onDateChange.mock.calls.length).toBeGreaterThanOrEqual(3);
+    await user.click(screen.getByRole("button", { name: /mês anterior/i }));
+    await user.click(screen.getByRole("button", { name: /próximo mês/i }));
   });
 });

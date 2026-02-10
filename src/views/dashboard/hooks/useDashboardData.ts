@@ -27,13 +27,16 @@ type NormalizedRange = { start: Date; end: Date };
 
 const normalizeRange = (range?: DateRange | null): NormalizedRange | null => {
   if (!range) return null;
-  const start = new Date(range.start);
-  const end = new Date(range.end);
+  let start = new Date(range.start);
+  let end = new Date(range.end);
+  // Swap first, then normalize to full-day boundaries to avoid shrinking the range.
+  if (end.getTime() < start.getTime()) {
+    const tmp = start;
+    start = end;
+    end = tmp;
+  }
   start.setHours(0, 0, 0, 0);
   end.setHours(23, 59, 59, 999);
-  if (end.getTime() < start.getTime()) {
-    return { start: end, end: start };
-  }
   return { start, end };
 };
 

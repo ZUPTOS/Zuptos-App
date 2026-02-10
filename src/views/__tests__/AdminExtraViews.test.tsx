@@ -23,6 +23,83 @@ jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   default: ({ children }: { children: ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
 }));
 
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: {
+      id: "admin-1",
+      email: "admin@example.com",
+      fullName: "Admin",
+      accessType: "purchases",
+      role: "admin",
+      isAdmin: true
+    },
+    token: "token",
+    isLoading: false,
+    error: null,
+    isAuthenticated: true,
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+    clearError: jest.fn()
+  })
+}));
+
+jest.mock("@/modules/admin/hooks", () => ({
+  useAdminProducts: () => {
+    const products = Array.from({ length: 8 }, (_, index) => {
+      const id = String(index + 1);
+      return {
+        id,
+        name: `Produto 0${index + 1}`,
+        typeLabel: "Curso",
+        produtor: "Produtor",
+        email: `produtor${id}@example.com`,
+        telefone: "(11) 99999-9999",
+        suporte: "suporte@example.com",
+        statusLabel: "Aprovado"
+      };
+    });
+
+    return {
+      products,
+      summary: { total: products.length, totalRevenue: 1234.56 },
+      isLoading: false
+    };
+  },
+  useAdminProductDetail: () => ({
+    detail: null,
+    rawProduct: null,
+    isLoading: false,
+    reload: jest.fn(),
+  }),
+  useAdminUserDetail: () => ({
+    detail: null,
+    rawUser: null,
+    isLoading: false,
+    reload: jest.fn(),
+  }),
+}));
+
+jest.mock("@/modules/admin/hooks/useAdminFinanceList", () => ({
+  useAdminFinanceList: () => ({
+    finances: [
+      {
+        id: "finance-1",
+        userId: "user-1",
+        userName: "User 01",
+        userEmail: "user01@example.com",
+        type: "transaction",
+        amount: 100,
+        fee: 10,
+        netAmount: 90,
+        status: "completed",
+        created_at: new Date().toISOString(),
+      },
+    ],
+    isLoading: false,
+  }),
+}));
+
 jest.mock("@/shared/components/FilterDrawer", () => ({
   __esModule: true,
   FilterDrawer: ({
@@ -100,6 +177,7 @@ jest.mock("next/navigation", () => ({
     push: pushMock,
     back: backMock,
   }),
+  useParams: () => ({}),
   useSearchParams: () => searchParams,
   usePathname: () => "/",
 }));
@@ -109,7 +187,7 @@ describe("Admin checkout estático", () => {
     render(<Checkout />);
     expect(screen.getByText(/Identificação/i)).toBeInTheDocument();
     expect(screen.getByText(/^Pagamento$/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Comprar agora/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Confirmar pagamento/i })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Pix|Cartão|Boleto/ }).length).toBeGreaterThanOrEqual(3);
   });
 });
@@ -316,8 +394,7 @@ describe("AdminTransacoes", () => {
     await user.click(screen.getByLabelText(/Filtrar/i));
     const drawer = await screen.findByTestId("filter-drawer");
     await user.click(within(drawer).getByLabelText(/Filtro de datas/i));
-    await user.click(within(drawer).getByLabelText(/Venda/i));
-    await user.click(within(drawer).getByLabelText(/Entrada/i));
+    await user.click(within(drawer).getByLabelText(/Transação/i));
     await user.click(within(drawer).getByLabelText(/Aprovado/i));
     await user.click(within(drawer).getByRole("button", { name: /Adicionar filtro/i }));
     expect(screen.queryByTestId("filter-drawer")).not.toBeInTheDocument();

@@ -10,7 +10,8 @@
     "lint": "next lint",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
-    "test": "jest --runInBand --coverage --passWithNoTests"
+    "test": "jest --runInBand --coverage --passWithNoTests --silent",
+    "test:debug": "jest --runInBand --coverage --passWithNoTests"
   },
   "dependencies": {
     "@internationalized/date": "^3.10.1",

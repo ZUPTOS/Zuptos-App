@@ -48,9 +48,15 @@ export default function TransactionsTab() {
 
       // 2. Search Filter (by ID or Description)
       if (searchTerm) {
-        const lowerTerm = searchTerm.toLowerCase();
-        const matchesId = (tx.id || tx.transaction_id || '').toLowerCase().includes(lowerTerm);
-        const matchesDesc = (tx.description || tx.product_name || '').toLowerCase().includes(lowerTerm);
+        // Users often copy the displayed code with a leading "#".
+        const normalizedTerm = searchTerm.toLowerCase().trim().replace(/#/g, "");
+        const matchesId = (tx.id || tx.transaction_id || "")
+          .toLowerCase()
+          .replace(/#/g, "")
+          .includes(normalizedTerm);
+        const matchesDesc = (tx.description || tx.product_name || "")
+          .toLowerCase()
+          .includes(normalizedTerm);
         if (!matchesId && !matchesDesc) return false;
       }
 

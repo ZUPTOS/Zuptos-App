@@ -123,7 +123,7 @@ describe("AuthContext", () => {
   it("usa valores padrão quando payload do token não contém identificadores no signIn", async () => {
     const token = buildToken({});
     (authApi.signIn as jest.Mock).mockResolvedValue({ access_token: token });
-    (authApi.getCurrentUser as jest.Mock).mockResolvedValueOnce(null);
+    (authApi.getCurrentUser as jest.Mock).mockResolvedValue(null);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
     await act(async () => {
@@ -190,6 +190,7 @@ describe("AuthContext", () => {
       access_token: "token",
       data: { user: { id: "abc", email: "long@example.com", username: "muito-longonome" } }
     });
+    (authApi.getCurrentUser as jest.Mock).mockResolvedValue(null);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
     await act(async () => {

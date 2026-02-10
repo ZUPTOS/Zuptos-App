@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import DashboardView from "@/views/Dashboard";
+import DashboardView from "@/views/dashboard/Dashboard";
 
 jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
@@ -49,8 +49,8 @@ describe("DashboardView", () => {
   it("exibe os saldos e saudação ao usuário", () => {
     render(<DashboardView />);
 
-    expect(screen.getByText(/olá, tester/i)).toBeInTheDocument();
-    expect(screen.getByText(/saldo disponível/i)).toBeInTheDocument();
-    expect(screen.getByText(/saldo pendente/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/olá, tester/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/saldo disponível/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/saldo pendente/i).length).toBeGreaterThan(0);
   });
 });

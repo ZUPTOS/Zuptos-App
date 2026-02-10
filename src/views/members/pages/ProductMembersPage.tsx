@@ -19,6 +19,7 @@ type ProductRow = {
 };
 
 const tabs = ["Produtos", "Alunos", "Configurações", "Personalização"] as const;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const buildRows = (products: MembersProduct[], perRow = 3): ProductRow[] => {
   const rows: ProductRow[] = [];
@@ -49,13 +50,20 @@ export default function ProductMembersPage({ areaId }: ProductMembersPageProps) 
     let isActive = true;
     setIsLoading(true);
 
-    const delay = 250 + Math.floor(Math.random() * 200);
     const timer = window.setTimeout(async () => {
-      const response = await listMembersProducts(areaId, 1, searchValue);
-      if (!isActive) return;
-      setProducts(response.data);
-      setIsLoading(false);
-    }, delay);
+      try {
+        const response = await listMembersProducts(areaId, 1, searchValue);
+        if (!isActive) return;
+        setProducts(response.data);
+      } catch (error) {
+        console.error("Erro ao carregar produtos da área de membros:", error);
+        if (!isActive) return;
+        setProducts([]);
+      } finally {
+        if (!isActive) return;
+        setIsLoading(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       isActive = false;
@@ -65,8 +73,8 @@ export default function ProductMembersPage({ areaId }: ProductMembersPageProps) 
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('[data-members-menu=\"true\"]')) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('[data-members-menu="true"]')) return;
       setOpenMenuId(null);
     };
     document.addEventListener("mousedown", handleClick);

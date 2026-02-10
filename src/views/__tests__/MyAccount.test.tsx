@@ -12,6 +12,18 @@ jest.mock("next/image", () => ({
   default: () => <span data-testid="mocked-image" />
 }));
 
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: {
+      fullName: "Zuptos",
+      email: "contato@zuptos.com",
+      accessType: "purchases",
+      status: "aprovado"
+    },
+    token: null
+  })
+}));
+
 describe("MyAccountView", () => {
   it("exibe as informações principais do usuário e o status da documentação", () => {
     render(<MyAccountView />);

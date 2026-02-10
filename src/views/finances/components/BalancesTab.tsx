@@ -172,8 +172,17 @@ export default function BalancesTab() {
                 {showAccountForm && (
                   <>
                     <div 
-                          className="fixed inset-0 z-40 bg-black/50" 
+                          className="fixed inset-0 z-40 bg-black/50"
+                      role="button"
+                      tabIndex={-1}
+                      aria-label="Fechar modal de conta bancária (overlay)"
                       onClick={closeAccountForm}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          closeAccountForm();
+                        }
+                      }}
                     />
                     <div 
                           className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] rounded-2xl bg-[#1a1a1a] p-4 sm:p-6 shadow-2xl transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto ${
@@ -190,6 +199,7 @@ export default function BalancesTab() {
                           type="button"
                           onClick={closeAccountForm}
                           className="text-gray-400 transition-colors hover:text-white"
+                          aria-label="Fechar modal de conta bancária"
                         >
                           <X className="h-6 w-6" />
                         </button>
