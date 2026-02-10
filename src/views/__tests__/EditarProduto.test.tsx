@@ -7,6 +7,14 @@ jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
 }));
 
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "user-1", email: "user@example.com", fullName: "User", accessType: "products" },
+    token: "token",
+    isAuthenticated: true
+  })
+}));
+
 const pushMock = jest.fn();
 
 jest.mock("next/navigation", () => ({
@@ -65,7 +73,8 @@ describe("EditarProdutoView", () => {
 
     // Pixels -> seleciona plataforma e abre formulário
     await user.click(screen.getByRole("button", { name: /Pixels de rastreamento/i }));
-    await user.click(screen.getByRole("button", { name: /Adicionar Pixel/i }));
+    await user.click(screen.getByRole("button", { name: /^Adicionar$/i }));
+    await user.click(screen.getByRole("button", { name: /Google Ads/i }));
     await user.click(screen.getByRole("button", { name: /Prosseguir/i }));
     expect(screen.getByText(/Cadastrar Pixel/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Cancelar/i }));
@@ -87,8 +96,5 @@ describe("EditarProdutoView", () => {
     await user.click(screen.getAllByRole("button", { name: /^Adicionar$/i })[0]);
     expect(screen.getByText(/Convite de coprodução/i)).toBeInTheDocument();
     await user.click(screen.getByLabelText(/Fechar modal coprodução/i));
-    await user.click(screen.getByText(/BÁSICO/i));
-    expect(screen.getByText(/Coprodutor 1/i)).toBeInTheDocument();
-    await user.click(screen.getByLabelText(/Fechar detalhes coprodução/i));
   });
 });

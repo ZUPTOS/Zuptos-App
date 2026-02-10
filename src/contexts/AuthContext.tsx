@@ -64,6 +64,39 @@ const normalizeUser = (rawUser: Partial<User> | null | undefined, fallbackEmail:
   };
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const looksLikeUserPayload = (value: unknown): value is Partial<User> => {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" ||
+    typeof value.email === "string" ||
+    typeof value.fullName === "string" ||
+    typeof value.username === "string"
+  );
+};
+
+const extractMeUserAndKyc = (
+  meResponse: unknown
+): { user: Partial<User> | null; kyc?: User["kyc"] } => {
+  if (!isRecord(meResponse)) return { user: null, kyc: undefined };
+
+  const root = meResponse;
+  const data = isRecord(root.data) ? root.data : undefined;
+
+  let user: Partial<User> | null = null;
+  if (data && looksLikeUserPayload(data.user)) user = data.user;
+  else if (looksLikeUserPayload(root.user)) user = root.user;
+  else if (data && looksLikeUserPayload(data)) user = data;
+  else if (looksLikeUserPayload(root)) user = root;
+
+  const kycCandidate = (data?.kyc ?? root.kyc) as unknown;
+  const kyc = isRecord(kycCandidate) ? (kycCandidate as User["kyc"]) : undefined;
+
+  return { user, kyc };
+};
+
 const logError = (...args: unknown[]) => {
   if (process.env.NODE_ENV !== "test") {
     // eslint-disable-next-line no-console
@@ -87,13 +120,21 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       const storedUser = localStorage.getItem('authUser');
 
       if (storedToken && storedUser) {
+        // Parse first so we don't keep a token in memory if the user payload is corrupted.
+        const parsedUser = JSON.parse(storedUser) as User;
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
+      } else if (storedToken || storedUser) {
+        // Inconsistent persisted session; reset.
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
       }
     } catch (error) {
       logError("⚠️ [AuthContext] Erro ao restaurar sessão:", error);
       localStorage.removeItem('authToken');
       localStorage.removeItem('authUser');
+      setToken(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -178,14 +219,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         try {
           const meResponse = await authApi.getCurrentUser(response.access_token);
           console.log("🔍 [AuthContext] /auth/me response on login:", meResponse);
-          const meKyc = (meResponse as { data?: { kyc?: User["kyc"] } })?.data?.kyc;
-          const meUser =
-            (meResponse as { data?: { user?: Partial<User>; kyc?: User["kyc"] }; user?: Partial<User> })
-              ?.data?.user ??
-            (meResponse as { user?: Partial<User> }).user ??
-            (meResponse as { data?: Partial<User> }).data ??
-            (meResponse as Partial<User>);
-          const meUserWithKyc = meKyc ? { ...meUser, kyc: meKyc } : meUser;
+          const { user: meUser, kyc: meKyc } = extractMeUserAndKyc(meResponse);
+          const meUserWithKyc = meUser && meKyc ? { ...meUser, kyc: meKyc } : meUser;
           const meUserWithKycStatus =
             meUserWithKyc && meKyc?.status ? { ...meUserWithKyc, status: meKyc.status } : meUserWithKyc;
           userData = normalizeUser(meUserWithKycStatus ?? userFromApi, credentials.email);
@@ -225,14 +260,9 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       if (!token) return;
       try {
         const meResponse = await authApi.getCurrentUser(token);
-        const meKyc = (meResponse as { data?: { kyc?: User["kyc"] } })?.data?.kyc;
-        const meUser =
-          (meResponse as { data?: { user?: Partial<User>; kyc?: User["kyc"] }; user?: Partial<User> })
-            ?.data?.user ??
-          (meResponse as { user?: Partial<User> }).user ??
-          (meResponse as { data?: Partial<User> }).data ??
-          (meResponse as Partial<User>);
-        const meUserWithKyc = meKyc ? { ...meUser, kyc: meKyc } : meUser;
+        const { user: meUser, kyc: meKyc } = extractMeUserAndKyc(meResponse);
+        if (!meUser?.id && !meUser?.email) return;
+        const meUserWithKyc = meUser && meKyc ? { ...meUser, kyc: meKyc } : meUser;
         const meUserWithKycStatus =
           meUserWithKyc && meKyc?.status ? { ...meUserWithKyc, status: meKyc.status } : meUserWithKyc;
         const normalized = normalizeUser(meUserWithKycStatus, meUser?.email || user?.email || "");

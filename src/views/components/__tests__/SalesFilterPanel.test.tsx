@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import SalesFilterPanel, { SalesFilters } from "@/views/components/SalesFilterPanel";
@@ -64,8 +64,14 @@ describe("SalesFilterPanel", () => {
     const onFiltersChange = jest.fn();
     render(<Wrapper onFiltersChange={onFiltersChange} />);
 
-    const dateInput = screen.getByLabelText(/intervalo de datas/i);
-    fireEvent.change(dateInput, { target: { value: "01/01/2024 - 05/01/2024" } });
+    await user.click(screen.getByRole("button", { name: /abrir filtro de datas/i }));
+    await user.click(screen.getByRole("button", { name: /ontem/i }));
+    expect(onFiltersChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dateFrom: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        dateTo: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
+      })
+    );
 
     await user.click(screen.getByRole("button", { name: /curso/i }));
     expect(onFiltersChange).toHaveBeenCalledWith({ tipos: ["Curso"] });

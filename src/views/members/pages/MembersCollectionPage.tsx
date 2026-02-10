@@ -20,6 +20,8 @@ const initialMeta: PaginationMeta = {
   totalPages: 1,
 };
 
+const SEARCH_DEBOUNCE_MS = 400;
+
 export default function MembersCollectionPage() {
   const { user } = useAuth();
   const [membersAreas, setMembersAreas] = useState<MembersArea[]>([]);
@@ -39,14 +41,22 @@ export default function MembersCollectionPage() {
     let isActive = true;
     setIsLoading(true);
 
-    const delay = 300 + Math.floor(Math.random() * 300);
     const timer = window.setTimeout(async () => {
-      const response = await listMembersAreas(currentPage, searchValue);
-      if (!isActive) return;
-      setMembersAreas(response.data);
-      setMeta(response.meta);
-      setIsLoading(false);
-    }, delay);
+      try {
+        const response = await listMembersAreas(currentPage, searchValue);
+        if (!isActive) return;
+        setMembersAreas(response.data);
+        setMeta(response.meta);
+      } catch (error) {
+        console.error("Erro ao carregar áreas de membros:", error);
+        if (!isActive) return;
+        setMembersAreas([]);
+        setMeta(initialMeta);
+      } finally {
+        if (!isActive) return;
+        setIsLoading(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       isActive = false;

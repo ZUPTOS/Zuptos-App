@@ -23,7 +23,16 @@ const customJestConfig: Config = {
     "!src/modules/auth/views/*"
   ],
   coverageDirectory: "coverage",
-  coverageReporters: ["lcov", "text", "text-summary"] satisfies Config["coverageReporters"],
+  coverageReporters: ["lcov", "json-summary", "text", "text-summary"] satisfies Config["coverageReporters"],
+  // Baseline to prevent coverage regressions. Increase gradually as the suite grows.
+  coverageThreshold: {
+    global: {
+      statements: 40,
+      branches: 20,
+      functions: 35,
+      lines: 40,
+    },
+  } satisfies Config["coverageThreshold"],
   reporters: [
     "default",
     [

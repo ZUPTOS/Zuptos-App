@@ -61,8 +61,8 @@ describe("SalesView", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Buscar por CPF/i)).toBeInTheDocument();
 
-    const saleRow = await screen.findByText("sale-uuid-1234");
-    await user.click(saleRow);
+    const saleIdCell = await screen.findByTitle("sale-uuid-1234");
+    await user.click(saleIdCell);
     expect(screen.getByTestId("detail-panel")).toHaveTextContent("sale-uuid-1234");
   });
 });

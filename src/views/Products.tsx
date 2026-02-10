@@ -180,17 +180,6 @@ export default function Products() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
-  const resolveUserId = useCallback(() => {
-    if (user?.id) return user.id;
-    const stored = typeof window !== "undefined" ? localStorage.getItem("authUser") : null;
-    if (!stored) return undefined;
-    try {
-      const parsed = JSON.parse(stored) as { id?: string };
-      return parsed.id;
-    } catch {
-      return undefined;
-    }
-  }, [user?.id]);
 
   const handleOverlayKeyDown = (
     event: React.KeyboardEvent<HTMLDivElement>,
@@ -354,7 +343,7 @@ export default function Products() {
   }, [newProductDescription]);
 
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     if (!token) {
       setLoadError("Sua sessão expirou. Faça login novamente.");
       setProducts([]);
@@ -386,12 +375,11 @@ export default function Products() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, token]);
 
   useEffect(() => {
     void loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolveUserId, token, user, currentPage, itemsPerPage]);
+  }, [loadProducts]);
 
   return (
     <>

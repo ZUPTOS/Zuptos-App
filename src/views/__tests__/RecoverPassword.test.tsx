@@ -4,6 +4,12 @@ import RecoverPasswordView from "@/modules/auth/views/RecoverPassword";
 
 const pushMock = jest.fn();
 
+jest.mock("@/lib/api", () => ({
+  authApi: {
+    recoverPassword: jest.fn().mockResolvedValue({})
+  }
+}));
+
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock })
 }));

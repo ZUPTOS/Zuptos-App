@@ -13,6 +13,11 @@ jest.mock("@/shared/components/layout/Header", () => ({
   )
 }));
 
+jest.mock("@/shared/components/KycReminder", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 describe("DashboardLayout", () => {
   it("renderiza a sidebar, header e os filhos", () => {
     render(

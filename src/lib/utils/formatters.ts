@@ -27,7 +27,7 @@ export const formatDocument = (value: string): string => {
  * Masks a phone number as (00) 0000-0000 or (00) 00000-0000
  */
 export const formatPhone = (value: string): string => {
-  const digits = value.slice(0, 11).replace(/\D/g, "");
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   
   if (digits.length > 10) {
     // Mobile: (11) 91234-5678

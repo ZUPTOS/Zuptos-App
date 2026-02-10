@@ -12,6 +12,86 @@ import AdminSaques from "@/modules/admin/views/AdminSaques";
 import AdminSaquesDetalhes from "@/modules/admin/views/AdminSaquesDetalhes";
 import AdminUsuarios from "@/modules/admin/views/AdminUsuarios";
 
+jest.mock("@/modules/admin/hooks", () => ({
+  useAdminProducts: () => {
+    const products = [
+      {
+        id: "1",
+        name: "Produto 01",
+        typeLabel: "Curso",
+        produtor: "Produtor",
+        email: "produtor@example.com",
+        telefone: "(11) 99999-9999",
+        suporte: "suporte@example.com",
+        statusLabel: "Aprovado",
+      },
+      {
+        id: "2",
+        name: "Produto 02",
+        typeLabel: "E-book",
+        produtor: "Produtor",
+        email: "ebook@example.com",
+        telefone: "(11) 99999-9999",
+        suporte: "suporte@example.com",
+        statusLabel: "Aprovado",
+      },
+    ];
+
+    return {
+      products,
+      summary: { total: products.length, totalRevenue: 1234.56 },
+      isLoading: false,
+    };
+  },
+  useAdminUsers: () => ({
+    users: [
+      {
+        id: "user-1",
+        name: "User 01",
+        email: "user01@example.com",
+        document: "00000000000",
+        statusLabel: "Aprovado",
+        totalLabel: "R$ 100,00",
+        taxLabel: "0%",
+      },
+    ],
+    summary: { total: 1, active: 1, pending: 0, suspended: 0 },
+    isLoading: false,
+  }),
+  useAdminUserDetail: () => ({
+    detail: null,
+    rawUser: null,
+    isLoading: false,
+    reload: jest.fn(),
+  }),
+  useAdminProductDetail: () => ({
+    detail: null,
+    rawProduct: null,
+    isLoading: false,
+    reload: jest.fn(),
+  }),
+}));
+
+jest.mock("@/modules/admin/hooks/useAdminFinanceList", () => ({
+  useAdminFinanceList: () => ({
+    finances: [
+      {
+        id: "finance-1",
+        userId: "user-1",
+        userName: "User 01",
+        userEmail: "user01@example.com",
+        type: "transaction",
+        amount: 100,
+        fee: 10,
+        netAmount: 90,
+        status: "completed",
+        created_at: new Date().toISOString(),
+      },
+    ],
+    isLoading: false,
+  }),
+}));
+
 jest.mock("recharts", () => {
   const MockContainer = ({ children }: { children?: ReactNode }) => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,16 +119,6 @@ jest.mock("@/shared/components/DateFilter", () => ({
 jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
-}));
-
-const pushMock = jest.fn();
-const backMock = jest.fn();
-
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: pushMock,
-    back: backMock,
-  }),
 }));
 
 const setAuthUser = () => {
@@ -115,7 +185,7 @@ describe("Admin views", () => {
     renderWithAuth(<AdminTransacoes />);
     expect(screen.getByText(/Transações totais/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Buscar id/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/R\$ /i)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/R\$/i).length).toBeGreaterThan(0);
   });
 
   it("renderiza AdminTransacoesDetalhes com painel completo", () => {

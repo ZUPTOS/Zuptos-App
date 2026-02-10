@@ -16,6 +16,26 @@ if (typeof window !== "undefined") {
 (globalThis as any).ResizeObserver =
   globalThis.ResizeObserver || ResizeObserver;
 
+// jsdom doesn't provide fetch by default. Provide a stub that fails fast so network
+// calls are explicit in tests (mock per-test or mock the API layer).
+if (typeof (globalThis as any).fetch === "undefined") {
+  (globalThis as any).fetch = jest.fn(async () => {
+    throw new Error("fetch is not mocked in tests");
+  });
+}
+
+// Some parts of the app use blob previews (e.g. file inputs). jsdom doesn't implement these.
+if (typeof URL !== "undefined") {
+  if (typeof URL.createObjectURL !== "function") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).createObjectURL = jest.fn(() => "blob:mock");
+  }
+  if (typeof URL.revokeObjectURL !== "function") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).revokeObjectURL = jest.fn();
+  }
+}
+
 jest.mock("next/image", () => ({
   __esModule: true,
   default: ({
@@ -45,6 +65,7 @@ jest.mock("next/navigation", () => {
     useRouter: () => mockRouter,
     usePathname: () => "/",
     useSearchParams: () => new URLSearchParams(),
+    useParams: () => ({}),
     useSelectedLayoutSegments: () => []
   };
 });

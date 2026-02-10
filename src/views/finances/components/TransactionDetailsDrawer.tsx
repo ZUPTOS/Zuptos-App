@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Transaction } from '@/lib/api-types';
 import { formatCurrency } from '@/lib/utils/currency';
@@ -20,6 +21,16 @@ interface TransactionDetailsDrawerProps {
 }
 
 export default function TransactionDetailsDrawer({ isOpen, onClose, transaction }: TransactionDetailsDrawerProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !transaction) return null;
 
   const formatDate = (dateString: string) => {
@@ -56,7 +67,16 @@ export default function TransactionDetailsDrawer({ isOpen, onClose, transaction 
       {/* Overlay */}
       <div 
         className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+        role="button"
+        tabIndex={-1}
+        aria-label="Fechar modal de detalhes (overlay)"
         onClick={onClose}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onClose();
+          }
+        }}
       />
 
       {/* Drawer */}
