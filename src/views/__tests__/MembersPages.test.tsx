@@ -2,6 +2,7 @@ import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MembersCollectionPage from "@/views/members/pages/MembersCollectionPage";
 import ProductMembersPage from "@/views/members/pages/ProductMembersPage";
+import ProductMemberEditPage from "@/views/members/pages/ProductMemberEditPage";
 
 jest.mock("@/shared/components/layout/DashboardLayout", () => ({
   __esModule: true,
@@ -15,7 +16,10 @@ jest.mock("@/contexts/AuthContext", () => ({
 }));
 
 jest.mock("@/lib/api", () => ({
+  __esModule: true,
+  ...jest.requireActual("@/lib/api"),
   productApi: {
+    ...jest.requireActual("@/lib/api").productApi,
     listProducts: jest.fn(),
   },
 }));
@@ -81,6 +85,25 @@ describe("Members pages", () => {
 
     await user.click(screen.getByRole("button", { name: /Voltar para áreas de membros/i }));
     expect(pushMock).toHaveBeenCalledWith("/members");
+  });
+
+  it("ProductMembersPage: clicar no card navega para edição do produto na área de membros", async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<ProductMembersPage areaId="members-area-1" />);
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(await screen.findByText("Gestão de Tráfego 1")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /Abrir produto Gestão de Tráfego 1/i })
+    );
+
+    expect(pushMock).toHaveBeenCalledWith(
+      "/members/members-area-1/products/members-area-1-product-1"
+    );
   });
 
   it("ProductMembersPage: abre modais de importar/layout/remover e atualiza lista", async () => {
@@ -235,6 +258,95 @@ describe("Members pages", () => {
     const removeDialog2 = await screen.findByRole("dialog");
     await user.click(within(removeDialog2).getByRole("button", { name: /Sim, remover/i }));
     expect(screen.queryByText("Bruno Dias")).not.toBeInTheDocument();
+  });
+
+  it("ProductMemberEditPage: renderiza header e permite trocar abas", async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(
+      <ProductMemberEditPage
+        areaId="members-area-1"
+        productId="members-area-1-product-1"
+      />
+    );
+
+    expect(await screen.findByText("Gestão de Tráfego 1")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Módulos" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: /Buscar módulos/i })).toBeInTheDocument();
+
+    const moduleCard = screen.getByRole("button", { name: /Abrir módulo module-1/i });
+    await user.click(moduleCard);
+    expect(moduleCard).toHaveAttribute("aria-expanded", "true");
+    expect(within(moduleCard).getByRole("button", { name: "Mostrar" })).toBeInTheDocument();
+
+    await user.click(
+      within(moduleCard).getByRole("button", { name: /Abrir menu da aula do module-1/i })
+    );
+    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Excluir" }).length).toBeGreaterThanOrEqual(2);
+
+    act(() => {
+      document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Excluir" })).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Turmas" }));
+    expect(screen.getByRole("heading", { name: "Turmas" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Área de membros" }));
+    expect(screen.queryByRole("button", { name: "Comentários" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ofertas" }));
+    expect(screen.getByRole("heading", { name: "Ofertas" })).toBeInTheDocument();
+  });
+
+  it("ProductMembersPage: tab Configurações renderiza e permite alterar campos", async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<ProductMembersPage areaId="members-area-1" />);
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    await user.click(screen.getByRole("button", { name: "Configurações" }));
+
+    expect(screen.getByText(/Tipo de área de membros/i)).toBeInTheDocument();
+    expect(screen.getByText(/Proteção anti pirataria/i)).toBeInTheDocument();
+
+    const liteCard = screen.getByRole("button", { name: /Lite/i });
+    const completoCard = screen.getByRole("button", { name: /Completo/i });
+
+    expect(completoCard).toHaveAttribute("aria-pressed", "true");
+    await user.click(liteCard);
+    expect(liteCard).toHaveAttribute("aria-pressed", "true");
+    expect(completoCard).toHaveAttribute("aria-pressed", "false");
+
+    const commentsSwitch = screen.getByRole("switch", { name: /Ativar comentários/i });
+    expect(commentsSwitch).toHaveAttribute("aria-checked", "true");
+    await user.click(commentsSwitch);
+    expect(commentsSwitch).toHaveAttribute("aria-checked", "false");
+
+    const blockCopySwitch = screen.getByRole("switch", { name: /Bloquear Ctrl/i });
+    expect(blockCopySwitch).toHaveAttribute("aria-checked", "true");
+    await user.click(blockCopySwitch);
+    expect(blockCopySwitch).toHaveAttribute("aria-checked", "false");
+
+    const languageTrigger = screen.getByRole("combobox", {
+      name: /Idioma da área de membros/i,
+    });
+    await user.click(languageTrigger);
+    const listbox = await screen.findByRole("listbox");
+    await user.click(within(listbox).getByRole("option", { name: "English" }));
+    expect(
+      screen.getByRole("combobox", { name: /Idioma da área de membros/i })
+    ).toHaveTextContent("English");
+
+    const emailInput = screen.getByLabelText(/E-mail de suporte/i);
+    await user.type(emailInput, "suporte@zuptos.com");
+    expect(emailInput).toHaveValue("suporte@zuptos.com");
+
+    await user.click(screen.getByRole("button", { name: /Salvar alterações/i }));
+    await user.click(screen.getByRole("button", { name: /Excluir área de membros/i }));
   });
 
   it("MembersCollectionPage: pagina, abre e fecha modal de criação", async () => {

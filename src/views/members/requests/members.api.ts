@@ -126,3 +126,11 @@ export const listMembersProducts = async (
     meta: buildMeta(safePage, PRODUCTS_PER_PAGE, totalItems),
   };
 };
+
+export const getMembersProductById = async (
+  areaId: string,
+  productId: string
+): Promise<MembersProduct | null> => {
+  const allProducts = buildMockProductsByArea(areaId);
+  return allProducts.find((product) => product.id === productId) ?? null;
+};
